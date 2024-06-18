@@ -9,7 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="bin\Debug\net8.0-windows\DXF\ACAD-SP1-21 Points.dxf" />
+    <None Include="bin\Debug\net8.0-windows\DXF\ACAD-SP1-21 Points.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
