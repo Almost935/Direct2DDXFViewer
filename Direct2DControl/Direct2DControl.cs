@@ -252,7 +252,7 @@ namespace Direct2DControl
             {
                 return;
             }
-
+            
             d2DRenderTarget.BeginDraw();
             Render(d2DRenderTarget);
             d2DRenderTarget.EndDraw();

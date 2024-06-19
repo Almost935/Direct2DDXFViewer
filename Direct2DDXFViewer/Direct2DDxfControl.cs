@@ -26,7 +26,7 @@ namespace Direct2DDXFViewer
     public class Direct2DDxfControl : Direct2DControl.Direct2DControl, INotifyPropertyChanged
     {
         #region Fields
-        private System.Windows.Media.Matrix matrix = new();
+        private Matrix matrix = new();
         private Point lastTranslatePos = new();
         private float currentThickness = 0.5f;
         private bool dxfLoaded = false;
@@ -130,23 +130,23 @@ namespace Direct2DDXFViewer
             else
             {
                 Matrix matrix = new Matrix();
+                
+                double scaleX = this.ActualWidth / Extents.Width;
+                double scaleY = this.ActualHeight / Extents.Height;
 
-                double raWidth = resCache.RenderTarget.Size.Width; 
-                double raHeight = resCache.RenderTarget.Size.Height;
-
-                double scaleX = raWidth / Extents.Width;
-                double scaleY = raHeight / Extents.Height;
-
-                Point center = new((extents.X - extents.Width / 2), (extents.Y - extents.Height / 2));
-                matrix.Translate(center.X, center.Y);
+                double centerX = Extents.Left - (this.ActualWidth - Extents.Width) * 0.5;
+                double centerY = Extents.Top - (this.ActualHeight - Extents.Height) * 0.5;
+                matrix.Translate(-centerX, -centerY);
 
                 if (scaleX < scaleY)
                 {
-                    matrix.ScaleAt(scaleX, scaleX, center.X, center.Y);
+                    matrix.ScaleAt(scaleX, -scaleX, this.ActualWidth / 2, this.ActualHeight / 2);
+                    currentThickness /= (float)scaleX;
                 }
                 else
                 {
-                    matrix.ScaleAt(scaleY, scaleY, center.X, center.Y);
+                    matrix.ScaleAt(scaleY, -scaleY, this.ActualWidth / 2, this.ActualHeight / 2);
+                    currentThickness /= (float)scaleY;
                 }
 
                 return matrix;
@@ -157,29 +157,41 @@ namespace Direct2DDXFViewer
         {
             target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
             Brush brush = resCache["BlackBrush"] as Brush;
-
+            
             if (!dxfLoaded)
             {
                 LoadDxf();
                 matrix = GetInitialMatrix();
             }
 
-            foreach (var line in DxfDoc.Entities.Lines)
-            {
-                PathGeometry pathGeometry = new(resCache.Factory);
-                var sink = pathGeometry.Open();
-                sink.BeginFigure(new RawVector2((float)line.StartPoint.X, (float)line.StartPoint.Y), FigureBegin.Filled);
-                sink.AddLine(new RawVector2((float)line.EndPoint.X, (float)line.EndPoint.Y));
-                sink.EndFigure(FigureEnd.Open);
-                sink.Close();
-                sink.Dispose();
-
-                target.DrawGeometry(pathGeometry, brush, currentThickness);
-            }
-
-
             target.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
            (float)matrix.OffsetX, (float)matrix.OffsetY);
+
+            Rect currentViewRect = new(800, 4800, 200, 1200);
+            //currentViewRect.Transform(matrix);
+            target.PushAxisAlignedClip(new RawRectangleF((float)currentViewRect.Left, (float)currentViewRect.Top, 
+                (float)currentViewRect.Width, (float)currentViewRect.Height), 
+                AntialiasMode.PerPrimitive);
+
+            foreach (var line in DxfDoc.Entities.Lines)
+            {
+                DxfHelpers.DrawLine(line, target.Factory, target, brush, currentThickness);
+            }
+            foreach (var arc in DxfDoc.Entities.Arcs)
+            {
+                DxfHelpers.DrawArc(arc, target.Factory, target, brush, currentThickness);
+            }
+            foreach (var pline in DxfDoc.Entities.Polylines2D)
+            {
+                DxfHelpers.DrawPolyline(pline, target.Factory, target, brush, currentThickness);
+            }
+            foreach (var pline in DxfDoc.Entities.Polylines3D)
+            {
+                DxfHelpers.DrawPolyline(pline, target.Factory, target, brush, currentThickness);
+            }
+
+            target.PopAxisAlignedClip();
+
             NeedsUpdate = true;
         }
 
