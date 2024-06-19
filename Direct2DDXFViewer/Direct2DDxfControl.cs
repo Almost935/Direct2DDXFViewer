@@ -27,9 +27,11 @@ namespace Direct2DDXFViewer
     {
         #region Fields
         private Matrix matrix = new();
+        private bool isPanning = false;
         private Point lastTranslatePos = new();
         private float currentThickness = 0.5f;
         private bool dxfLoaded = false;
+        private Rect currentView = new();
 
         private DxfDocument dxfDoc;
         private string filePath = @"DXF\ACAD-SP1-21 Points.dxf";
@@ -167,11 +169,14 @@ namespace Direct2DDXFViewer
             target.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
            (float)matrix.OffsetX, (float)matrix.OffsetY);
 
-            Rect currentViewRect = new(800, 4800, 200, 1200);
-            //currentViewRect.Transform(matrix);
-            target.PushAxisAlignedClip(new RawRectangleF((float)currentViewRect.Left, (float)currentViewRect.Top, 
-                (float)currentViewRect.Width, (float)currentViewRect.Height), 
+            UpdateCurrentView();
+
+            target.PushAxisAlignedClip(new RawRectangleF((float)currentView.Left, (float)currentView.Top,
+                (float)currentView.Right, (float)currentView.Bottom),
                 AntialiasMode.PerPrimitive);
+
+            target.DrawRectangle(new RawRectangleF((float)currentView.Left, (float)currentView.Top, 
+                (float)currentView.Right, (float)currentView.Bottom), brush, currentThickness * 2);
 
             foreach (var line in DxfDoc.Entities.Lines)
             {
@@ -189,9 +194,7 @@ namespace Direct2DDXFViewer
             {
                 DxfHelpers.DrawPolyline(pline, target.Factory, target, brush, currentThickness);
             }
-
             target.PopAxisAlignedClip();
-
             NeedsUpdate = true;
         }
 
@@ -216,12 +219,7 @@ namespace Direct2DDXFViewer
         {
             PointerCoords = e.GetPosition(this);
 
-            // Update DxfPointerCoords in background thread
-            BackgroundWorker bw = new();
-            bw.DoWork += UpdateDxfPointerCoords;
-            bw.RunWorkerAsync();
-
-            if (e.MiddleButton == MouseButtonState.Pressed)
+            if (isPanning)
             {
                 var translate = PointerCoords - lastTranslatePos;
 
@@ -231,6 +229,11 @@ namespace Direct2DDXFViewer
 
                 NeedsUpdate = true;
             }
+
+            // Update DxfPointerCoords in background thread
+            BackgroundWorker bw = new();
+            bw.DoWork += UpdateDxfPointerCoords;
+            bw.RunWorkerAsync();
         }
 
         private void UpdateDxfPointerCoords(object? sender, DoWorkEventArgs e)
@@ -238,14 +241,32 @@ namespace Direct2DDXFViewer
             var newMatrix = matrix;
             newMatrix.Invert();
             DxfPointerCoords = newMatrix.Transform(PointerCoords);
-            //newMatrix.Transform(DxfPointerCoords);
         }
 
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Middle)
             {
+                isPanning = true;
                 lastTranslatePos = e.GetPosition(this);
+            }
+        }
+        protected override void OnMouseUp(MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Middle)
+            {
+                isPanning = false;
+            }
+        }
+        protected override void OnMouseLeave(MouseEventArgs e)
+        {
+            isPanning = false;
+        }
+        protected override void OnMouseEnter(MouseEventArgs e)
+        {
+            if (Mouse.MiddleButton == MouseButtonState.Pressed)
+            {
+                isPanning = true;
             }
         }
 
@@ -256,6 +277,7 @@ namespace Direct2DDXFViewer
 
             resCache.RenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
                 (float)matrix.OffsetX, (float)matrix.OffsetY);
+            UpdateCurrentView();
         }
         private void UpdateTranslate(Vector translate)
         {
@@ -263,6 +285,18 @@ namespace Direct2DDXFViewer
 
             resCache.RenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
             (float)matrix.OffsetX, (float)matrix.OffsetY);
+            UpdateCurrentView();
+        }
+        private void UpdateCurrentView()
+        {
+            if (resCache.RenderTarget is not null)
+            {
+                currentView = new(0, 0, resCache.RenderTarget.Size.Width, resCache.RenderTarget.Size.Height);
+                var rawMatrix = resCache.RenderTarget.Transform;
+                Matrix matrix = new(rawMatrix.M11, rawMatrix.M12, rawMatrix.M21, rawMatrix.M22, rawMatrix.M31, rawMatrix.M32);
+                matrix.Invert();
+                currentView.Transform(matrix);
+            }
         }
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
