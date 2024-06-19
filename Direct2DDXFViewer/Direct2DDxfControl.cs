@@ -12,8 +12,13 @@ using System.Windows;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Collections.ObjectModel;
+using System.Windows.Media;
 
 using Point = System.Windows.Point;
+using Brush = SharpDX.Direct2D1.Brush;
+using Geometry = SharpDX.Direct2D1.Geometry;
+using SolidColorBrush = SharpDX.Direct2D1.SolidColorBrush;
+using PathGeometry = SharpDX.Direct2D1.PathGeometry;
 
 
 namespace Direct2DDXFViewer
@@ -26,21 +31,22 @@ namespace Direct2DDXFViewer
         private float currentThickness = 0.5f;
         private bool dxfLoaded = false;
 
-        private DxfObject dxfObject;
+        private DxfDocument dxfDoc;
         private string filePath = @"DXF\ACAD-SP1-21 Points.dxf";
         private Point pointerCoords = new();
         private Point dxfPointerCoords = new();
         private List<Geometry> geometries = new();
+        private Rect extents = new();
         #endregion
 
         #region Properties
-        public DxfObject DxfObject
+        public DxfDocument DxfDoc
         {
-            get { return dxfObject; }
+            get { return dxfDoc; }
             set
             {
-                dxfObject = value;
-                OnPropertyChanged(nameof(DxfObject));
+                dxfDoc = value;
+                OnPropertyChanged(nameof(DxfDoc));
             }
         }
         public string FilePath
@@ -79,6 +85,15 @@ namespace Direct2DDXFViewer
                 OnPropertyChanged(nameof(Geometries));
             }
         }
+        public Rect Extents
+        {
+            get { return extents; }
+            set
+            {
+                extents = value;
+                OnPropertyChanged(nameof(Extents));
+            }
+        }
         #endregion
 
         #region Constructor
@@ -98,7 +113,44 @@ namespace Direct2DDXFViewer
         #region Methods
         public void LoadDxf()
         {
-            DxfObject = new(FilePath);
+            DxfDoc = DxfDocument.Load(FilePath);
+            if (DxfDoc is not null)
+            {
+                dxfLoaded = true;
+
+                Extents = DxfHelpers.GetExtentsFromHeader(DxfDoc);
+            }
+        }
+        public Matrix GetInitialMatrix()
+        {
+            if (Extents == Rect.Empty)
+            {
+                return new Matrix();
+            }
+            else
+            {
+                Matrix matrix = new Matrix();
+
+                double raWidth = resCache.RenderTarget.Size.Width; 
+                double raHeight = resCache.RenderTarget.Size.Height;
+
+                double scaleX = raWidth / Extents.Width;
+                double scaleY = raHeight / Extents.Height;
+
+                Point center = new((extents.X - extents.Width / 2), (extents.Y - extents.Height / 2));
+                matrix.Translate(center.X, center.Y);
+
+                if (scaleX < scaleY)
+                {
+                    matrix.ScaleAt(scaleX, scaleX, center.X, center.Y);
+                }
+                else
+                {
+                    matrix.ScaleAt(scaleY, scaleY, center.X, center.Y);
+                }
+
+                return matrix;
+            }
         }
 
         public override void Render(RenderTarget target)
@@ -108,55 +160,23 @@ namespace Direct2DDXFViewer
 
             if (!dxfLoaded)
             {
-                DxfDocument doc = DxfDocument.Load(FilePath);
-
-                foreach (var line in doc.Entities.Lines)
-                {
-                    PathGeometry pathGeometry = new(resCache.Factory);
-                    var sink = pathGeometry.Open();
-                    sink.BeginFigure(new RawVector2((float)line.StartPoint.X, (float)line.StartPoint.Y), FigureBegin.Filled);
-                    sink.AddLine(new RawVector2((float)line.EndPoint.X, (float)line.EndPoint.Y));
-                    sink.EndFigure(FigureEnd.Closed);
-                    sink.Close();
-                    sink.Dispose();
-
-                    //Geometries.Add(pathGeometry);
-
-                    target.DrawGeometry(pathGeometry, brush, currentThickness);
-                }
-
-                dxfLoaded = true;
+                LoadDxf();
+                matrix = GetInitialMatrix();
             }
 
-            //foreach (var geometry in Geometries)
-            //{
-            //    target.DrawGeometry(geometry, brush, currentThickness);
-            //}
+            foreach (var line in DxfDoc.Entities.Lines)
+            {
+                PathGeometry pathGeometry = new(resCache.Factory);
+                var sink = pathGeometry.Open();
+                sink.BeginFigure(new RawVector2((float)line.StartPoint.X, (float)line.StartPoint.Y), FigureBegin.Filled);
+                sink.AddLine(new RawVector2((float)line.EndPoint.X, (float)line.EndPoint.Y));
+                sink.EndFigure(FigureEnd.Open);
+                sink.Close();
+                sink.Dispose();
 
-            //for (int i = 0; i < 2000; i += 4)
-            //{
-            //PathGeometry pathGeometry = new(resCache.Factory);
-            //var sink = pathGeometry.Open();
-            //sink.BeginFigure(new RawVector2(i, 0), FigureBegin.Filled);
-            //sink.AddLine(new RawVector2(i, 2000));
-            //sink.EndFigure(FigureEnd.Closed);
-            //sink.Close();
-            //sink.Dispose();
+                target.DrawGeometry(pathGeometry, brush, currentThickness);
+            }
 
-            //    target.DrawGeometry(pathGeometry, brush, currentThickness);
-            //}
-            //for (int i = 0; i < 2000; i += 4)
-            //{
-            //    PathGeometry pathGeometry = new(resCache.Factory);
-            //    var sink = pathGeometry.Open();
-            //    sink.BeginFigure(new RawVector2(0, i), FigureBegin.Filled);
-            //    sink.AddLine(new RawVector2(2000, i));
-            //    sink.EndFigure(FigureEnd.Closed);
-            //    sink.Close();
-            //    sink.Dispose();
-
-            //    target.DrawGeometry(pathGeometry, brush, currentThickness);
-            //}
 
             target.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
            (float)matrix.OffsetX, (float)matrix.OffsetY);
