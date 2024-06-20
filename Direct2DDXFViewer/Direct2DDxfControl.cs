@@ -175,25 +175,25 @@ namespace Direct2DDXFViewer
                 (float)currentView.Right, (float)currentView.Bottom),
                 AntialiasMode.PerPrimitive);
 
-            target.DrawRectangle(new RawRectangleF((float)currentView.Left, (float)currentView.Top, 
-                (float)currentView.Right, (float)currentView.Bottom), brush, currentThickness * 2);
-
             foreach (var line in DxfDoc.Entities.Lines)
             {
-                SolidColorBrush brush = new(new RawColor4(0.0f, 0.0f, 0.0f, 1.0f))
-                DxfHelpers.DrawLine(line, target.Factory, target, brush, currentThickness);
+                DxfHelpers.DrawLine(line, target.Factory, target, currentThickness);
             }
             foreach (var arc in DxfDoc.Entities.Arcs)
             {
-                DxfHelpers.DrawArc(arc, target.Factory, target, brush, currentThickness);
+                DxfHelpers.DrawArc(arc, target.Factory, target, currentThickness);
             }
             foreach (var pline in DxfDoc.Entities.Polylines2D)
             {
-                DxfHelpers.DrawPolyline(pline, target.Factory, target, brush, currentThickness);
+                DxfHelpers.DrawPolyline(pline, target.Factory, target, currentThickness);
             }
             foreach (var pline in DxfDoc.Entities.Polylines3D)
             {
-                DxfHelpers.DrawPolyline(pline, target.Factory, target, brush, currentThickness);
+                DxfHelpers.DrawPolyline(pline, target.Factory, target, currentThickness);
+            }
+            foreach (var circle in DxfDoc.Entities.Circles)
+            {
+                DxfHelpers.DrawCircle(circle, target.Factory, target, currentThickness);
             }
             target.PopAxisAlignedClip();
             NeedsUpdate = true;
