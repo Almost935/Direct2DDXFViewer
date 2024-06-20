@@ -158,7 +158,7 @@ namespace Direct2DDXFViewer
         public override void Render(RenderTarget target)
         {
             target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
-            Brush brush = resCache["BlackBrush"] as Brush;
+            //Brush brush = resCache["BlackBrush"] as Brush;
             
             if (!dxfLoaded)
             {
@@ -180,6 +180,7 @@ namespace Direct2DDXFViewer
 
             foreach (var line in DxfDoc.Entities.Lines)
             {
+                SolidColorBrush brush = new(new RawColor4(0.0f, 0.0f, 0.0f, 1.0f))
                 DxfHelpers.DrawLine(line, target.Factory, target, brush, currentThickness);
             }
             foreach (var arc in DxfDoc.Entities.Arcs)
