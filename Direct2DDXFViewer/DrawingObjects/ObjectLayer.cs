@@ -13,7 +13,8 @@ namespace Direct2DDXFViewer.DrawingObjects
     {
         #region Fields
         private string _name;
-        private List<DrawingObject> _geometries;
+        private List<DrawingObject> _drawingObjects = new();
+        private bool isVisible = true;
         #endregion
 
         #region Properties
@@ -26,13 +27,22 @@ namespace Direct2DDXFViewer.DrawingObjects
                 OnPropertyChanged(nameof(Name));
             }
         }
-        public List<DrawingObject> Geometries
+        public List<DrawingObject> DrawingObjects
         {
-            get { return _geometries; }
+            get { return _drawingObjects; }
             set
             {
-                _geometries = value;
-                OnPropertyChanged(nameof(Geometries));
+                _drawingObjects = value;
+                OnPropertyChanged(nameof(DrawingObjects));
+            }
+        }
+        public bool IsVisible
+        {
+            get { return isVisible; }
+            set
+            {
+                isVisible = value;
+                OnPropertyChanged(nameof(IsVisible));
             }
         }
         #endregion

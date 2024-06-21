@@ -53,12 +53,13 @@ namespace Direct2DDXFViewer
                 return Rect.Empty;
             }
         }
-        public static List<ObjectLayer> GetLayers(DxfDocument dxfDocument, ObjectLayerManager layerManager)
+        public static ObjectLayerManager GetLayers(DxfDocument dxfDocument)
         {
-            List<ObjectLayer> layers = new();
+            ObjectLayerManager layerManager = new();
+
             foreach (var dxfLayer in dxfDocument.Layers)
             {
-                ObjectLayer layer = new ObjectLayer() 
+                ObjectLayer layer = new() 
                 {
                     Name = dxfLayer.Name,
                 };
@@ -66,17 +67,36 @@ namespace Direct2DDXFViewer
                 layerManager.Layers.Add(layer.Name, layer);
             }
 
-            return layers;
+            return layerManager;
+        }
+        public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory factory, RenderTarget target)
+        {
+            foreach (var e in dxfDocument.Entities.Lines)
+            {
+                DrawingLine drawingLine = new(e, factory, target);
+                drawingLine.UpdateGeometry();
+
+                if (!layerManager.Layers.ContainsKey(e.Layer.Name))
+                {
+                    ObjectLayer objectLayer = new()
+                    {
+                        Name = e.Layer.Name
+                    };
+                    objectLayer.DrawingObjects.Add(drawingLine);
+                }
+                else
+                {
+                    ObjectLayer objectLayer = layerManager.Layers[e.Layer.Name];
+                    objectLayer.DrawingObjects.Add(drawingLine);
+                }
+            }
         }
 
-        public static void DrawLine(Line line, Factory factory, RenderTarget target, float thickness)
+        public static void DrawLine(DrawingLine drawingLine, Factory factory, RenderTarget target, float thickness)
         {
-            Geometry geometry = GetLineGeometry(line, factory);
-            SolidColorBrush brush = new(target, GetEntityColor(line));
-            target.DrawGeometry(geometry, brush, thickness);
-
-            brush.Dispose();
-            geometry.Dispose();
+            //SolidColorBrush brush = new(target, GetEntityColor(drawingLine.DxfLine));
+            target.DrawGeometry(drawingLine.Geometry, drawingLine.Brush, thickness);
+            //brush.Dispose();
         }
         public static void DrawArc(Arc arc, Factory factory, RenderTarget target, float thickness)
         {

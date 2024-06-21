@@ -27,30 +27,43 @@ namespace Direct2DDXFViewer.DrawingObjects
                 OnPropertyChanged(nameof(DxfLine));
             }
         }
+
+        RenderTarget Target { get; set; }
         #endregion
 
         #region Constructor
-        public DrawingLine(Line dxfLine, Factory factory)
+        public DrawingLine(Line dxfLine, Factory factory, RenderTarget renderTarget)
         {
             DxfLine = dxfLine;
-            Factory = factory;
+            Factory = factory; 
+
+            UpdateBrush(dxfLine, renderTarget);
         }
         #endregion
 
         #region Methods
         public override void UpdateGeometry()
         {
-            using (PathGeometry pathGeometry = new(Factory))
-            {
-                using (var sink = pathGeometry.Open())
-                {
-                    sink.BeginFigure(new RawVector2((float)DxfLine.StartPoint.X, (float)DxfLine.StartPoint.Y), FigureBegin.Filled);
-                    sink.AddLine(new RawVector2((float)DxfLine.EndPoint.X, (float)DxfLine.EndPoint.Y));
-                    sink.EndFigure(FigureEnd.Open);
-                    sink.Close();
+            PathGeometry pathGeometry1 = new(Factory);
+            PathGeometry pathGeometry2 = new(Factory);
 
-                    Geometry = pathGeometry;
-                }
+            using (var sink = pathGeometry1.Open())
+            {
+                sink.BeginFigure(new RawVector2((float)DxfLine.StartPoint.X, (float)DxfLine.StartPoint.Y), FigureBegin.Filled);
+                sink.AddLine(new RawVector2((float)DxfLine.EndPoint.X, (float)DxfLine.EndPoint.Y));
+                sink.EndFigure(FigureEnd.Open);
+                sink.Close();
+
+                Geometry = pathGeometry1;
+            }
+            using (var sink = pathGeometry2.Open())
+            {
+                sink.BeginFigure(new RawVector2((float)DxfLine.StartPoint.X, (float)DxfLine.StartPoint.Y), FigureBegin.Filled);
+                sink.AddLine(new RawVector2((float)DxfLine.EndPoint.X, (float)DxfLine.EndPoint.Y));
+                sink.EndFigure(FigureEnd.Open);
+                sink.Close();
+
+                HitTestGeometry = pathGeometry2;
             }
         }
         #endregion

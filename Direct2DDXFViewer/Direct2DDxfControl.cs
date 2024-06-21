@@ -39,7 +39,8 @@ namespace Direct2DDXFViewer
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
-        private List<ObjectLayer> _layers = new List<ObjectLayer>();
+        private ObjectLayerManager _layerManager;
+        private DrawingObject _snappedObject;
         #endregion
 
         #region Properties
@@ -88,13 +89,22 @@ namespace Direct2DDXFViewer
                 OnPropertyChanged(nameof(Extents));
             }
         }
-        public List<ObjectLayer> Layers
+        public ObjectLayerManager LayerManager
         {
-            get { return _layers; }
+            get { return _layerManager; }
             set
             {
-                _layers = value;
-                OnPropertyChanged(nameof(Layers));
+                _layerManager = value;
+                OnPropertyChanged(nameof(LayerManager));
+            }
+        }
+        public DrawingObject SnappedObject
+        {
+            get { return SnappedObject; }
+            set
+            {
+                SnappedObject = value;
+                OnPropertyChanged(nameof(SnappedObject));
             }
         }
         #endregion
@@ -114,7 +124,7 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Methods
-        public void LoadDxf()
+        public void LoadDxf(Factory factory, RenderTarget target)
         {
             DxfDoc = DxfDocument.Load(FilePath);
             if (DxfDoc is not null)
@@ -122,11 +132,8 @@ namespace Direct2DDXFViewer
                 dxfLoaded = true;
 
                 Extents = DxfHelpers.GetExtentsFromHeader(DxfDoc);
-
-                foreach (var layer in DxfDoc.Layers)
-                {
-                    
-                }
+                LayerManager = DxfHelpers.GetLayers(DxfDoc);
+                DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, target);
             }
         }
         public Matrix GetInitialMatrix()
@@ -164,11 +171,10 @@ namespace Direct2DDXFViewer
         public override void Render(RenderTarget target)
         {
             target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
-            //Brush brush = resCache["BlackBrush"] as Brush;
             
             if (!dxfLoaded)
             {
-                LoadDxf();
+                LoadDxf(target.Factory, target);
                 matrix = GetInitialMatrix();
             }
 
@@ -181,26 +187,41 @@ namespace Direct2DDXFViewer
                 (float)currentView.Right, (float)currentView.Bottom),
                 AntialiasMode.PerPrimitive);
 
-            foreach (var line in DxfDoc.Entities.Lines)
+            foreach (var layer in LayerManager.Layers.Values) 
             {
-                DxfHelpers.DrawLine(line, target.Factory, target, currentThickness);
+                if (layer.IsVisible)
+                {
+                    foreach (var o in layer.DrawingObjects)
+                    {
+                        if (o is DrawingLine drawingLine)
+                        {
+                            DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness);
+                        }
+                    }
+                }
             }
-            foreach (var arc in DxfDoc.Entities.Arcs)
-            {
-                DxfHelpers.DrawArc(arc, target.Factory, target, currentThickness);
-            }
-            foreach (var pline in DxfDoc.Entities.Polylines2D)
-            {
-                DxfHelpers.DrawPolyline(pline, target.Factory, target, currentThickness);
-            }
-            foreach (var pline in DxfDoc.Entities.Polylines3D)
-            {
-                DxfHelpers.DrawPolyline(pline, target.Factory, target, currentThickness);
-            }
-            foreach (var circle in DxfDoc.Entities.Circles)
-            {
-                DxfHelpers.DrawCircle(circle, target.Factory, target, currentThickness);
-            }
+
+            //foreach (var line in DxfDoc.Entities.Lines)
+            //{
+            //    DxfHelpers.DrawLine(line, target.Factory, target, currentThickness);
+            //}
+            //foreach (var arc in DxfDoc.Entities.Arcs)
+            //{
+            //    DxfHelpers.DrawArc(arc, target.Factory, target, currentThickness);
+            //}
+            //foreach (var pline in DxfDoc.Entities.Polylines2D)
+            //{
+            //    DxfHelpers.DrawPolyline(pline, target.Factory, target, currentThickness);
+            //}
+            //foreach (var pline in DxfDoc.Entities.Polylines3D)
+            //{
+            //    DxfHelpers.DrawPolyline(pline, target.Factory, target, currentThickness);
+            //}
+            //foreach (var circle in DxfDoc.Entities.Circles)
+            //{
+            //    DxfHelpers.DrawCircle(circle, target.Factory, target, currentThickness);
+            //}
+
             target.PopAxisAlignedClip();
             NeedsUpdate = true;
         }
@@ -226,6 +247,10 @@ namespace Direct2DDXFViewer
         {
             PointerCoords = e.GetPosition(this);
 
+            var newMatrix = matrix;
+            newMatrix.Invert();
+            DxfPointerCoords = newMatrix.Transform(PointerCoords);
+
             if (isPanning)
             {
                 var translate = PointerCoords - lastTranslatePos;
@@ -237,17 +262,42 @@ namespace Direct2DDXFViewer
                 NeedsUpdate = true;
             }
 
+            //UpdateDxfPointerCoords();
+
             // Update DxfPointerCoords in background thread
             BackgroundWorker bw = new();
-            bw.DoWork += UpdateDxfPointerCoords;
+            bw.DoWork += HitTestBackgroundWorker; ;
             bw.RunWorkerAsync();
         }
 
-        private void UpdateDxfPointerCoords(object? sender, DoWorkEventArgs e)
+        private void HitTestBackgroundWorker(object? sender, DoWorkEventArgs e)
+        {
+            HitTestGeometry();
+        }
+
+        private void UpdateDxfPointerCoords()
         {
             var newMatrix = matrix;
             newMatrix.Invert();
             DxfPointerCoords = newMatrix.Transform(PointerCoords);
+        }
+        private void HitTestGeometry()
+        {
+            foreach (var layer in LayerManager.Layers.Values)
+            {
+                if (layer.IsVisible)
+                {
+                    foreach (var o in layer.DrawingObjects)
+                    {
+                        if (o.HitTestGeometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), 3))
+                        {
+                            SnappedObject = o;
+
+                            return;
+                        }
+                    }
+                }
+            }
         }
 
         protected override void OnMouseDown(MouseButtonEventArgs e)
