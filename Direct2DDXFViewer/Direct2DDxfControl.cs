@@ -33,6 +33,7 @@ namespace Direct2DDXFViewer
         private float currentThickness = 0.5f;
         private bool dxfLoaded = false;
         private Rect currentView = new();
+        private BackgroundWorker snapBackgroundWorker;
 
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\ACAD-SP1-21 Points.dxf";
@@ -100,10 +101,10 @@ namespace Direct2DDXFViewer
         }
         public DrawingObject SnappedObject
         {
-            get { return SnappedObject; }
+            get { return _snappedObject; }
             set
             {
-                SnappedObject = value;
+                _snappedObject = value;
                 OnPropertyChanged(nameof(SnappedObject));
             }
         }
@@ -112,10 +113,8 @@ namespace Direct2DDXFViewer
         #region Constructor
         public Direct2DDxfControl()
         {
-            resCache.Add("BlackBrush", t => new SolidColorBrush(t, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f)));
-            resCache.Add("RedBrush", t => new SolidColorBrush(t, new RawColor4(1.0f, 0.0f, 0.0f, 1.0f)));
-            resCache.Add("GreenBrush", t => new SolidColorBrush(t, new RawColor4(0.0f, 1.0f, 0.0f, 1.0f)));
-            resCache.Add("BlueBrush", t => new SolidColorBrush(t, new RawColor4(0.0f, 0.0f, 1.0f, 1.0f)));
+            snapBackgroundWorker = new();
+            snapBackgroundWorker.DoWork += SnapBackgroundWorker_DoWork;
         }
         #endregion
 
@@ -246,10 +245,7 @@ namespace Direct2DDXFViewer
         protected override void OnMouseMove(MouseEventArgs e)
         {
             PointerCoords = e.GetPosition(this);
-
-            var newMatrix = matrix;
-            newMatrix.Invert();
-            DxfPointerCoords = newMatrix.Transform(PointerCoords);
+            UpdateDxfPointerCoords();
 
             if (isPanning)
             {
@@ -262,24 +258,16 @@ namespace Direct2DDXFViewer
                 NeedsUpdate = true;
             }
 
-            //UpdateDxfPointerCoords();
-
             // Update DxfPointerCoords in background thread
-            BackgroundWorker bw = new();
-            bw.DoWork += HitTestBackgroundWorker; ;
-            bw.RunWorkerAsync();
+            if (!snapBackgroundWorker.IsBusy)
+            {
+                snapBackgroundWorker.RunWorkerAsync();
+            }
         }
 
-        private void HitTestBackgroundWorker(object? sender, DoWorkEventArgs e)
+        private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
         {
             HitTestGeometry();
-        }
-
-        private void UpdateDxfPointerCoords()
-        {
-            var newMatrix = matrix;
-            newMatrix.Invert();
-            DxfPointerCoords = newMatrix.Transform(PointerCoords);
         }
         private void HitTestGeometry()
         {
@@ -289,7 +277,7 @@ namespace Direct2DDXFViewer
                 {
                     foreach (var o in layer.DrawingObjects)
                     {
-                        if (o.HitTestGeometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), 3))
+                        if (o.Geometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), 3))
                         {
                             SnappedObject = o;
 
@@ -300,6 +288,13 @@ namespace Direct2DDXFViewer
             }
         }
 
+        private void UpdateDxfPointerCoords()
+        {
+            var newMatrix = matrix;
+            newMatrix.Invert();
+            DxfPointerCoords = newMatrix.Transform(PointerCoords);
+        }
+        
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Middle)

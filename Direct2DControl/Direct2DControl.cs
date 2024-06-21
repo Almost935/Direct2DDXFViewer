@@ -211,7 +211,7 @@ namespace Direct2DControl
 
             var surface = renderTarget.QueryInterface<Surface>();
 
-            d2DFactory = new SharpDX.Direct2D1.Factory();
+            d2DFactory = new SharpDX.Direct2D1.Factory(FactoryType.MultiThreaded, DebugLevel.Information);
             resCache.Factory = d2DFactory;
             var rtp = new RenderTargetProperties(new PixelFormat(Format.Unknown, SharpDX.Direct2D1.AlphaMode.Premultiplied));
             d2DRenderTarget = new RenderTarget(d2DFactory, surface, rtp);

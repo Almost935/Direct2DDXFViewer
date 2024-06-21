@@ -1,4 +1,5 @@
-﻿using netDxf.Entities;
+﻿using Direct2DControl;
+using netDxf.Entities;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
 using System;
@@ -33,6 +34,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         public Geometry HitTestGeometry { get; set; }
         public Factory Factory { get; set; }
         public Brush Brush { get; set;}
+        public ResourceCache ResCache { get; set; }
         #endregion
 
         #region Constructor
