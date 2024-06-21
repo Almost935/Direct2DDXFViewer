@@ -19,6 +19,7 @@ using Brush = SharpDX.Direct2D1.Brush;
 using Geometry = SharpDX.Direct2D1.Geometry;
 using SolidColorBrush = SharpDX.Direct2D1.SolidColorBrush;
 using PathGeometry = SharpDX.Direct2D1.PathGeometry;
+using Direct2DDXFViewer.DrawingObjects;
 
 
 namespace Direct2DDXFViewer
@@ -33,67 +34,67 @@ namespace Direct2DDXFViewer
         private bool dxfLoaded = false;
         private Rect currentView = new();
 
-        private DxfDocument dxfDoc;
-        private string filePath = @"DXF\ACAD-SP1-21 Points.dxf";
-        private Point pointerCoords = new();
-        private Point dxfPointerCoords = new();
-        private List<Geometry> geometries = new();
-        private Rect extents = new();
+        private DxfDocument _dxfDoc;
+        private string _filePath = @"DXF\ACAD-SP1-21 Points.dxf";
+        private Point _pointerCoords = new();
+        private Point _dxfPointerCoords = new();
+        private Rect _extents = new();
+        private List<ObjectLayer> _layers = new List<ObjectLayer>();
         #endregion
 
         #region Properties
         public DxfDocument DxfDoc
         {
-            get { return dxfDoc; }
+            get { return _dxfDoc; }
             set
             {
-                dxfDoc = value;
+                _dxfDoc = value;
                 OnPropertyChanged(nameof(DxfDoc));
             }
         }
         public string FilePath
         {
-            get { return filePath; }
+            get { return _filePath; }
             set
             {
-                filePath = value;
+                _filePath = value;
                 OnPropertyChanged(nameof(FilePath));
             }
         }
         public Point PointerCoords
         {
-            get { return pointerCoords; }
+            get { return _pointerCoords; }
             set
             {
-                pointerCoords = value;
+                _pointerCoords = value;
                 OnPropertyChanged(nameof(PointerCoords));
             }
         }
         public Point DxfPointerCoords
         {
-            get { return dxfPointerCoords; }
+            get { return _dxfPointerCoords; }
             set
             {
-                dxfPointerCoords = value;
+                _dxfPointerCoords = value;
                 OnPropertyChanged(nameof(DxfPointerCoords));
-            }
-        }
-        public List<Geometry> Geometries
-        {
-            get { return geometries; }
-            set
-            {
-                geometries = value;
-                OnPropertyChanged(nameof(Geometries));
             }
         }
         public Rect Extents
         {
-            get { return extents; }
+            get { return _extents; }
             set
             {
-                extents = value;
+                _extents = value;
                 OnPropertyChanged(nameof(Extents));
+            }
+        }
+        public List<ObjectLayer> Layers
+        {
+            get { return _layers; }
+            set
+            {
+                _layers = value;
+                OnPropertyChanged(nameof(Layers));
             }
         }
         #endregion
@@ -121,6 +122,11 @@ namespace Direct2DDXFViewer
                 dxfLoaded = true;
 
                 Extents = DxfHelpers.GetExtentsFromHeader(DxfDoc);
+
+                foreach (var layer in DxfDoc.Layers)
+                {
+                    
+                }
             }
         }
         public Matrix GetInitialMatrix()

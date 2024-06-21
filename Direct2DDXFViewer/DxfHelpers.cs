@@ -27,6 +27,7 @@ using EllipseGeometry = SharpDX.Direct2D1.EllipseGeometry;
 using Ellipse = SharpDX.Direct2D1.Ellipse;
 using Layer = SharpDX.Direct2D1.Layer;
 using GeometryGroup = SharpDX.Direct2D1.GeometryGroup;
+using Direct2DDXFViewer.DrawingObjects;
 
 namespace Direct2DDXFViewer
 {
@@ -51,6 +52,21 @@ namespace Direct2DDXFViewer
             {
                 return Rect.Empty;
             }
+        }
+        public static List<ObjectLayer> GetLayers(DxfDocument dxfDocument, ObjectLayerManager layerManager)
+        {
+            List<ObjectLayer> layers = new();
+            foreach (var dxfLayer in dxfDocument.Layers)
+            {
+                ObjectLayer layer = new ObjectLayer() 
+                {
+                    Name = dxfLayer.Name,
+                };
+
+                layerManager.Layers.Add(layer.Name, layer);
+            }
+
+            return layers;
         }
 
         public static void DrawLine(Line line, Factory factory, RenderTarget target, float thickness)
