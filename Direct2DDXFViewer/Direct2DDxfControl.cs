@@ -113,6 +113,10 @@ namespace Direct2DDXFViewer
         #region Constructor
         public Direct2DDxfControl()
         {
+            resCache.Add("SnappedBrush", t => new SolidColorBrush(t, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f)));
+            resCache.Add("HighlightedBrush", t => new SolidColorBrush(t, new RawColor4((109 / 255), 1.0f, (float)(139 / 255), 1.0f)));
+            resCache.Add("SnappedHighlightedBrush", t => new SolidColorBrush(t, new RawColor4((150 / 255), 1.0f, (float)(171 / 255), 1.0f)));
+
             snapBackgroundWorker = new();
             snapBackgroundWorker.DoWork += SnapBackgroundWorker_DoWork;
         }
@@ -194,32 +198,13 @@ namespace Direct2DDXFViewer
                     {
                         if (o is DrawingLine drawingLine)
                         {
+                            drawingLine.UpdateBrush(drawingLine.DxfLine, target);
                             DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness);
+                            Render(resCache.RenderTarget);
                         }
                     }
                 }
             }
-
-            //foreach (var line in DxfDoc.Entities.Lines)
-            //{
-            //    DxfHelpers.DrawLine(line, target.Factory, target, currentThickness);
-            //}
-            //foreach (var arc in DxfDoc.Entities.Arcs)
-            //{
-            //    DxfHelpers.DrawArc(arc, target.Factory, target, currentThickness);
-            //}
-            //foreach (var pline in DxfDoc.Entities.Polylines2D)
-            //{
-            //    DxfHelpers.DrawPolyline(pline, target.Factory, target, currentThickness);
-            //}
-            //foreach (var pline in DxfDoc.Entities.Polylines3D)
-            //{
-            //    DxfHelpers.DrawPolyline(pline, target.Factory, target, currentThickness);
-            //}
-            //foreach (var circle in DxfDoc.Entities.Circles)
-            //{
-            //    DxfHelpers.DrawCircle(circle, target.Factory, target, currentThickness);
-            //}
 
             target.PopAxisAlignedClip();
             NeedsUpdate = true;
@@ -280,6 +265,7 @@ namespace Direct2DDXFViewer
                         if (o.Geometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), 3))
                         {
                             SnappedObject = o;
+                            SnappedObject.IsSnapped = true;
 
                             return;
                         }
@@ -291,8 +277,12 @@ namespace Direct2DDXFViewer
         private void UpdateDxfPointerCoords()
         {
             var newMatrix = matrix;
-            newMatrix.Invert();
-            DxfPointerCoords = newMatrix.Transform(PointerCoords);
+
+            if (newMatrix.HasInverse)
+            {
+                newMatrix.Invert();
+                DxfPointerCoords = newMatrix.Transform(PointerCoords);
+            }
         }
         
         protected override void OnMouseDown(MouseButtonEventArgs e)
@@ -358,3 +348,4 @@ namespace Direct2DDXFViewer
         #endregion
     }
 }
+

@@ -17,9 +17,29 @@ namespace Direct2DDXFViewer.DrawingObjects
     {
         #region Fields
         private ObjectLayer _layer;
+        private bool _isSnapped = false;
+        private bool _isHighlighted = false;
         #endregion
 
         #region Properties
+        public bool IsSnapped
+        {
+            get { return _isSnapped; }
+            set
+            {
+                _isSnapped = value;
+                OnPropertyChanged(nameof(IsSnapped));
+            }
+        }
+        public bool IsHighlighted
+        {
+            get { return _isHighlighted; }
+            set
+            {
+                _isHighlighted = value;
+                OnPropertyChanged(nameof(IsHighlighted));
+            }
+        }
         public ObjectLayer Layer
         {
             get { return _layer; }
@@ -33,7 +53,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         public Geometry Geometry { get; set;}
         public Geometry HitTestGeometry { get; set; }
         public Factory Factory { get; set; }
-        public Brush Brush { get; set;}
+        public Brush Brush { get; set; }
         public ResourceCache ResCache { get; set; }
         #endregion
 
@@ -50,27 +70,59 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public void UpdateBrush(EntityObject entity, RenderTarget target)
         {
-            if (entity.Color.IsByLayer)
+            if (Brush is not null)
             {
-                if (entity.Layer.Color.R == 255 && entity.Layer.Color.G == 255 && entity.Layer.Color.B == 255)
+                Brush.Dispose();
+            }
+
+            if (IsSnapped && IsHighlighted)
+            {
+                if (ResCache.ContainsKey("SnappedHighlightedBrush"))
                 {
-                    Brush = new SolidColorBrush(target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                    Brush = (Brush)ResCache["SnappedHighlightedBrush"];
                 }
-                else
+                else { return; }
+            }
+            else if (IsSnapped)
+            {
+                if (ResCache.ContainsKey("SnappedBrush"))
                 {
-                    Brush = new SolidColorBrush(target, 
-                        new RawColor4((float)(entity.Layer.Color.R / 255), (float)(entity.Layer.Color.G / 255), (float)(entity.Layer.Color.B / 255), 1.0f));
+                    Brush = (Brush)ResCache["SnappedBrush"];
                 }
+                else { return; }
+            }
+            else if (IsHighlighted)
+            {
+                if (ResCache.ContainsKey("HighlightedBrush"))
+                {
+                    Brush = (Brush)ResCache["HighlightedBrush"];
+                }
+                else { return; }
             }
             else
             {
-                if (entity.Color.R == 255 && entity.Color.G == 255 && entity.Color.B == 255)
+                if (entity.Color.IsByLayer)
                 {
-                    Brush = new SolidColorBrush(target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                    if (entity.Layer.Color.R == 255 && entity.Layer.Color.G == 255 && entity.Layer.Color.B == 255)
+                    {
+                        Brush = new SolidColorBrush(target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                    }
+                    else
+                    {
+                        Brush = new SolidColorBrush(target,
+                            new RawColor4((float)(entity.Layer.Color.R / 255), (float)(entity.Layer.Color.G / 255), (float)(entity.Layer.Color.B / 255), 1.0f));
+                    }
                 }
                 else
                 {
-                    Brush = new SolidColorBrush(target, new RawColor4((float)(entity.Color.R) / 255, (float)(entity.Color.G) / 255, (float)(entity.Color.B) / 255, 1.0f));
+                    if (entity.Color.R == 255 && entity.Color.G == 255 && entity.Color.B == 255)
+                    {
+                        Brush = new SolidColorBrush(target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                    }
+                    else
+                    {
+                        Brush = new SolidColorBrush(target, new RawColor4((float)(entity.Color.R) / 255, (float)(entity.Color.G) / 255, (float)(entity.Color.B) / 255, 1.0f));
+                    }
                 }
             }
         }
