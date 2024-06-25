@@ -31,7 +31,6 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
 
         public Geometry Geometry { get; set;}
-        public Geometry HitTestGeometry { get; set; }
         public Factory Factory { get; set; }
         public Brush Brush { get; set;}
         public ResourceCache ResCache { get; set; }

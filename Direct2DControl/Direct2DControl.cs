@@ -30,7 +30,8 @@ namespace Direct2DControl
         private long lastRenderTime = 0;
         private int frameCount = 0;
         private int frameCountHistTotal = 0;
-        private Queue<int> frameCountHist = new Queue<int>();
+        private Queue<int> frameCountHist = new();
+        private bool _isDirty;
 
         // - property --------------------------------------------------------------------
 
@@ -120,7 +121,6 @@ namespace Direct2DControl
             {
                 return;
             }
-
             PrepareAndCallRender();
             d3DSurface.InvalidateD3DImage();
             NeedsUpdate = false;

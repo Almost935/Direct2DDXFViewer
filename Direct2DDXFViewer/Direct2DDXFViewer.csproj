@@ -13,7 +13,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="bin\Debug\net8.0-windows\DXF\DixPark.dxf" />
-    <None Include="bin\Debug\net8.0-windows\DXF\Sterigenics - Structural Plan - Walls and Foundations Only 8-1-23.dxf" />
+    <None Include="bin\Debug\net8.0-windows\DXF\MediumDxf.dxf" />
   </ItemGroup>
 
   <ItemGroup>

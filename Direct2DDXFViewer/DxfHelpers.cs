@@ -76,7 +76,12 @@ namespace Direct2DDXFViewer
                 DrawingLine drawingLine = new(e, factory, target);
                 drawingLine.UpdateGeometry();
 
-                if (!layerManager.Layers.ContainsKey(e.Layer.Name))
+                if (layerManager.Layers.TryGetValue(e.Layer.Name, out ObjectLayer layer))
+                {
+                    ObjectLayer objectLayer = layerManager.Layers[e.Layer.Name];
+                    objectLayer.DrawingObjects.Add(drawingLine);
+                }
+                else
                 {
                     ObjectLayer objectLayer = new()
                     {
@@ -84,19 +89,12 @@ namespace Direct2DDXFViewer
                     };
                     objectLayer.DrawingObjects.Add(drawingLine);
                 }
-                else
-                {
-                    ObjectLayer objectLayer = layerManager.Layers[e.Layer.Name];
-                    objectLayer.DrawingObjects.Add(drawingLine);
-                }
             }
         }
 
         public static void DrawLine(DrawingLine drawingLine, Factory factory, RenderTarget target, float thickness)
         {
-            //SolidColorBrush brush = new(target, GetEntityColor(drawingLine.DxfLine));
             target.DrawGeometry(drawingLine.Geometry, drawingLine.Brush, thickness);
-            //brush.Dispose();
         }
         public static void DrawArc(Arc arc, Factory factory, RenderTarget target, float thickness)
         {

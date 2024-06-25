@@ -20,6 +20,7 @@ using Geometry = SharpDX.Direct2D1.Geometry;
 using SolidColorBrush = SharpDX.Direct2D1.SolidColorBrush;
 using PathGeometry = SharpDX.Direct2D1.PathGeometry;
 using Direct2DDXFViewer.DrawingObjects;
+using netDxf.Entities;
 
 
 namespace Direct2DDXFViewer
@@ -34,9 +35,10 @@ namespace Direct2DDXFViewer
         private bool dxfLoaded = false;
         private Rect currentView = new();
         private BackgroundWorker snapBackgroundWorker;
+        private List<(Geometry, Brush)> geometries = new();
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\ACAD-SP1-21 Points.dxf";
+        private string _filePath = @"DXF\MediumDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -144,7 +146,7 @@ namespace Direct2DDXFViewer
             else
             {
                 Matrix matrix = new Matrix();
-                
+
                 double scaleX = this.ActualWidth / Extents.Width;
                 double scaleY = this.ActualHeight / Extents.Height;
 
@@ -170,7 +172,7 @@ namespace Direct2DDXFViewer
         public override void Render(RenderTarget target)
         {
             target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
-            
+
             if (!dxfLoaded)
             {
                 LoadDxf(target.Factory, target);
@@ -186,7 +188,7 @@ namespace Direct2DDXFViewer
                 (float)currentView.Right, (float)currentView.Bottom),
                 AntialiasMode.PerPrimitive);
 
-            foreach (var layer in LayerManager.Layers.Values) 
+            foreach (var layer in LayerManager.Layers.Values)
             {
                 if (layer.IsVisible)
                 {
@@ -200,26 +202,10 @@ namespace Direct2DDXFViewer
                 }
             }
 
-            //foreach (var line in DxfDoc.Entities.Lines)
-            //{
-            //    DxfHelpers.DrawLine(line, target.Factory, target, currentThickness);
-            //}
-            //foreach (var arc in DxfDoc.Entities.Arcs)
-            //{
-            //    DxfHelpers.DrawArc(arc, target.Factory, target, currentThickness);
-            //}
-            //foreach (var pline in DxfDoc.Entities.Polylines2D)
-            //{
-            //    DxfHelpers.DrawPolyline(pline, target.Factory, target, currentThickness);
-            //}
-            //foreach (var pline in DxfDoc.Entities.Polylines3D)
-            //{
-            //    DxfHelpers.DrawPolyline(pline, target.Factory, target, currentThickness);
-            //}
-            //foreach (var circle in DxfDoc.Entities.Circles)
-            //{
-            //    DxfHelpers.DrawCircle(circle, target.Factory, target, currentThickness);
-            //}
+            foreach (var geoTup in geometries)
+            {
+                target.DrawGeometry(geoTup.Item1, geoTup.Item2, currentThickness);
+            }
 
             target.PopAxisAlignedClip();
             NeedsUpdate = true;
@@ -245,7 +231,7 @@ namespace Direct2DDXFViewer
         protected override void OnMouseMove(MouseEventArgs e)
         {
             PointerCoords = e.GetPosition(this);
-            UpdateDxfPointerCoords();
+
 
             if (isPanning)
             {
@@ -258,7 +244,7 @@ namespace Direct2DDXFViewer
                 NeedsUpdate = true;
             }
 
-            // Update DxfPointerCoords in background thread
+            //Update DxfPointerCoords in background thread
             if (!snapBackgroundWorker.IsBusy)
             {
                 snapBackgroundWorker.RunWorkerAsync();
@@ -267,7 +253,8 @@ namespace Direct2DDXFViewer
 
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
         {
-            HitTestGeometry();
+            UpdateDxfPointerCoords();
+            //HitTestGeometry();
         }
         private void HitTestGeometry()
         {
@@ -294,7 +281,7 @@ namespace Direct2DDXFViewer
             newMatrix.Invert();
             DxfPointerCoords = newMatrix.Transform(PointerCoords);
         }
-        
+
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Middle)

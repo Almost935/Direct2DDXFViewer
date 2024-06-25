@@ -44,26 +44,16 @@ namespace Direct2DDXFViewer.DrawingObjects
         #region Methods
         public override void UpdateGeometry()
         {
-            PathGeometry pathGeometry1 = new(Factory);
-            PathGeometry pathGeometry2 = new(Factory);
+            PathGeometry pathGeometry = new(Factory);
 
-            using (var sink = pathGeometry1.Open())
+            using (var sink = pathGeometry.Open())
             {
                 sink.BeginFigure(new RawVector2((float)DxfLine.StartPoint.X, (float)DxfLine.StartPoint.Y), FigureBegin.Filled);
                 sink.AddLine(new RawVector2((float)DxfLine.EndPoint.X, (float)DxfLine.EndPoint.Y));
                 sink.EndFigure(FigureEnd.Open);
                 sink.Close();
 
-                Geometry = pathGeometry1;
-            }
-            using (var sink = pathGeometry2.Open())
-            {
-                sink.BeginFigure(new RawVector2((float)DxfLine.StartPoint.X, (float)DxfLine.StartPoint.Y), FigureBegin.Filled);
-                sink.AddLine(new RawVector2((float)DxfLine.EndPoint.X, (float)DxfLine.EndPoint.Y));
-                sink.EndFigure(FigureEnd.Open);
-                sink.Close();
-
-                HitTestGeometry = pathGeometry2;
+                Geometry = pathGeometry;
             }
         }
         #endregion
