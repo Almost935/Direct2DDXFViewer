@@ -74,32 +74,32 @@ namespace Direct2DDXFViewer.DrawingObjects
                 Brush.Dispose();
             }
 
-            if (IsSnapped && IsHighlighted)
-            {
-                if (ResCache.ContainsKey("SnappedHighlightedBrush"))
-                {
-                    Brush = (Brush)ResCache["SnappedHighlightedBrush"];
-                }
-                else { return; }
-            }
-            else if (IsSnapped)
-            {
-                if (ResCache.ContainsKey("SnappedBrush"))
-                {
-                    Brush = (Brush)ResCache["SnappedBrush"];
-                }
-                else { return; }
-            }
-            else if (IsHighlighted)
-            {
-                if (ResCache.ContainsKey("HighlightedBrush"))
-                {
-                    Brush = (Brush)ResCache["HighlightedBrush"];
-                }
-                else { return; }
-            }
-            else
-            {
+            //if (IsSnapped && IsHighlighted)
+            //{
+            //    if (ResCache.ContainsKey("SnappedHighlightedBrush"))
+            //    {
+            //        Brush = (Brush)ResCache["SnappedHighlightedBrush"];
+            //    }
+            //    else { return; }
+            //}
+            //else if (IsSnapped)
+            //{
+            //    if (ResCache.ContainsKey("SnappedBrush"))
+            //    {
+            //        Brush = (Brush)ResCache["SnappedBrush"];
+            //    }
+            //    else { return; }
+            //}
+            //else if (IsHighlighted)
+            //{
+            //    if (ResCache.ContainsKey("HighlightedBrush"))
+            //    {
+            //        Brush = (Brush)ResCache["HighlightedBrush"];
+            //    }
+            //    else { return; }
+            //}
+            //else
+            //{
                 if (entity.Color.IsByLayer)
                 {
                     if (entity.Layer.Color.R == 255 && entity.Layer.Color.G == 255 && entity.Layer.Color.B == 255)
@@ -123,7 +123,7 @@ namespace Direct2DDXFViewer.DrawingObjects
                         Brush = new SolidColorBrush(target, new RawColor4((float)(entity.Color.R) / 255, (float)(entity.Color.G) / 255, (float)(entity.Color.B) / 255, 1.0f));
                     }
                 }
-            }
+            //}
         }
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)

@@ -32,6 +32,7 @@ namespace Direct2DControl
         private int frameCountHistTotal = 0;
         private Queue<int> frameCountHist = new();
         private bool _isDirty;
+        private AntialiasMode _antialiasMode = AntialiasMode.Aliased;
 
         // - property --------------------------------------------------------------------
 
@@ -214,7 +215,8 @@ namespace Direct2DControl
             d2DFactory = new SharpDX.Direct2D1.Factory(FactoryType.MultiThreaded, DebugLevel.Information);
             resCache.Factory = d2DFactory;
             var rtp = new RenderTargetProperties(new PixelFormat(Format.Unknown, SharpDX.Direct2D1.AlphaMode.Premultiplied));
-            d2DRenderTarget = new RenderTarget(d2DFactory, surface, rtp);
+            d2DRenderTarget = new(d2DFactory, surface, rtp);
+            //d2DRenderTarget.AntialiasMode = _antialiasMode;
             resCache.RenderTarget = d2DRenderTarget;
 
             d3DSurface.SetRenderTarget(renderTarget);

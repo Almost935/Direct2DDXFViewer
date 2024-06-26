@@ -78,8 +78,7 @@ namespace Direct2DDXFViewer
 
                 if (layerManager.Layers.TryGetValue(e.Layer.Name, out ObjectLayer layer))
                 {
-                    ObjectLayer objectLayer = layerManager.Layers[e.Layer.Name];
-                    objectLayer.DrawingObjects.Add(drawingLine);
+                    layer.DrawingObjects.Add(drawingLine);
                 }
                 else
                 {
@@ -92,9 +91,9 @@ namespace Direct2DDXFViewer
             }
         }
 
-        public static void DrawLine(DrawingLine drawingLine, Factory factory, RenderTarget target, float thickness)
+        public static void DrawLine(DrawingLine drawingLine, Factory factory, RenderTarget target, float thickness, StrokeStyle strokeStyle = null)
         {
-            target.DrawGeometry(drawingLine.Geometry, drawingLine.Brush, thickness);
+            target.DrawGeometry(drawingLine.Geometry, drawingLine.Brush, thickness, null);
         }
         public static void DrawArc(Arc arc, Factory factory, RenderTarget target, float thickness)
         {

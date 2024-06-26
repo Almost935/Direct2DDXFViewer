@@ -13,15 +13,16 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Collections.ObjectModel;
 using System.Windows.Media;
+using Direct2DDXFViewer.DrawingObjects;
+using netDxf.Entities;
 
 using Point = System.Windows.Point;
 using Brush = SharpDX.Direct2D1.Brush;
 using Geometry = SharpDX.Direct2D1.Geometry;
 using SolidColorBrush = SharpDX.Direct2D1.SolidColorBrush;
 using PathGeometry = SharpDX.Direct2D1.PathGeometry;
-using Direct2DDXFViewer.DrawingObjects;
-using netDxf.Entities;
-
+using RectangleGeometry = SharpDX.Direct2D1.RectangleGeometry;
+using DashStyle = SharpDX.Direct2D1.DashStyle;
 
 namespace Direct2DDXFViewer
 {
@@ -38,7 +39,7 @@ namespace Direct2DDXFViewer
         private List<(Geometry, Brush)> geometries = new();
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\MediumDxf.dxf";
+        private string _filePath = @"DXF\ACAD-SP1-21 Points.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -177,6 +178,17 @@ namespace Direct2DDXFViewer
         {
             target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
 
+            StrokeStyle strokeStyle = new(target.Factory, new StrokeStyleProperties()
+            {
+                DashStyle = DashStyle.Solid,
+                DashCap = CapStyle.Flat,
+                DashOffset = 0,
+                MiterLimit = 10,
+                LineJoin = LineJoin.Miter,
+                StartCap = CapStyle.Flat,
+                EndCap = CapStyle.Flat
+            });
+
             if (!dxfLoaded)
             {
                 LoadDxf(target.Factory, target);
@@ -187,6 +199,8 @@ namespace Direct2DDXFViewer
            (float)matrix.OffsetX, (float)matrix.OffsetY);
 
             UpdateCurrentView();
+            var viewport = new RawRectangleF((float)currentView.Left, (float)currentView.Top,
+                (float)currentView.Right, (float)currentView.Bottom);
 
             target.PushAxisAlignedClip(new RawRectangleF((float)currentView.Left, (float)currentView.Top,
                 (float)currentView.Right, (float)currentView.Bottom),
@@ -201,13 +215,11 @@ namespace Direct2DDXFViewer
                         if (o is DrawingLine drawingLine)
                         {
                             drawingLine.UpdateBrush(drawingLine.DxfLine, target);
-                            DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness);
-                            Render(resCache.RenderTarget);
+                            DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness, strokeStyle);
                         }
                     }
                 }
             }
-
             foreach (var geoTup in geometries)
             {
                 target.DrawGeometry(geoTup.Item1, geoTup.Item2, currentThickness);
@@ -237,7 +249,6 @@ namespace Direct2DDXFViewer
         protected override void OnMouseMove(MouseEventArgs e)
         {
             PointerCoords = e.GetPosition(this);
-
 
             if (isPanning)
             {
@@ -281,13 +292,24 @@ namespace Direct2DDXFViewer
                 }
             }
         }
-
         private void UpdateDxfPointerCoords()
         {
             var newMatrix = matrix;
             newMatrix.Invert();
             DxfPointerCoords = newMatrix.Transform(PointerCoords);
         }
+        public bool IsVisible(RawRectangleF viewport, Geometry geometry)
+        {
+            // Attempt to get the bounds of the geometry
+            var bounds = geometry.GetBounds();
+
+            // Check if the bounds intersect with the viewport
+            return bounds.Left < viewport.Right &&
+                   bounds.Right > viewport.Left &&
+                   bounds.Top < viewport.Bottom &&
+                   bounds.Bottom > viewport.Top;
+        }
+
 
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
