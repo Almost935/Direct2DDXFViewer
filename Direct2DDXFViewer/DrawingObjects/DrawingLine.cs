@@ -15,6 +15,8 @@ namespace Direct2DDXFViewer.DrawingObjects
     {
         #region Fields
         private Line _dxfLine;
+        private RawVector2 _startPoint;
+        private RawVector2 _endPoint;
         #endregion
 
         #region Properties
@@ -27,6 +29,24 @@ namespace Direct2DDXFViewer.DrawingObjects
                 OnPropertyChanged(nameof(DxfLine));
             }
         }
+        public RawVector2 StartPoint
+        {
+            get { return _startPoint; }
+            set
+            {
+                _startPoint = value;
+                OnPropertyChanged(nameof(StartPoint));
+            }
+        }
+        public RawVector2 EndPoint
+        {
+            get { return _endPoint; }
+            set
+            {
+                _endPoint = value;
+                OnPropertyChanged(nameof(EndPoint));
+            }
+        }
 
         RenderTarget Target { get; set; }
         #endregion
@@ -36,6 +56,8 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             DxfLine = dxfLine;
             Factory = factory; 
+            StartPoint = new((float)dxfLine.StartPoint.X, (float)dxfLine.StartPoint.Y); 
+            EndPoint = new((float)dxfLine.EndPoint.X, (float)dxfLine.EndPoint.Y);
 
             UpdateBrush(dxfLine, renderTarget);
         }
@@ -52,7 +74,7 @@ namespace Direct2DDXFViewer.DrawingObjects
                 sink.AddLine(new RawVector2((float)DxfLine.EndPoint.X, (float)DxfLine.EndPoint.Y));
                 sink.EndFigure(FigureEnd.Open);
                 sink.Close();
-
+                
                 Geometry = pathGeometry;
             }
         }

@@ -39,7 +39,7 @@ namespace Direct2DDXFViewer
         private List<(Geometry, Brush)> geometries = new();
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\ACAD-SP1-21 Points.dxf";
+        private string _filePath = @"DXF\MediumDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -202,8 +202,7 @@ namespace Direct2DDXFViewer
             var viewport = new RawRectangleF((float)currentView.Left, (float)currentView.Top,
                 (float)currentView.Right, (float)currentView.Bottom);
 
-            target.PushAxisAlignedClip(new RawRectangleF((float)currentView.Left, (float)currentView.Top,
-                (float)currentView.Right, (float)currentView.Bottom),
+            target.PushAxisAlignedClip(viewport,
                 AntialiasMode.PerPrimitive);
 
             foreach (var layer in LayerManager.Layers.Values)
@@ -214,19 +213,17 @@ namespace Direct2DDXFViewer
                     {
                         if (o is DrawingLine drawingLine)
                         {
-                            drawingLine.UpdateBrush(drawingLine.DxfLine, target);
-                            DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness, strokeStyle);
+                            if (IsVisible(viewport, drawingLine.Geometry))
+                            {
+                                drawingLine.UpdateBrush(drawingLine.DxfLine, target);
+                                DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness, strokeStyle);
+                            }
                         }
                     }
                 }
             }
-            foreach (var geoTup in geometries)
-            {
-                target.DrawGeometry(geoTup.Item1, geoTup.Item2, currentThickness);
-            }
 
             target.PopAxisAlignedClip();
-            NeedsUpdate = true;
         }
 
         protected override void OnMouseWheel(MouseWheelEventArgs e)

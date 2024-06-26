@@ -71,6 +71,7 @@ namespace Direct2DDXFViewer
         }
         public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory factory, RenderTarget target)
         {
+            int count = 0; 
             foreach (var e in dxfDocument.Entities.Lines)
             {
                 DrawingLine drawingLine = new(e, factory, target);
@@ -79,6 +80,7 @@ namespace Direct2DDXFViewer
                 if (layerManager.Layers.TryGetValue(e.Layer.Name, out ObjectLayer layer))
                 {
                     layer.DrawingObjects.Add(drawingLine);
+                    count++;
                 }
                 else
                 {
@@ -87,13 +89,14 @@ namespace Direct2DDXFViewer
                         Name = e.Layer.Name
                     };
                     objectLayer.DrawingObjects.Add(drawingLine);
+                    count++;
                 }
             }
         }
 
         public static void DrawLine(DrawingLine drawingLine, Factory factory, RenderTarget target, float thickness, StrokeStyle strokeStyle = null)
         {
-            target.DrawGeometry(drawingLine.Geometry, drawingLine.Brush, thickness, null);
+            target.DrawLine(drawingLine.StartPoint, drawingLine.EndPoint, drawingLine.Brush, thickness, strokeStyle);
         }
         public static void DrawArc(Arc arc, Factory factory, RenderTarget target, float thickness)
         {
