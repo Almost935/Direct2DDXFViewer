@@ -115,6 +115,10 @@ namespace Direct2DDXFViewer
         #region Constructor
         public Direct2DDxfControl()
         {
+            resCache.Add("SnappedBrush", t => new SolidColorBrush(t, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f)));
+            resCache.Add("HighlightedBrush", t => new SolidColorBrush(t, new RawColor4((109 / 255), 1.0f, (float)(139 / 255), 1.0f)));
+            resCache.Add("SnappedHighlightedBrush", t => new SolidColorBrush(t, new RawColor4((150 / 255), 1.0f, (float)(171 / 255), 1.0f)));
+
             snapBackgroundWorker = new();
             snapBackgroundWorker.DoWork += SnapBackgroundWorker_DoWork;
         }
@@ -196,7 +200,9 @@ namespace Direct2DDXFViewer
                     {
                         if (o is DrawingLine drawingLine)
                         {
+                            drawingLine.UpdateBrush(drawingLine.DxfLine, target);
                             DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness);
+                            Render(resCache.RenderTarget);
                         }
                     }
                 }
@@ -267,6 +273,7 @@ namespace Direct2DDXFViewer
                         if (o.Geometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), 3))
                         {
                             SnappedObject = o;
+                            SnappedObject.IsSnapped = true;
 
                             return;
                         }
@@ -345,3 +352,4 @@ namespace Direct2DDXFViewer
         #endregion
     }
 }
+

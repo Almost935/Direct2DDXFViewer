@@ -13,10 +13,6 @@
         Top="0"
         Loaded="mainWindow_Loaded">
 
-    <!--<Grid>
-        <local:Direct2DDxfViewer x:Name="dxfViewer"/>
-    </Grid>-->
-
     <Border Margin="20"
             BorderBrush="#FF5E5E5E"
             BorderThickness="0.5">
