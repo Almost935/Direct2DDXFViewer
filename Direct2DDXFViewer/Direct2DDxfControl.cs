@@ -264,6 +264,32 @@ namespace Direct2DDXFViewer
                 snapBackgroundWorker.RunWorkerAsync();
             }
         }
+        protected override void OnMouseDown(MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Middle)
+            {
+                isPanning = true;
+                lastTranslatePos = e.GetPosition(this);
+            }
+        }
+        protected override void OnMouseUp(MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Middle)
+            {
+                isPanning = false;
+            }
+        }
+        protected override void OnMouseLeave(MouseEventArgs e)
+        {
+            isPanning = false;
+        }
+        protected override void OnMouseEnter(MouseEventArgs e)
+        {
+            if (Mouse.MiddleButton == MouseButtonState.Pressed)
+            {
+                isPanning = true;
+            }
+        }
 
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
         {
@@ -305,34 +331,6 @@ namespace Direct2DDXFViewer
                    bounds.Right > viewport.Left &&
                    bounds.Top < viewport.Bottom &&
                    bounds.Bottom > viewport.Top;
-        }
-
-
-        protected override void OnMouseDown(MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == MouseButton.Middle)
-            {
-                isPanning = true;
-                lastTranslatePos = e.GetPosition(this);
-            }
-        }
-        protected override void OnMouseUp(MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == MouseButton.Middle)
-            {
-                isPanning = false;
-            }
-        }
-        protected override void OnMouseLeave(MouseEventArgs e)
-        {
-            isPanning = false;
-        }
-        protected override void OnMouseEnter(MouseEventArgs e)
-        {
-            if (Mouse.MiddleButton == MouseButtonState.Pressed)
-            {
-                isPanning = true;
-            }
         }
 
         private void UpdateZoom(float zoom)
