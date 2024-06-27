@@ -2,6 +2,7 @@
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
 using SharpDX.Mathematics;
+using SharpDX.DXGI;
 using netDxf;
 using System;
 using System.Configuration;
@@ -23,6 +24,9 @@ using SolidColorBrush = SharpDX.Direct2D1.SolidColorBrush;
 using PathGeometry = SharpDX.Direct2D1.PathGeometry;
 using RectangleGeometry = SharpDX.Direct2D1.RectangleGeometry;
 using DashStyle = SharpDX.Direct2D1.DashStyle;
+using PixelFormat = SharpDX.Direct2D1.PixelFormat;
+using AlphaMode = SharpDX.Direct2D1.AlphaMode;
+using Factory = SharpDX.Direct2D1.Factory;
 
 namespace Direct2DDXFViewer
 {
@@ -37,6 +41,9 @@ namespace Direct2DDXFViewer
         private Rect currentView = new();
         private BackgroundWorker snapBackgroundWorker;
         private List<(Geometry, Brush)> geometries = new();
+        private Bitmap bitmapCache;
+        private BitmapRenderTarget offscreenRenderTarget;
+        private bool offscreenRenderTargetNeedsUpdate = true;
 
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\MediumDxf.dxf";
@@ -136,7 +143,6 @@ namespace Direct2DDXFViewer
             if (DxfDoc is not null)
             {
                 dxfLoaded = true;
-
                 Extents = DxfHelpers.GetExtentsFromHeader(DxfDoc);
                 LayerManager = DxfHelpers.GetLayers(DxfDoc);
                 DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, target);
@@ -176,18 +182,7 @@ namespace Direct2DDXFViewer
 
         public override void Render(RenderTarget target)
         {
-            target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
-
-            StrokeStyle strokeStyle = new(target.Factory, new StrokeStyleProperties()
-            {
-                DashStyle = DashStyle.Solid,
-                DashCap = CapStyle.Flat,
-                DashOffset = 0,
-                MiterLimit = 10,
-                LineJoin = LineJoin.Miter,
-                StartCap = CapStyle.Flat,
-                EndCap = CapStyle.Flat
-            });
+            target.Clear(new RawColor4(1.0f, 0f, 0f, 1.0f));
 
             if (!dxfLoaded)
             {
@@ -205,24 +200,35 @@ namespace Direct2DDXFViewer
             target.PushAxisAlignedClip(viewport,
                 AntialiasMode.PerPrimitive);
 
-            foreach (var layer in LayerManager.Layers.Values)
+            if (offscreenRenderTargetNeedsUpdate)
             {
-                if (layer.IsVisible)
+                LoadBitmap(target);
+            }
+
+            if (isPanning)
+            {
+                target.DrawBitmap(offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
+            }
+            else
+            {
+                foreach (var layer in LayerManager.Layers.Values)
                 {
-                    foreach (var o in layer.DrawingObjects)
+                    if (layer.IsVisible)
                     {
-                        if (o is DrawingLine drawingLine)
+                        foreach (var o in layer.DrawingObjects)
                         {
-                            if (IsVisible(viewport, drawingLine.Geometry))
+                            if (o is DrawingLine drawingLine)
                             {
-                                drawingLine.UpdateBrush(drawingLine.DxfLine, target);
-                                DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness, strokeStyle);
+                                if (IsVisible(viewport, drawingLine.Geometry))
+                                {
+                                    drawingLine.UpdateBrush(drawingLine.DxfLine, target);
+                                    DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness);
+                                }
                             }
                         }
                     }
                 }
             }
-
             target.PopAxisAlignedClip();
         }
 
@@ -250,11 +256,8 @@ namespace Direct2DDXFViewer
             if (isPanning)
             {
                 var translate = PointerCoords - lastTranslatePos;
-
                 UpdateTranslate(translate);
-
                 lastTranslatePos = PointerCoords;
-
                 NeedsUpdate = true;
             }
 
@@ -277,6 +280,7 @@ namespace Direct2DDXFViewer
             if (e.ChangedButton == MouseButton.Middle)
             {
                 isPanning = false;
+                NeedsUpdate = true;
             }
         }
         protected override void OnMouseLeave(MouseEventArgs e)
@@ -291,6 +295,35 @@ namespace Direct2DDXFViewer
             }
         }
 
+        private void LoadBitmap(RenderTarget target)
+        {
+            if (offscreenRenderTarget is null)
+            {
+                offscreenRenderTarget = new BitmapRenderTarget(resCache.RenderTarget, CompatibleRenderTargetOptions.None,
+                    target.Size);
+            }
+            offscreenRenderTarget.Transform = new(1.0f, 1.0f, 1.0f, 1.0f,
+               (float)matrix.OffsetX, (float)matrix.OffsetY);
+            offscreenRenderTarget.BeginDraw();
+            offscreenRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0f, 1.0f));
+
+            foreach (var layer in LayerManager.Layers.Values)
+            {
+                if (layer.IsVisible)
+                {
+                    foreach (var o in layer.DrawingObjects)
+                    {
+                        if (o is DrawingLine drawingLine)
+                        {
+                            drawingLine.UpdateBrush(drawingLine.DxfLine, offscreenRenderTarget);
+                            DxfHelpers.DrawLine(drawingLine, offscreenRenderTarget.Factory, offscreenRenderTarget, currentThickness);
+                        }
+                    }
+                }
+            }
+
+            offscreenRenderTargetNeedsUpdate = false;
+        }
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
         {
             UpdateDxfPointerCoords();

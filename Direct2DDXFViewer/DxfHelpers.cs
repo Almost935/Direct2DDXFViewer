@@ -69,9 +69,9 @@ namespace Direct2DDXFViewer
 
             return layerManager;
         }
-        public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory factory, RenderTarget target)
+        public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory factory, 
+            RenderTarget target)
         {
-            int count = 0; 
             foreach (var e in dxfDocument.Entities.Lines)
             {
                 DrawingLine drawingLine = new(e, factory, target);
@@ -80,7 +80,6 @@ namespace Direct2DDXFViewer
                 if (layerManager.Layers.TryGetValue(e.Layer.Name, out ObjectLayer layer))
                 {
                     layer.DrawingObjects.Add(drawingLine);
-                    count++;
                 }
                 else
                 {
@@ -89,7 +88,6 @@ namespace Direct2DDXFViewer
                         Name = e.Layer.Name
                     };
                     objectLayer.DrawingObjects.Add(drawingLine);
-                    count++;
                 }
             }
         }

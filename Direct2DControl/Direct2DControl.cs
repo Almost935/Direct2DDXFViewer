@@ -22,9 +22,9 @@ namespace Direct2DControl
         private RenderTarget d2DRenderTarget;
         private SharpDX.Direct2D1.Factory d2DFactory;
 
-        private readonly Stopwatch renderTimer = new Stopwatch();
+        private readonly Stopwatch renderTimer = new();
 
-        protected ResourceCache resCache = new ResourceCache();
+        protected ResourceCache resCache = new();
 
         private long lastFrameTime = 0;
         private long lastRenderTime = 0;
