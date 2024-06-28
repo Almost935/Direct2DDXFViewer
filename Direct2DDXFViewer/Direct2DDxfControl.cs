@@ -182,7 +182,7 @@ namespace Direct2DDXFViewer
 
         public override void Render(RenderTarget target)
         {
-            target.Clear(new RawColor4(1.0f, 0f, 0f, 1.0f));
+            target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
 
             if (!dxfLoaded)
             {
@@ -306,7 +306,6 @@ namespace Direct2DDXFViewer
                (float)matrix.OffsetX, (float)matrix.OffsetY);
             offscreenRenderTarget.BeginDraw();
             offscreenRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0f, 1.0f));
-
             foreach (var layer in LayerManager.Layers.Values)
             {
                 if (layer.IsVisible)
