@@ -27,6 +27,7 @@ using DashStyle = SharpDX.Direct2D1.DashStyle;
 using PixelFormat = SharpDX.Direct2D1.PixelFormat;
 using AlphaMode = SharpDX.Direct2D1.AlphaMode;
 using Factory = SharpDX.Direct2D1.Factory;
+using System.Formats.Tar;
 
 namespace Direct2DDXFViewer
 {
@@ -46,7 +47,7 @@ namespace Direct2DDXFViewer
         private bool offscreenRenderTargetNeedsUpdate = true;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\MediumDxf.dxf";
+        private string _filePath = @"DXF\ACAD-SP1-21 Points.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -207,7 +208,11 @@ namespace Direct2DDXFViewer
 
             if (isPanning)
             {
-                target.DrawBitmap(offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
+                using (var bitmap = new Bitmap(target, offscreenRenderTarget.Bitmap))
+                {
+                    target.DrawBitmap(bitmap, 1.0f, BitmapInterpolationMode.Linear); 
+                }
+                //target.DrawBitmap(offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
             }
             else
             {
@@ -297,15 +302,13 @@ namespace Direct2DDXFViewer
 
         private void LoadBitmap(RenderTarget target)
         {
-            if (offscreenRenderTarget is null)
-            {
-                offscreenRenderTarget = new BitmapRenderTarget(resCache.RenderTarget, CompatibleRenderTargetOptions.None,
-                    target.Size);
-            }
-            offscreenRenderTarget.Transform = new(1.0f, 1.0f, 1.0f, 1.0f,
-               (float)matrix.OffsetX, (float)matrix.OffsetY);
+            offscreenRenderTarget ??= new BitmapRenderTarget(target, CompatibleRenderTargetOptions.None, target.Size);
             offscreenRenderTarget.BeginDraw();
             offscreenRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0f, 1.0f));
+
+            offscreenRenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
+                (float)matrix.OffsetX, (float)matrix.OffsetY);
+
             foreach (var layer in LayerManager.Layers.Values)
             {
                 if (layer.IsVisible)
@@ -320,8 +323,8 @@ namespace Direct2DDXFViewer
                     }
                 }
             }
-
             offscreenRenderTargetNeedsUpdate = false;
+            offscreenRenderTarget.EndDraw();
         }
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
         {
@@ -372,6 +375,9 @@ namespace Direct2DDXFViewer
 
             resCache.RenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
                 (float)matrix.OffsetX, (float)matrix.OffsetY);
+            offscreenRenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
+                (float)matrix.OffsetX, (float)matrix.OffsetY);
+
             UpdateCurrentView();
         }
         private void UpdateTranslate(Vector translate)
@@ -380,6 +386,9 @@ namespace Direct2DDXFViewer
 
             resCache.RenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
             (float)matrix.OffsetX, (float)matrix.OffsetY);
+            offscreenRenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
+                (float)matrix.OffsetX, (float)matrix.OffsetY);
+
             UpdateCurrentView();
         }
         private void UpdateCurrentView()

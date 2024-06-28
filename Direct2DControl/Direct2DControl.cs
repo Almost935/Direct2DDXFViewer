@@ -32,7 +32,6 @@ namespace Direct2DControl
         private int frameCountHistTotal = 0;
         private Queue<int> frameCountHist = new();
         private bool _isDirty;
-        private AntialiasMode _antialiasMode = AntialiasMode.Aliased;
 
         // - property --------------------------------------------------------------------
 
