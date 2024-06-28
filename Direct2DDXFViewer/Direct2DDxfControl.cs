@@ -212,7 +212,6 @@ namespace Direct2DDXFViewer
                 {
                     target.DrawBitmap(bitmap, 1.0f, BitmapInterpolationMode.Linear); 
                 }
-                //target.DrawBitmap(offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
             }
             else
             {
