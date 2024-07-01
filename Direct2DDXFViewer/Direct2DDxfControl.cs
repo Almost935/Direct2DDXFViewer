@@ -207,14 +207,9 @@ namespace Direct2DDXFViewer
                 LoadBitmap(target);
             }
 
-            if (isPanning && bitmapRenderTarget is not null)
+            if (isPanning)
             {
-                if (bitmapRenderTargetNeedsUpdate)
-                {
-                    LoadBitmap(target);
-                }
-                RawRectangleF rect = new(-200, -200, 500, 1000);
-                target.DrawBitmap(bitmapRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear, rect);
+                RenderBitmap(target);
             }
             else
             {
@@ -340,6 +335,18 @@ namespace Direct2DDXFViewer
             bitmapRenderTarget.EndDraw();
             bitmapRenderTargetNeedsUpdate = false;
             bitmapLoaded = true;
+        }
+        private void RenderBitmap(RenderTarget target)
+        {
+            if (bitmapRenderTarget is not null)
+            {
+                if (bitmapRenderTargetNeedsUpdate)
+                {
+                    LoadBitmap(target);
+                }
+                RawRectangleF rect = new(-200, -200, 500, 1000);
+                target.DrawBitmap(bitmapRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear, rect);
+            }
         }
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
         {
