@@ -213,7 +213,7 @@ namespace Direct2DDXFViewer
                 {
                     LoadBitmap(target);
                 }
-                RawRectangleF rect = new(-200, 0, 500, -1000);
+                RawRectangleF rect = new(-200, -200, 500, 1000);
                 target.DrawBitmap(bitmapRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear, rect);
             }
             else
