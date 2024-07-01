@@ -31,14 +31,14 @@ namespace Direct2DControl
         private int frameCount = 0;
         private int frameCountHistTotal = 0;
         private Queue<int> frameCountHist = new();
-        private bool _isDirty;
 
         // - property --------------------------------------------------------------------
 
         /// <summary>
         /// Decides whether or not the image needs to be refreshed.
         /// </summary>
-        public bool NeedsUpdate { get; set; } = true;
+        public bool RenderTargetIsDirty { get; set; } = true;
+        public bool BitMapRenderTargetIsDirty { get; set; } = true;
 
         public static bool IsInDesignMode
         {
@@ -117,13 +117,13 @@ namespace Direct2DControl
         private void OnRendering(object sender, EventArgs e)
         {
             if (!renderTimer.IsRunning ||
-                !NeedsUpdate)
+                !RenderTargetIsDirty)
             {
                 return;
             }
             PrepareAndCallRender();
             d3DSurface.InvalidateD3DImage();
-            NeedsUpdate = false;
+            RenderTargetIsDirty = false;
             lastRenderTime = renderTimer.ElapsedMilliseconds;
         }
 
@@ -215,14 +215,13 @@ namespace Direct2DControl
             resCache.Factory = d2DFactory;
             var rtp = new RenderTargetProperties(new PixelFormat(Format.Unknown, SharpDX.Direct2D1.AlphaMode.Premultiplied));
             d2DRenderTarget = new(d2DFactory, surface, rtp);
-            //d2DRenderTarget.AntialiasMode = _antialiasMode;
             resCache.RenderTarget = d2DRenderTarget;
 
             d3DSurface.SetRenderTarget(renderTarget);
 
             device.ImmediateContext.Rasterizer.SetViewport(0, 0, width, height, 0.0f, 1.0f);
 
-            NeedsUpdate = true;
+            RenderTargetIsDirty = true;
         }
 
         private void StartRendering()
