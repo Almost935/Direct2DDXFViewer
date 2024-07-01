@@ -67,6 +67,11 @@ namespace Direct2DDXFViewer
                 DxfPointerCoords = dxfControl.DxfPointerCoords;
             }
         }
+
+        public void ZoomToExtents()
+        {
+            dxfControl.ZoomToExtents();
+        }
         #endregion
     }
 }

@@ -120,6 +120,8 @@ namespace Direct2DDXFViewer
                 OnPropertyChanged(nameof(SnappedObject));
             }
         }
+
+        public Matrix ExtentsMatrix { get; set; } = new();
         #endregion
 
         #region Constructor
@@ -189,7 +191,8 @@ namespace Direct2DDXFViewer
             if (!dxfLoaded)
             {
                 LoadDxf(target.Factory, target);
-                matrix = GetInitialMatrix();
+                ExtentsMatrix = GetInitialMatrix();
+                matrix = ExtentsMatrix;
             }
 
             target.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
@@ -378,18 +381,6 @@ namespace Direct2DDXFViewer
             newMatrix.Invert();
             DxfPointerCoords = newMatrix.Transform(PointerCoords);
         }
-        public bool IsVisible(RawRectangleF viewport, Geometry geometry)
-        {
-            // Attempt to get the bounds of the geometry
-            var bounds = geometry.GetBounds();
-
-            // Check if the bounds intersect with the viewport
-            return bounds.Left < viewport.Right &&
-                   bounds.Right > viewport.Left &&
-                   bounds.Top < viewport.Bottom &&
-                   bounds.Bottom > viewport.Top;
-        }
-
         private void UpdateZoom(float zoom)
         {
             matrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
@@ -419,6 +410,26 @@ namespace Direct2DDXFViewer
                 matrix.Invert();
                 currentView.Transform(matrix);
             }
+        }
+
+        public void ZoomToExtents()
+        {
+            matrix = ExtentsMatrix;
+            resCache.RenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
+                (float)matrix.OffsetX, (float)matrix.OffsetY);
+            UpdateCurrentView();
+            RenderTargetIsDirty = true;
+        }
+        public bool IsVisible(RawRectangleF viewport, Geometry geometry)
+        {
+            // Attempt to get the bounds of the geometry
+            var bounds = geometry.GetBounds();
+
+            // Check if the bounds intersect with the viewport
+            return bounds.Left < viewport.Right &&
+                   bounds.Right > viewport.Left &&
+                   bounds.Top < viewport.Bottom &&
+                   bounds.Bottom > viewport.Top;
         }
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)

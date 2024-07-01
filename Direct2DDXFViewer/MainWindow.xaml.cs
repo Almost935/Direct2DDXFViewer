@@ -26,5 +26,13 @@ namespace Direct2DDXFViewer
             // Set window state maximum here because otherwise the D3DImage doesn't show 
             mainWindow.WindowState = WindowState.Maximized;
         }
+
+        private void ZoomToExtents_Click(object sender, RoutedEventArgs e)
+        {
+            if (dxfViewer is not null)
+            {
+                dxfViewer.ZoomToExtents();
+            }
+        }
     }
 }
