@@ -211,14 +211,13 @@ namespace Direct2DControl
             };
 
             renderTarget = new Texture2D(device, renderDesc);
-            Z
             var surface = renderTarget.QueryInterface<Surface>();
 
             d2DFactory = new SharpDX.Direct2D1.Factory(FactoryType.MultiThreaded, DebugLevel.Information);
             resCache.Factory = d2DFactory;
             var rtp = new RenderTargetProperties(new PixelFormat(Format.Unknown, SharpDX.Direct2D1.AlphaMode.Premultiplied));
             d2DRenderTarget = new(d2DFactory, surface, rtp);
-            bitmapRenderTarget = new(d2DRenderTarget, )
+            bitmapRenderTarget = new(d2DRenderTarget, CompatibleRenderTargetOptions.None);
             resCache.RenderTarget = d2DRenderTarget;
 
             d3DSurface.SetRenderTarget(renderTarget);

@@ -41,7 +41,7 @@ namespace Direct2DDXFViewer
         private bool dxfLoaded = false;
         private Rect currentView = new();
         private BackgroundWorker snapBackgroundWorker;
-        private List<(Geometry, Brush)> geometries = new();
+        private List<(Geometry, Brush)> geometries = new(); 
         private Bitmap bitmapCache;
         private BitmapRenderTarget bitmapRenderTarget;
         private bool bitmapLoaded = false;
@@ -271,7 +271,6 @@ namespace Direct2DDXFViewer
                 lastTranslatePos = PointerCoords;
                 RenderTargetIsDirty = true;
             }
-
             //Update DxfPointerCoords in background thread
             if (!snapBackgroundWorker.IsBusy)
             {
@@ -317,9 +316,21 @@ namespace Direct2DDXFViewer
                 bitmapRenderTarget.Dispose();
                 bitmapRenderTarget = null;
             }
-            bitmapRenderTarget = new BitmapRenderTarget(target, CompatibleRenderTargetOptions.None, new Size2F((float)Extents.Right, (float)Extents.Bottom));
+            Size2F testSize = new Size2F((float)Extents.Width, (float)Extents.Height);
+            bitmapRenderTarget = new BitmapRenderTarget(target, CompatibleRenderTargetOptions.None, target.Size);
             bitmapRenderTarget.BeginDraw();
             bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0f, 1.0f));
+            //bitmapRenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
+            //    (float)matrix.OffsetX, (float)matrix.OffsetY);
+
+            //// Translate extents of bitmap to positive quadrants 
+            //float offsetX = 0;
+            //float offsetY = 0;
+            //if (Extents.Left < 0) { offsetX = (float)Extents.Left; }
+            //if (Extents.Top < 0) { offsetY = (float)Extents.Top; }
+            //bitmapOffset = new(offsetX, offsetY);
+            //bitmapRenderTarget.Transform = new(1, (float)matrix.M12, (float)matrix.M21, 1, 
+            //    (float)(-bitmapOffset.X), (float)(-bitmapOffset.Y));
 
             foreach (var layer in LayerManager.Layers.Values)
             {
@@ -347,8 +358,14 @@ namespace Direct2DDXFViewer
                 {
                     LoadBitmap(target);
                 }
-                RawRectangleF rect = new(-200, -200, 500, 1000);
-                target.DrawBitmap(bitmapRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear, rect);
+
+                // Translate extents of bitmap to positive quadrants because it does not support negative coordinates
+                //target.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
+                //    (float)(matrix.OffsetX + bitmapOffset.X), (float)(matrix.OffsetY + bitmapOffset.Y));
+
+                RawRectangleF sourceRect = new((float)Extents.Left, (float)Extents.Top, (float)Extents.Right, (float)Extents.Bottom);
+                RawRectangleF destinationRect = new((float)Extents.Left, (float)Extents.Top, (float)Extents.Right, (float)Extents.Bottom);
+                target.DrawBitmap(bitmapRenderTarget.Bitmap, destinationRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
             }
         }
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
@@ -383,20 +400,27 @@ namespace Direct2DDXFViewer
         }
         private void UpdateZoom(float zoom)
         {
-            matrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
-            currentThickness /= zoom;
+            if (!isPanning)
+            {
+                matrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
+                currentThickness /= zoom;
 
-            resCache.RenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
-                (float)matrix.OffsetX, (float)matrix.OffsetY);
+                resCache.RenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
+                    (float)matrix.OffsetX, (float)matrix.OffsetY);
+                //bitmapRenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
+                //   (float)matrix.OffsetX, (float)matrix.OffsetY);
 
-            UpdateCurrentView();
+                UpdateCurrentView();
+            }
         }
         private void UpdateTranslate(Vector translate)
         {
             matrix.Translate(translate.X, translate.Y);
 
             resCache.RenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
-            (float)matrix.OffsetX, (float)matrix.OffsetY);
+            (float)(matrix.OffsetX), (float)(matrix.OffsetY));
+            //bitmapRenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
+            //(float)(matrix.OffsetX), (float)(matrix.OffsetY));
 
             UpdateCurrentView();
         }
