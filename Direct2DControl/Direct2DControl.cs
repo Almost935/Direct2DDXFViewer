@@ -20,7 +20,6 @@ namespace Direct2DControl
         private Texture2D renderTarget;
         private Dx11ImageSource d3DSurface;
         private RenderTarget d2DRenderTarget;
-        private BitmapRenderTarget bitmapRenderTarget;
         private SharpDX.Direct2D1.Factory d2DFactory;
 
         private readonly Stopwatch renderTimer = new();
@@ -39,7 +38,6 @@ namespace Direct2DControl
         /// Decides whether or not the image needs to be refreshed.
         /// </summary>
         public bool RenderTargetIsDirty { get; set; } = true;
-        public bool BitMapRenderTargetIsDirty { get; set; } = true;
 
         public static bool IsInDesignMode
         {
@@ -175,7 +173,6 @@ namespace Direct2DControl
             Disposer.SafeDispose(ref d2DFactory);
             Disposer.SafeDispose(ref d3DSurface);
             Disposer.SafeDispose(ref renderTarget);
-            Disposer.SafeDispose(ref bitmapRenderTarget);
             Disposer.SafeDispose(ref device);
         }
 
@@ -189,7 +186,6 @@ namespace Direct2DControl
             d3DSurface.SetRenderTarget(null);
 
             Disposer.SafeDispose(ref d2DRenderTarget);
-            Disposer.SafeDispose(ref bitmapRenderTarget);
             Disposer.SafeDispose(ref d2DFactory);
             Disposer.SafeDispose(ref renderTarget);
 
@@ -217,9 +213,8 @@ namespace Direct2DControl
             resCache.Factory = d2DFactory;
             var rtp = new RenderTargetProperties(new PixelFormat(Format.Unknown, SharpDX.Direct2D1.AlphaMode.Premultiplied));
             d2DRenderTarget = new(d2DFactory, surface, rtp);
-            bitmapRenderTarget = new(d2DRenderTarget, CompatibleRenderTargetOptions.None);
             resCache.RenderTarget = d2DRenderTarget;
-
+            
             d3DSurface.SetRenderTarget(renderTarget);
 
             device.ImmediateContext.Rasterizer.SetViewport(0, 0, width, height, 0.0f, 1.0f);

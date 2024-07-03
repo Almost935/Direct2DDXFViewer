@@ -202,8 +202,8 @@ namespace Direct2DDXFViewer
             var viewport = new RawRectangleF((float)currentView.Left, (float)currentView.Top,
                 (float)currentView.Right, (float)currentView.Bottom);
 
-            target.PushAxisAlignedClip(viewport,
-                AntialiasMode.PerPrimitive);
+            //target.PushAxisAlignedClip(viewport,
+            //    AntialiasMode.PerPrimitive);
 
             if (!bitmapLoaded)
             {
@@ -234,7 +234,7 @@ namespace Direct2DDXFViewer
                     }
                 }
             }
-            target.PopAxisAlignedClip();
+            //target.PopAxisAlignedClip();
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -317,11 +317,11 @@ namespace Direct2DDXFViewer
                 bitmapRenderTarget = null;
             }
             Size2F size = new((float)Extents.Width, (float)Extents.Height);
-            bitmapRenderTarget = new BitmapRenderTarget(target, CompatibleRenderTargetOptions.None, size);
+            Size2F testSize = new((float)Extents.Right, (float)Extents.Bottom);
+            bitmapRenderTarget = new(target, CompatibleRenderTargetOptions.None, testSize);
             bitmapRenderTarget.BeginDraw();
             bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0f, 1.0f));
-            //bitmapRenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
-            //    (float)matrix.OffsetX, (float)matrix.OffsetY);
+            //bitmapRenderTarget.Transform = new(1, 0, 0, 1, -100, -100);
 
             //bitmapRenderTarget.Transform = new RawMatrix3x2(
             //    (float)matrix.M11, (float)matrix.M12,
@@ -343,6 +343,10 @@ namespace Direct2DDXFViewer
                     }
                 }
             }
+
+            Brush brush = new SolidColorBrush(target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+            bitmapRenderTarget.DrawLine(new RawVector2(-600, -200), new RawVector2(500, 500), brush, 5.0f);
+
             bitmapRenderTarget.EndDraw();
             bitmapRenderTargetNeedsUpdate = false;
             bitmapLoaded = true;
@@ -357,7 +361,9 @@ namespace Direct2DDXFViewer
                 }
 
                 RawRectangleF sourceRect = new((float)Extents.Left, (float)Extents.Top, (float)Extents.Right, (float)Extents.Bottom);
-                RawRectangleF destinationRect = new((float)Extents.Left, (float)Extents.Top, (float)Extents.Right, (float)Extents.Bottom);
+                RawRectangleF testSourceRect = new(1000, -1000, -5000, 1000);
+                RawRectangleF destinationRect = new((float)Extents.Top, (float)Extents.Top, (float)Extents.Bottom, (float)Extents.Bottom);
+                RawRectangleF testDestinationRect = new(-400, -400, 1000, 1000);
                 target.DrawBitmap(bitmapRenderTarget.Bitmap, destinationRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
             }
         }
