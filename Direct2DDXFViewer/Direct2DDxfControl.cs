@@ -316,21 +316,18 @@ namespace Direct2DDXFViewer
                 bitmapRenderTarget.Dispose();
                 bitmapRenderTarget = null;
             }
-            Size2F testSize = new Size2F((float)Extents.Width, (float)Extents.Height);
-            bitmapRenderTarget = new BitmapRenderTarget(target, CompatibleRenderTargetOptions.None, target.Size);
+            Size2F size = new((float)Extents.Width, (float)Extents.Height);
+            bitmapRenderTarget = new BitmapRenderTarget(target, CompatibleRenderTargetOptions.None, size);
             bitmapRenderTarget.BeginDraw();
             bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0f, 1.0f));
             //bitmapRenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
             //    (float)matrix.OffsetX, (float)matrix.OffsetY);
 
-            //// Translate extents of bitmap to positive quadrants 
-            //float offsetX = 0;
-            //float offsetY = 0;
-            //if (Extents.Left < 0) { offsetX = (float)Extents.Left; }
-            //if (Extents.Top < 0) { offsetY = (float)Extents.Top; }
-            //bitmapOffset = new(offsetX, offsetY);
-            //bitmapRenderTarget.Transform = new(1, (float)matrix.M12, (float)matrix.M21, 1, 
-            //    (float)(-bitmapOffset.X), (float)(-bitmapOffset.Y));
+            //bitmapRenderTarget.Transform = new RawMatrix3x2(
+            //    (float)matrix.M11, (float)matrix.M12,
+            //    -(float)matrix.M21, -(float)matrix.M22,
+            //    (float)matrix.OffsetX, (float)matrix.OffsetY);
+
 
             foreach (var layer in LayerManager.Layers.Values)
             {
@@ -358,10 +355,6 @@ namespace Direct2DDXFViewer
                 {
                     LoadBitmap(target);
                 }
-
-                // Translate extents of bitmap to positive quadrants because it does not support negative coordinates
-                //target.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
-                //    (float)(matrix.OffsetX + bitmapOffset.X), (float)(matrix.OffsetY + bitmapOffset.Y));
 
                 RawRectangleF sourceRect = new((float)Extents.Left, (float)Extents.Top, (float)Extents.Right, (float)Extents.Bottom);
                 RawRectangleF destinationRect = new((float)Extents.Left, (float)Extents.Top, (float)Extents.Right, (float)Extents.Bottom);
