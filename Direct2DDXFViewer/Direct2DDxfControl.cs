@@ -28,6 +28,7 @@ using PixelFormat = SharpDX.Direct2D1.PixelFormat;
 using AlphaMode = SharpDX.Direct2D1.AlphaMode;
 using Factory = SharpDX.Direct2D1.Factory;
 using System.Formats.Tar;
+using Direct2DDXFViewer.Helpers;
 
 namespace Direct2DDXFViewer
 {
@@ -37,15 +38,18 @@ namespace Direct2DDXFViewer
         private Matrix matrix = new();
         private bool isPanning = false;
         private Point lastTranslatePos = new();
-        private float currentThickness = 0.5f;
+        private float currentThickness;
         private bool dxfLoaded = false;
         private Rect currentView = new();
         private BackgroundWorker snapBackgroundWorker;
-        private List<(Geometry, Brush)> geometries = new(); 
+        private List<(Geometry, Brush)> geometries = new();
         private Bitmap bitmapCache;
         private BitmapRenderTarget bitmapRenderTarget;
         private bool bitmapLoaded = false;
         private bool bitmapRenderTargetNeedsUpdate = true;
+        private Brush highlightedBrush = null;
+        private Brush snappedBrush = null;
+        private Brush snappedHighlightedBrush = null;
 
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\MediumDxf.dxf";
@@ -127,10 +131,6 @@ namespace Direct2DDXFViewer
         #region Constructor
         public Direct2DDxfControl()
         {
-            resCache.Add("SnappedBrush", t => new SolidColorBrush(t, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f)));
-            resCache.Add("HighlightedBrush", t => new SolidColorBrush(t, new RawColor4((109 / 255), 1.0f, (float)(139 / 255), 1.0f)));
-            resCache.Add("SnappedHighlightedBrush", t => new SolidColorBrush(t, new RawColor4((150 / 255), 1.0f, (float)(171 / 255), 1.0f)));
-
             snapBackgroundWorker = new();
             snapBackgroundWorker.DoWork += SnapBackgroundWorker_DoWork;
         }
@@ -173,12 +173,12 @@ namespace Direct2DDXFViewer
                 if (scaleX < scaleY)
                 {
                     matrix.ScaleAt(scaleX, -scaleX, this.ActualWidth / 2, this.ActualHeight / 2);
-                    currentThickness /= (float)scaleX;
+                    //currentThickness /= (float)scaleX;
                 }
                 else
                 {
                     matrix.ScaleAt(scaleY, -scaleY, this.ActualWidth / 2, this.ActualHeight / 2);
-                    currentThickness /= (float)scaleY;
+                    //currentThickness /= (float)scaleY;
                 }
 
                 return matrix;
@@ -194,16 +194,18 @@ namespace Direct2DDXFViewer
                 ExtentsMatrix = GetInitialMatrix();
                 matrix = ExtentsMatrix;
             }
-
             target.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
            (float)matrix.OffsetX, (float)matrix.OffsetY);
+
+            GetBrushes(target);
+            currentThickness = AssortedHelpers.GetLineThickness(1.0f, target, (float)matrix.M11);
 
             UpdateCurrentView();
             var viewport = new RawRectangleF((float)currentView.Left, (float)currentView.Top,
                 (float)currentView.Right, (float)currentView.Bottom);
 
-            //target.PushAxisAlignedClip(viewport,
-            //    AntialiasMode.PerPrimitive);
+            target.PushAxisAlignedClip(viewport,
+                AntialiasMode.PerPrimitive);
 
             if (!bitmapLoaded)
             {
@@ -212,29 +214,45 @@ namespace Direct2DDXFViewer
 
             if (isPanning)
             {
-                RenderBitmap(target);
+                target.AntialiasMode = AntialiasMode.Aliased;
             }
             else
             {
-                foreach (var layer in LayerManager.Layers.Values)
+                target.AntialiasMode = AntialiasMode.Aliased;
+            }
+
+            foreach (var layer in LayerManager.Layers.Values)
+            {
+                if (layer.IsVisible)
                 {
-                    if (layer.IsVisible)
+                    foreach (var o in layer.DrawingObjects)
                     {
-                        foreach (var o in layer.DrawingObjects)
+                        if (o is DrawingLine drawingLine)
                         {
-                            if (o is DrawingLine drawingLine)
+                            if (AssortedHelpers.IsGeometryInRect(viewport, drawingLine.Geometry, currentThickness))
                             {
-                                if (IsVisible(viewport, drawingLine.Geometry))
-                                {
-                                    drawingLine.UpdateBrush(drawingLine.DxfLine, target);
-                                    DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness);
-                                }
+                                DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingLine));
+                            }
+                        }
+                        if (o is DrawingPolyline2D drawingPolyline2D)
+                        {
+                            if (AssortedHelpers.IsGeometryInRect(viewport, drawingPolyline2D.Geometry, currentThickness))
+                            {
+                                DxfHelpers.DrawPolyline(drawingPolyline2D, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingPolyline2D));
+                            }
+                        }
+                        if (o is DrawingPolyline3D drawingPolyline3D)
+                        {
+                            if (AssortedHelpers.IsGeometryInRect(viewport, drawingPolyline3D.Geometry, currentThickness))
+                            {
+                                DxfHelpers.DrawPolyline(drawingPolyline3D, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingPolyline3D));
                             }
                         }
                     }
                 }
             }
-            //target.PopAxisAlignedClip();
+
+            target.PopAxisAlignedClip();
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -316,18 +334,11 @@ namespace Direct2DDXFViewer
                 bitmapRenderTarget.Dispose();
                 bitmapRenderTarget = null;
             }
-            Size2F size = new((float)Extents.Width, (float)Extents.Height);
-            Size2F testSize = new((float)Extents.Right, (float)Extents.Bottom);
-            bitmapRenderTarget = new(target, CompatibleRenderTargetOptions.None, testSize);
+
+            bitmapRenderTarget = new(target, CompatibleRenderTargetOptions.None, target.Size);
             bitmapRenderTarget.BeginDraw();
             bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0f, 1.0f));
-            //bitmapRenderTarget.Transform = new(1, 0, 0, 1, -100, -100);
-
-            //bitmapRenderTarget.Transform = new RawMatrix3x2(
-            //    (float)matrix.M11, (float)matrix.M12,
-            //    -(float)matrix.M21, -(float)matrix.M22,
-            //    (float)matrix.OffsetX, (float)matrix.OffsetY);
-
+            //bitmapRenderTarget.Transform = new(1, 0, 0, 1, -(float)Extents.Left, -(float)Extents.Top);
 
             foreach (var layer in LayerManager.Layers.Values)
             {
@@ -338,14 +349,11 @@ namespace Direct2DDXFViewer
                         if (o is DrawingLine drawingLine)
                         {
                             drawingLine.UpdateBrush(drawingLine.DxfLine, bitmapRenderTarget);
-                            DxfHelpers.DrawLine(drawingLine, bitmapRenderTarget.Factory, bitmapRenderTarget, currentThickness);
+                            DxfHelpers.DrawLine(drawingLine, bitmapRenderTarget.Factory, bitmapRenderTarget, currentThickness, GetDrawingObjectBrush(drawingLine));
                         }
                     }
                 }
             }
-
-            Brush brush = new SolidColorBrush(target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
-            bitmapRenderTarget.DrawLine(new RawVector2(-600, -200), new RawVector2(500, 500), brush, 5.0f);
 
             bitmapRenderTarget.EndDraw();
             bitmapRenderTargetNeedsUpdate = false;
@@ -360,11 +368,15 @@ namespace Direct2DDXFViewer
                     LoadBitmap(target);
                 }
 
-                RawRectangleF sourceRect = new((float)Extents.Left, (float)Extents.Top, (float)Extents.Right, (float)Extents.Bottom);
-                RawRectangleF testSourceRect = new(1000, -1000, -5000, 1000);
-                RawRectangleF destinationRect = new((float)Extents.Top, (float)Extents.Top, (float)Extents.Bottom, (float)Extents.Bottom);
-                RawRectangleF testDestinationRect = new(-400, -400, 1000, 1000);
-                target.DrawBitmap(bitmapRenderTarget.Bitmap, destinationRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+                RawRectangleF sourceRect = new((float)Extents.Left, (float)Extents.Top, (float)(Extents.Left + target.Size.Width), (float)(Extents.Top + target.Size.Height));
+                RawRectangleF testSourceRect = new(0, 0, 100, 100);
+
+                RawRectangleF destinationRect = new((float)Extents.Left, (float)Extents.Top, (float)(Extents.Left + target.Size.Width), (float)(Extents.Top + target.Size.Height));
+                RawRectangleF testDestinationRect = new(0, 0, 50, 50);
+
+                //renderTarget.DrawBitmap(bitmap, 1.0f, SharpDX.Direct2D1.BitmapInterpolationMode.Linear, new SharpDX.RectangleF(offsetX, offsetY, offsetX + bitmap.Size.Width, offsetY + bitmap.Size.Height));
+
+                target.DrawBitmap(bitmapRenderTarget.Bitmap, testDestinationRect, 1.0f, BitmapInterpolationMode.Linear, testSourceRect);
             }
         }
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
@@ -402,7 +414,7 @@ namespace Direct2DDXFViewer
             if (!isPanning)
             {
                 matrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
-                currentThickness /= zoom;
+                //currentThickness /= zoom;
 
                 resCache.RenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
                     (float)matrix.OffsetX, (float)matrix.OffsetY);
@@ -434,6 +446,31 @@ namespace Direct2DDXFViewer
                 currentView.Transform(matrix);
             }
         }
+        private void GetBrushes(RenderTarget target)
+        {
+            highlightedBrush ??= new SolidColorBrush(target, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f));
+            snappedBrush ??= new SolidColorBrush(target, new RawColor4((109 / 255), 1.0f, (float)(139 / 255), 1.0f));
+            snappedHighlightedBrush ??= new SolidColorBrush(target, new RawColor4((150 / 255), 1.0f, (float)(171 / 255), 1.0f));
+        }
+        private Brush GetDrawingObjectBrush(DrawingObject drawingObject)
+        {
+            if (drawingObject.IsHighlighted && drawingObject.IsSnapped)
+            {
+                return snappedHighlightedBrush;
+            }
+            else if (drawingObject.IsHighlighted)
+            {
+                return highlightedBrush;
+            }
+            else if (drawingObject.IsSnapped)
+            {
+                return snappedBrush;
+            }
+            else
+            {
+                return drawingObject.Brush;
+            }
+        }
 
         public void ZoomToExtents()
         {
@@ -443,17 +480,7 @@ namespace Direct2DDXFViewer
             UpdateCurrentView();
             RenderTargetIsDirty = true;
         }
-        public bool IsVisible(RawRectangleF viewport, Geometry geometry)
-        {
-            // Attempt to get the bounds of the geometry
-            var bounds = geometry.GetBounds();
-
-            // Check if the bounds intersect with the viewport
-            return bounds.Left < viewport.Right &&
-                   bounds.Right > viewport.Left &&
-                   bounds.Top < viewport.Bottom &&
-                   bounds.Bottom > viewport.Top;
-        }
+        
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {

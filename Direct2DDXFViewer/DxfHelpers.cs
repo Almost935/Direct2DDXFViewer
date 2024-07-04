@@ -28,6 +28,7 @@ using Ellipse = SharpDX.Direct2D1.Ellipse;
 using Layer = SharpDX.Direct2D1.Layer;
 using GeometryGroup = SharpDX.Direct2D1.GeometryGroup;
 using Direct2DDXFViewer.DrawingObjects;
+using netDxf.Units;
 
 namespace Direct2DDXFViewer
 {
@@ -90,11 +91,49 @@ namespace Direct2DDXFViewer
                     objectLayer.DrawingObjects.Add(drawingLine);
                 }
             }
+
+            foreach (var pline2D in dxfDocument.Entities.Polylines2D)
+            {
+                DrawingPolyline2D drawingPolyline2D = new(pline2D, factory, target);
+                drawingPolyline2D.UpdateGeometry();
+
+                if (layerManager.Layers.TryGetValue(pline2D.Layer.Name, out ObjectLayer layer))
+                {
+                    layer.DrawingObjects.Add(drawingPolyline2D);
+                }
+                else
+                {
+                    ObjectLayer objectLayer = new()
+                    {
+                        Name = pline2D.Layer.Name
+                    };
+                    objectLayer.DrawingObjects.Add(drawingPolyline2D);
+                }
+            }
+
+            foreach (var pline3D in dxfDocument.Entities.Polylines3D)
+            {
+                DrawingPolyline3D drawingPolyline3D = new(pline3D, factory, target);
+                drawingPolyline3D.UpdateGeometry();
+
+                if (layerManager.Layers.TryGetValue(pline3D.Layer.Name, out ObjectLayer layer))
+                {
+                    layer.DrawingObjects.Add(drawingPolyline3D);
+                }
+                else
+                {
+                    ObjectLayer objectLayer = new()
+                    {
+                        Name = pline3D.Layer.Name
+                    };
+                    objectLayer.DrawingObjects.Add(drawingPolyline3D);
+                }
+            }
         }
 
-        public static void DrawLine(DrawingLine drawingLine, Factory factory, RenderTarget target, float thickness, StrokeStyle strokeStyle = null)
+        public static void DrawLine(DrawingLine drawingLine, Factory factory, RenderTarget target, float thickness, Brush brush, StrokeStyle strokeStyle = null)
         {
-            target.DrawLine(drawingLine.StartPoint, drawingLine.EndPoint, drawingLine.Brush, thickness, strokeStyle);
+            target.DrawLine(drawingLine.StartPoint, drawingLine.EndPoint, brush, thickness, strokeStyle);
         }
         public static void DrawArc(Arc arc, Factory factory, RenderTarget target, float thickness)
         {
@@ -105,23 +144,15 @@ namespace Direct2DDXFViewer
             brush.Dispose();
             geometry.Dispose();
         }
-        public static void DrawPolyline(Polyline2D pline, Factory factory, RenderTarget target, float thickness)
+        public static void DrawPolyline(DrawingPolyline2D pline, Factory factory, RenderTarget target, float thickness, Brush brush,
+            StrokeStyle strokeStyle = null)
         {
-            Geometry geometry = GetPolylineGeometry(pline, factory);
-            SolidColorBrush brush = new(target, GetEntityColor(pline));
-            target.DrawGeometry(geometry, brush, thickness);
-
-            brush.Dispose();
-            geometry.Dispose();
+            target.DrawGeometry(pline.Geometry, brush, thickness, strokeStyle);
         }
-        public static void DrawPolyline(Polyline3D pline, Factory factory, RenderTarget target, float thickness)
+        public static void DrawPolyline(DrawingPolyline3D pline, Factory factory, RenderTarget target, float thickness, Brush brush,
+            StrokeStyle strokeStyle = null)
         {
-            Geometry geometry = GetPolylineGeometry(pline, factory);
-            SolidColorBrush brush = new(target, GetEntityColor(pline));
-            target.DrawGeometry(geometry, brush, thickness);
-
-            brush.Dispose();
-            geometry.Dispose();
+            target.DrawGeometry(pline.Geometry, brush, thickness, strokeStyle);
         }
         public static void DrawCircle(Circle circle, Factory factory, RenderTarget target, float thickness)
         {

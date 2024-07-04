@@ -92,7 +92,16 @@ namespace Direct2DDXFViewer.DrawingObjects
 
                 sink.EndFigure(DxfPolyline3D.IsClosed ? FigureEnd.Closed : FigureEnd.Open);
                 sink.Close();
-                Geometry = pathGeometry;
+
+                // Simplify the geometry
+                var simplifiedGeometry = new PathGeometry(Factory);
+                using (var simplifiedSink = simplifiedGeometry.Open())
+                {
+                    pathGeometry.Simplify(GeometrySimplificationOption.CubicsAndLines, simplifiedSink);
+                    simplifiedSink.Close();
+                }
+
+                Geometry = simplifiedGeometry;
             }
         }
         #endregion
