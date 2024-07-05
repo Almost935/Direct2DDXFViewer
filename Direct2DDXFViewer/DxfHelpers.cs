@@ -70,7 +70,7 @@ namespace Direct2DDXFViewer
 
             return layerManager;
         }
-        public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory factory, 
+        public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory1 factory, 
             RenderTarget target)
         {
             foreach (var e in dxfDocument.Entities.Lines)
@@ -131,11 +131,11 @@ namespace Direct2DDXFViewer
             }
         }
 
-        public static void DrawLine(DrawingLine drawingLine, Factory factory, RenderTarget target, float thickness, Brush brush, StrokeStyle strokeStyle = null)
+        public static void DrawLine(DrawingLine drawingLine, Factory1 factory, RenderTarget target, float thickness, Brush brush, StrokeStyle strokeStyle = null)
         {
             target.DrawLine(drawingLine.StartPoint, drawingLine.EndPoint, brush, thickness, strokeStyle);
         }
-        public static void DrawArc(Arc arc, Factory factory, RenderTarget target, float thickness)
+        public static void DrawArc(Arc arc, Factory1 factory, RenderTarget target, float thickness)
         {
             Geometry geometry = GetArcGeometry(arc, factory);
             SolidColorBrush brush = new(target, GetEntityColor(arc));
@@ -144,17 +144,17 @@ namespace Direct2DDXFViewer
             brush.Dispose();
             geometry.Dispose();
         }
-        public static void DrawPolyline(DrawingPolyline2D pline, Factory factory, RenderTarget target, float thickness, Brush brush,
+        public static void DrawPolyline(DrawingPolyline2D pline, Factory1 factory, RenderTarget target, float thickness, Brush brush,
             StrokeStyle strokeStyle = null)
         {
             target.DrawGeometry(pline.Geometry, brush, thickness, strokeStyle);
         }
-        public static void DrawPolyline(DrawingPolyline3D pline, Factory factory, RenderTarget target, float thickness, Brush brush,
+        public static void DrawPolyline(DrawingPolyline3D pline, Factory1 factory, RenderTarget target, float thickness, Brush brush,
             StrokeStyle strokeStyle = null)
         {
             target.DrawGeometry(pline.Geometry, brush, thickness, strokeStyle);
         }
-        public static void DrawCircle(Circle circle, Factory factory, RenderTarget target, float thickness)
+        public static void DrawCircle(Circle circle, Factory1 factory, RenderTarget target, float thickness)
         {
             Geometry geometry = GetCircleGeometry(circle, factory);
             SolidColorBrush brush = new(target, GetEntityColor(circle));
@@ -162,12 +162,12 @@ namespace Direct2DDXFViewer
             
             geometry.Dispose();
         }
-        public static void DrawInsert(Insert insert, Factory factory, RenderTarget target, float thickness)
+        public static void DrawInsert(Insert insert, Factory1 factory, RenderTarget target, float thickness)
         {
             
         }
 
-        public static Geometry GetLineGeometry(Line line, Factory factory)
+        public static Geometry GetLineGeometry(Line line, Factory1 factory)
         {
             PathGeometry pathGeometry = new(factory);
 
@@ -181,7 +181,7 @@ namespace Direct2DDXFViewer
 
             return pathGeometry;
         }
-        public static Geometry GetArcGeometry(Arc arc, Factory factory)
+        public static Geometry GetArcGeometry(Arc arc, Factory1 factory)
         {
             // Start by getting start and end points using NetDxf ToPolyline2D method
             RawVector2 start = new(
@@ -224,7 +224,7 @@ namespace Direct2DDXFViewer
 
             return pathGeometry;
         }
-        public static Geometry GetPolylineGeometry(Polyline2D pline, Factory factory)
+        public static Geometry GetPolylineGeometry(Polyline2D pline, Factory1 factory)
         {
             PathGeometry pathGeometry = new(factory);
 
@@ -278,7 +278,7 @@ namespace Direct2DDXFViewer
 
             return pathGeometry;
         }
-        public static Geometry GetPolylineGeometry(Polyline3D pline, Factory factory)
+        public static Geometry GetPolylineGeometry(Polyline3D pline, Factory1 factory)
         {
             PathGeometry pathGeometry = new(factory);
 
@@ -332,14 +332,14 @@ namespace Direct2DDXFViewer
 
             return pathGeometry;
         }
-        public static Geometry GetCircleGeometry(Circle circle, Factory factory)
+        public static Geometry GetCircleGeometry(Circle circle, Factory1 factory)
         {
             Ellipse ellipse = new(new RawVector2((float)circle.Center.X, (float)circle.Center.Y), (float)circle.Radius, (float)circle.Radius);
             EllipseGeometry ellipseGeometry = new(factory, ellipse);
             
             return ellipseGeometry;
         }
-        public static GeometryGroup GetInsertGeometry(Insert insert, Factory factory)
+        public static GeometryGroup GetInsertGeometry(Insert insert, Factory1 factory)
         {
             var entities = insert.Explode();
             Geometry[] geometries = new Geometry[entities.Count];

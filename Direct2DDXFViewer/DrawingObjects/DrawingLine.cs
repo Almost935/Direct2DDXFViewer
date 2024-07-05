@@ -52,7 +52,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingLine(Line dxfLine, Factory factory, RenderTarget renderTarget)
+        public DrawingLine(Line dxfLine, Factory1 factory, RenderTarget renderTarget)
         {
             DxfLine = dxfLine;
             Factory = factory; 
@@ -79,15 +79,10 @@ namespace Direct2DDXFViewer.DrawingObjects
                 sink.Close();
                 
                 Geometry = pathGeometry;
+
+                DeviceContext1 deviceContext = Target.QueryInterface<DeviceContext1>();
+                GeometryRealization = new(deviceContext, Geometry, 10.0f, 0.5f, StrokeStyle);
             }
-
-            DeviceContext1 deviceContext = Target.QueryInterface<DeviceContext1>();
-            GeometryRealization = new(deviceContext, Geometry, 10.0f, 0.5f, StrokeStyle);
-        }
-
-        public void UpdateGeometryRealization(float newScale)
-        {
-
         }
         #endregion
     }

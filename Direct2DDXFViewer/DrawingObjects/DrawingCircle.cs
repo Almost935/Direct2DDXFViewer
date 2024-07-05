@@ -34,7 +34,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingCircle(Circle dxfCircle, Factory factory, RenderTarget renderTarget)
+        public DrawingCircle(Circle dxfCircle, Factory1 factory, RenderTarget renderTarget)
         {
             DxfCircle = dxfCircle;
             Factory = factory; 

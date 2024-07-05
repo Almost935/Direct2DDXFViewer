@@ -32,7 +32,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingArc(Arc dxfArc, Factory factory, RenderTarget renderTarget)
+        public DrawingArc(Arc dxfArc, Factory1 factory, RenderTarget renderTarget)
         {
             DxfArc = dxfArc;
             Factory = factory; 

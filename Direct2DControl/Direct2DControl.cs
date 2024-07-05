@@ -20,7 +20,7 @@ namespace Direct2DControl
         private Texture2D renderTarget;
         private Dx11ImageSource d3DSurface;
         private RenderTarget d2DRenderTarget;
-        private SharpDX.Direct2D1.Factory d2DFactory;
+        private SharpDX.Direct2D1.Factory1 d2DFactory;
 
         private readonly Stopwatch renderTimer = new();
 
@@ -155,7 +155,6 @@ namespace Direct2DControl
         private void StartD3D()
         {
             device = new SharpDX.Direct3D11.Device(DriverType.Hardware, DeviceCreationFlags.BgraSupport);
-
             d3DSurface = new Dx11ImageSource();
             d3DSurface.IsFrontBufferAvailableChanged += OnIsFrontBufferAvailableChanged;
 
@@ -209,7 +208,7 @@ namespace Direct2DControl
             renderTarget = new Texture2D(device, renderDesc);
             var surface = renderTarget.QueryInterface<Surface>();
 
-            d2DFactory = new SharpDX.Direct2D1.Factory(FactoryType.MultiThreaded, DebugLevel.Information);
+            d2DFactory = new SharpDX.Direct2D1.Factory1(FactoryType.MultiThreaded, DebugLevel.Information);
             resCache.Factory = d2DFactory;
             var rtp = new RenderTargetProperties(new PixelFormat(Format.Unknown, SharpDX.Direct2D1.AlphaMode.Premultiplied));
             d2DRenderTarget = new(d2DFactory, surface, rtp);

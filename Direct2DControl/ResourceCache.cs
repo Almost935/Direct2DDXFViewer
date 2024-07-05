@@ -14,6 +14,7 @@ namespace Direct2DControl
         private Dictionary<string, Func<RenderTarget, object>> generators = new Dictionary<string, Func<RenderTarget, object>>();
         private Dictionary<string, object> resources = new Dictionary<string, object>();
         private RenderTarget renderTarget = null;
+        private DeviceContext1 deviceContext = null;
 
         // - property --------------------------------------------------------------------
 
@@ -22,13 +23,18 @@ namespace Direct2DControl
             get { return renderTarget; }
             set { renderTarget = value; UpdateResources(); }
         }
+        public DeviceContext1 DeviceContext
+        {
+            get { return deviceContext; }
+            set { deviceContext = value; UpdateResources(); }
+        }
 
         public int Count
         {
             get { return resources.Count; }
         }
 
-        public Factory Factory { get; set; }
+        public Factory1 Factory { get; set; }
 
         public object this[string key]
         {

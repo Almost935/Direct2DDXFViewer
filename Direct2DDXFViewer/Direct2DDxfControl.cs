@@ -26,7 +26,7 @@ using RectangleGeometry = SharpDX.Direct2D1.RectangleGeometry;
 using DashStyle = SharpDX.Direct2D1.DashStyle;
 using PixelFormat = SharpDX.Direct2D1.PixelFormat;
 using AlphaMode = SharpDX.Direct2D1.AlphaMode;
-using Factory = SharpDX.Direct2D1.Factory;
+using Factory1 = SharpDX.Direct2D1.Factory1;
 using System.Formats.Tar;
 using Direct2DDXFViewer.Helpers;
 
@@ -37,6 +37,7 @@ namespace Direct2DDXFViewer
         #region Fields
         private Matrix matrix = new();
         private bool isPanning = false;
+        private bool isRendering = false;
         private Point lastTranslatePos = new();
         private float currentThickness;
         private bool dxfLoaded = false;
@@ -141,7 +142,7 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Methods
-        public void LoadDxf(Factory factory, RenderTarget target)
+        public void LoadDxf(Factory1 factory, RenderTarget target)
         {
             DxfDoc = DxfDocument.Load(FilePath);
             if (DxfDoc is not null)
@@ -187,70 +188,85 @@ namespace Direct2DDXFViewer
 
         public override void Render(RenderTarget target)
         {
-            DeviceContext1 deviceContext = target.QueryInterface<DeviceContext1>();
-
-            target.AntialiasMode = AntialiasMode.Aliased;
-            target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
-            if (!dxfLoaded)
+            if (!isRendering)
             {
-                LoadDxf(target.Factory, target);
-                ExtentsMatrix = GetInitialMatrix();
-                matrix = ExtentsMatrix;
-            }
-            target.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
-           (float)matrix.OffsetX, (float)matrix.OffsetY);
+                isRendering = true;
 
-            GetBrushes(target);
-            currentThickness = AssortedHelpers.GetLineThickness(1.0f, target, (float)matrix.M11);
+                DeviceContext1 deviceContext = target.QueryInterface<DeviceContext1>();
+                deviceContext.AntialiasMode = AntialiasMode.Aliased;
+                deviceContext.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
 
-            UpdateCurrentView();
-            var viewport = new RawRectangleF((float)currentView.Left, (float)currentView.Top,
-                (float)currentView.Right, (float)currentView.Bottom);
+                target.AntialiasMode = AntialiasMode.Aliased;
+                target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
 
-            target.PushAxisAlignedClip(viewport,
-                AntialiasMode.PerPrimitive);
-
-            if (!bitmapLoaded)
-            {
-                LoadBitmap(target);
-            }
-
-            Stopwatch timer = new();
-            timer.Start();
-            foreach (var layer in LayerManager.Layers.Values)
-            {
-                if (layer.IsVisible)
+                if (!dxfLoaded)
                 {
-                    foreach (var o in layer.DrawingObjects)
+                    LoadDxf(resCache.Factory, target);
+                    ExtentsMatrix = GetInitialMatrix();
+                    matrix = ExtentsMatrix;
+                }
+                // target.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
+                //(float)matrix.OffsetX, (float)matrix.OffsetY);
+                deviceContext.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
+                (float)matrix.OffsetX, (float)matrix.OffsetY);
+
+                GetBrushes(target);
+                currentThickness = AssortedHelpers.GetLineThickness(1.0f, target, (float)matrix.M11);
+
+                UpdateCurrentView();
+                var viewport = new RawRectangleF((float)currentView.Left, (float)currentView.Top,
+                    (float)currentView.Right, (float)currentView.Bottom);
+
+                //target.PushAxisAlignedClip(viewport,
+                //    AntialiasMode.PerPrimitive);
+                deviceContext.PushAxisAlignedClip(viewport,
+                   AntialiasMode.PerPrimitive);
+
+                if (!bitmapLoaded)
+                {
+                    LoadBitmap(target);
+                }
+
+                Stopwatch timer = new();
+                timer.Start();
+                foreach (var layer in LayerManager.Layers.Values)
+                {
+                    if (layer.IsVisible)
                     {
-                        if (o is DrawingLine drawingLine)
+                        foreach (var o in layer.DrawingObjects)
                         {
-                            if (AssortedHelpers.IsGeometryInRect(viewport, drawingLine.Geometry, currentThickness))
+                            if (o is DrawingLine drawingLine)
                             {
-                                //deviceContext.DrawGeometryRealization(drawingLine.GeometryRealization, GetDrawingObjectBrush(drawingLine));
-                                DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingLine));
+                                if (AssortedHelpers.IsGeometryInRect(viewport, drawingLine.Geometry, currentThickness))
+                                {
+                                    deviceContext.DrawGeometryRealization(drawingLine.GeometryRealization, GetDrawingObjectBrush(drawingLine));
+                                    //DxfHelpers.DrawLine(drawingLine, resCache.Factory, target, currentThickness, GetDrawingObjectBrush(drawingLine));
+                                }
                             }
+                            //if (o is DrawingPolyline2D drawingPolyline2D)
+                            //{
+                            //    if (AssortedHelpers.IsGeometryInRect(viewport, drawingPolyline2D.Geometry, currentThickness))
+                            //    {
+                            //        DxfHelpers.DrawPolyline(drawingPolyline2D, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingPolyline2D));
+                            //    }
+                            //}
+                            //if (o is DrawingPolyline3D drawingPolyline3D)
+                            //{
+                            //    if (AssortedHelpers.IsGeometryInRect(viewport, drawingPolyline3D.Geometry, currentThickness))
+                            //    {
+                            //        DxfHelpers.DrawPolyline(drawingPolyline3D, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingPolyline3D));
+                            //    }
+                            //}
                         }
-                        //if (o is DrawingPolyline2D drawingPolyline2D)
-                        //{
-                        //    if (AssortedHelpers.IsGeometryInRect(viewport, drawingPolyline2D.Geometry, currentThickness))
-                        //    {
-                        //        DxfHelpers.DrawPolyline(drawingPolyline2D, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingPolyline2D));
-                        //    }
-                        //}
-                        //if (o is DrawingPolyline3D drawingPolyline3D)
-                        //{
-                        //    if (AssortedHelpers.IsGeometryInRect(viewport, drawingPolyline3D.Geometry, currentThickness))
-                        //    {
-                        //        DxfHelpers.DrawPolyline(drawingPolyline3D, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingPolyline3D));
-                        //    }
-                        //}
                     }
                 }
-            }
-            target.PopAxisAlignedClip();
+                //target.PopAxisAlignedClip();
+                deviceContext.PopAxisAlignedClip();
 
-            Debug.WriteLine($"Render time: {timer.ElapsedMilliseconds} ms");
+                Debug.WriteLine($"Render time: {timer.ElapsedMilliseconds} ms");
+
+                isRendering = false;
+            }
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -347,7 +363,7 @@ namespace Direct2DDXFViewer
                         if (o is DrawingLine drawingLine)
                         {
                             drawingLine.UpdateBrush(drawingLine.DxfLine, bitmapRenderTarget);
-                            DxfHelpers.DrawLine(drawingLine, bitmapRenderTarget.Factory, bitmapRenderTarget, currentThickness, GetDrawingObjectBrush(drawingLine));
+                            DxfHelpers.DrawLine(drawingLine, resCache.Factory, bitmapRenderTarget, currentThickness, GetDrawingObjectBrush(drawingLine));
                         }
                     }
                 }

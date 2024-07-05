@@ -32,7 +32,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingPolyline3D(Polyline3D dxfPolyline3D, Factory factory, RenderTarget renderTarget)
+        public DrawingPolyline3D(Polyline3D dxfPolyline3D, Factory1 factory, RenderTarget renderTarget)
         {
             DxfPolyline3D = dxfPolyline3D;
             Factory = factory; 
