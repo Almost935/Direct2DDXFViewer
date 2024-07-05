@@ -53,10 +53,12 @@
             <Border Grid.Row="2"
                     BorderBrush="#FF5E5E5E"
                     BorderThickness="0 0.5 0 0">
-                <TextBlock Text="{Binding ElementName=dxfViewer, Path=DxfPointerCoords, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=N3}"
-                           Margin="20 0 20 0"
-                           VerticalAlignment="Center"
-                           FontSize="12" />
+                <WrapPanel>
+                    <TextBlock Text="{Binding ElementName=dxfViewer, Path=DxfPointerCoords, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=N3}"
+                               Margin="20 0 20 0"
+                               VerticalAlignment="Center"
+                               FontSize="12" />
+                </WrapPanel>
             </Border>
         </Grid>
     </Border>

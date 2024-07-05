@@ -48,7 +48,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             }
         }
 
-        RenderTarget Target { get; set; }
+        public float CurrentScale { get; set; } = 1;
         #endregion
 
         #region Constructor
@@ -56,8 +56,11 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             DxfLine = dxfLine;
             Factory = factory; 
+            Target = renderTarget;
             StartPoint = new((float)dxfLine.StartPoint.X, (float)dxfLine.StartPoint.Y); 
             EndPoint = new((float)dxfLine.EndPoint.X, (float)dxfLine.EndPoint.Y);
+
+            GetStrokeStyle();
 
             UpdateBrush(dxfLine, renderTarget);
         }
@@ -77,6 +80,14 @@ namespace Direct2DDXFViewer.DrawingObjects
                 
                 Geometry = pathGeometry;
             }
+
+            DeviceContext1 deviceContext = Target.QueryInterface<DeviceContext1>();
+            GeometryRealization = new(deviceContext, Geometry, 10.0f, 0.5f, StrokeStyle);
+        }
+
+        public void UpdateGeometryRealization(float newScale)
+        {
+
         }
         #endregion
     }

@@ -187,6 +187,9 @@ namespace Direct2DDXFViewer
 
         public override void Render(RenderTarget target)
         {
+            DeviceContext1 deviceContext = target.QueryInterface<DeviceContext1>();
+
+            target.AntialiasMode = AntialiasMode.Aliased;
             target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
             if (!dxfLoaded)
             {
@@ -212,15 +215,8 @@ namespace Direct2DDXFViewer
                 LoadBitmap(target);
             }
 
-            if (isPanning)
-            {
-                target.AntialiasMode = AntialiasMode.Aliased;
-            }
-            else
-            {
-                target.AntialiasMode = AntialiasMode.Aliased;
-            }
-
+            Stopwatch timer = new();
+            timer.Start();
             foreach (var layer in LayerManager.Layers.Values)
             {
                 if (layer.IsVisible)
@@ -231,28 +227,30 @@ namespace Direct2DDXFViewer
                         {
                             if (AssortedHelpers.IsGeometryInRect(viewport, drawingLine.Geometry, currentThickness))
                             {
+                                //deviceContext.DrawGeometryRealization(drawingLine.GeometryRealization, GetDrawingObjectBrush(drawingLine));
                                 DxfHelpers.DrawLine(drawingLine, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingLine));
                             }
                         }
-                        if (o is DrawingPolyline2D drawingPolyline2D)
-                        {
-                            if (AssortedHelpers.IsGeometryInRect(viewport, drawingPolyline2D.Geometry, currentThickness))
-                            {
-                                DxfHelpers.DrawPolyline(drawingPolyline2D, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingPolyline2D));
-                            }
-                        }
-                        if (o is DrawingPolyline3D drawingPolyline3D)
-                        {
-                            if (AssortedHelpers.IsGeometryInRect(viewport, drawingPolyline3D.Geometry, currentThickness))
-                            {
-                                DxfHelpers.DrawPolyline(drawingPolyline3D, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingPolyline3D));
-                            }
-                        }
+                        //if (o is DrawingPolyline2D drawingPolyline2D)
+                        //{
+                        //    if (AssortedHelpers.IsGeometryInRect(viewport, drawingPolyline2D.Geometry, currentThickness))
+                        //    {
+                        //        DxfHelpers.DrawPolyline(drawingPolyline2D, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingPolyline2D));
+                        //    }
+                        //}
+                        //if (o is DrawingPolyline3D drawingPolyline3D)
+                        //{
+                        //    if (AssortedHelpers.IsGeometryInRect(viewport, drawingPolyline3D.Geometry, currentThickness))
+                        //    {
+                        //        DxfHelpers.DrawPolyline(drawingPolyline3D, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingPolyline3D));
+                        //    }
+                        //}
                     }
                 }
             }
-
             target.PopAxisAlignedClip();
+
+            Debug.WriteLine($"Render time: {timer.ElapsedMilliseconds} ms");
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)

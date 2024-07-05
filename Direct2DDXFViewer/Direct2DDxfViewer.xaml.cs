@@ -46,7 +46,7 @@ namespace Direct2DDXFViewer
         {
             InitializeComponent();
 
-            dxfControl.PropertyChanged += DxfControl_PropertyChanged; ;
+            dxfControl.PropertyChanged += DxfControl_PropertyChanged;
         }
         #endregion
 

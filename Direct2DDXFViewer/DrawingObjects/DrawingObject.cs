@@ -52,8 +52,12 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public Geometry Geometry { get; set;}
         public Geometry SimplifiedGeometry { get; set; }
+        public GeometryRealization GeometryRealization { get; set; }
+        public RenderTarget Target { get; set; }
+        public DeviceContext1 DeviceContext { get; set; }
         public Factory Factory { get; set; }
         public Brush Brush { get; set; }
+        public StrokeStyle1 StrokeStyle { get; set; }
         public ResourceCache ResCache { get; set; }
         #endregion
 
@@ -125,6 +129,33 @@ namespace Direct2DDXFViewer.DrawingObjects
                     }
                 }
             //}
+        }
+
+        public void GetStrokeStyle()
+        {
+            StrokeStyleProperties strokeStyleProperties = new()
+            {
+                StartCap = CapStyle.Round,
+                EndCap = CapStyle.Round,
+                DashCap = CapStyle.Flat,
+                LineJoin = LineJoin.Miter,
+                MiterLimit = 10.0f,
+                DashStyle = DashStyle.Solid,
+                DashOffset = 0.0f
+            };
+            StrokeStyleProperties1 ssp = new()
+            {
+                StartCap = CapStyle.Round,
+                EndCap = CapStyle.Round,
+                DashCap = CapStyle.Flat,
+                LineJoin = LineJoin.Miter,
+                MiterLimit = 10.0f,
+                DashStyle = DashStyle.Solid,
+                DashOffset = 0.0f,
+                TransformType = StrokeTransformType.Normal
+            };
+            StrokeStyle = new(Factory, ssp);
+            StrokeStyle = new(Factory, strokeStyleProperties);
         }
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
