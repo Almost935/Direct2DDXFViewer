@@ -186,18 +186,17 @@ namespace Direct2DDXFViewer
             }
         }
 
-        public override void Render(RenderTarget target)
+        public override void Render(RenderTarget target, DeviceContext1 deviceContext)
         {
             if (!isRendering)
             {
                 isRendering = true;
 
-                DeviceContext1 deviceContext = target.QueryInterface<DeviceContext1>();
                 deviceContext.AntialiasMode = AntialiasMode.Aliased;
                 deviceContext.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
 
-                target.AntialiasMode = AntialiasMode.Aliased;
-                target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
+                //target.AntialiasMode = AntialiasMode.Aliased;
+                //target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
 
                 if (!dxfLoaded)
                 {
@@ -339,39 +338,39 @@ namespace Direct2DDXFViewer
 
         private void LoadBitmap(RenderTarget target)
         {
-            if (LayerManager is null)
-            {
-                return;
-            }
-            if (bitmapRenderTarget is not null)
-            {
-                bitmapRenderTarget.Dispose();
-                bitmapRenderTarget = null;
-            }
+            //if (LayerManager is null)
+            //{
+            //    return;
+            //}
+            //if (bitmapRenderTarget is not null)
+            //{
+            //    bitmapRenderTarget.Dispose();
+            //    bitmapRenderTarget = null;
+            //}
 
-            bitmapRenderTarget = new(target, CompatibleRenderTargetOptions.None, target.Size);
-            bitmapRenderTarget.BeginDraw();
-            bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0f, 1.0f));
-            //bitmapRenderTarget.Transform = new(1, 0, 0, 1, -(float)Extents.Left, -(float)Extents.Top);
+            //bitmapRenderTarget = new(target, CompatibleRenderTargetOptions.None, target.Size);
+            //bitmapRenderTarget.BeginDraw();
+            //bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0f, 1.0f));
+            ////bitmapRenderTarget.Transform = new(1, 0, 0, 1, -(float)Extents.Left, -(float)Extents.Top);
 
-            foreach (var layer in LayerManager.Layers.Values)
-            {
-                if (layer.IsVisible)
-                {
-                    foreach (var o in layer.DrawingObjects)
-                    {
-                        if (o is DrawingLine drawingLine)
-                        {
-                            drawingLine.UpdateBrush(drawingLine.DxfLine, bitmapRenderTarget);
-                            DxfHelpers.DrawLine(drawingLine, resCache.Factory, bitmapRenderTarget, currentThickness, GetDrawingObjectBrush(drawingLine));
-                        }
-                    }
-                }
-            }
+            //foreach (var layer in LayerManager.Layers.Values)
+            //{
+            //    if (layer.IsVisible)
+            //    {
+            //        foreach (var o in layer.DrawingObjects)
+            //        {
+            //            if (o is DrawingLine drawingLine)
+            //            {
+            //                drawingLine.UpdateBrush(drawingLine.DxfLine, bitmapRenderTarget);
+            //                DxfHelpers.DrawLine(drawingLine, resCache.Factory, bitmapRenderTarget, currentThickness, GetDrawingObjectBrush(drawingLine));
+            //            }
+            //        }
+            //    }
+            //}
 
-            bitmapRenderTarget.EndDraw();
-            bitmapRenderTargetNeedsUpdate = false;
-            bitmapLoaded = true;
+            //bitmapRenderTarget.EndDraw();
+            //bitmapRenderTargetNeedsUpdate = false;
+            //bitmapLoaded = true;
         }
         private void RenderBitmap(RenderTarget target)
         {

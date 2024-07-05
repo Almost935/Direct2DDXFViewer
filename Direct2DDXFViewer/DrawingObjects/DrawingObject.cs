@@ -50,7 +50,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             }
         }
 
-        public Geometry Geometry { get; set;}
+        public Geometry Geometry { get; set; }
         public Geometry SimplifiedGeometry { get; set; }
         public GeometryRealization GeometryRealization { get; set; }
         public RenderTarget Target { get; set; }
@@ -105,29 +105,29 @@ namespace Direct2DDXFViewer.DrawingObjects
             //}
             //else
             //{
-                if (entity.Color.IsByLayer)
+            if (entity.Color.IsByLayer)
+            {
+                if (entity.Layer.Color.R == 255 && entity.Layer.Color.G == 255 && entity.Layer.Color.B == 255)
                 {
-                    if (entity.Layer.Color.R == 255 && entity.Layer.Color.G == 255 && entity.Layer.Color.B == 255)
-                    {
-                        Brush = new SolidColorBrush(target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
-                    }
-                    else
-                    {
-                        Brush = new SolidColorBrush(target,
-                            new RawColor4((float)(entity.Layer.Color.R / 255), (float)(entity.Layer.Color.G / 255), (float)(entity.Layer.Color.B / 255), 1.0f));
-                    }
+                    Brush = new SolidColorBrush(target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
                 }
                 else
                 {
-                    if (entity.Color.R == 255 && entity.Color.G == 255 && entity.Color.B == 255)
-                    {
-                        Brush = new SolidColorBrush(target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
-                    }
-                    else
-                    {
-                        Brush = new SolidColorBrush(target, new RawColor4((float)(entity.Color.R) / 255, (float)(entity.Color.G) / 255, (float)(entity.Color.B) / 255, 1.0f));
-                    }
+                    Brush = new SolidColorBrush(target,
+                        new RawColor4((float)(entity.Layer.Color.R / 255), (float)(entity.Layer.Color.G / 255), (float)(entity.Layer.Color.B / 255), 1.0f));
                 }
+            }
+            else
+            {
+                if (entity.Color.R == 255 && entity.Color.G == 255 && entity.Color.B == 255)
+                {
+                    Brush = new SolidColorBrush(target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                }
+                else
+                {
+                    Brush = new SolidColorBrush(target, new RawColor4((float)(entity.Color.R) / 255, (float)(entity.Color.G) / 255, (float)(entity.Color.B) / 255, 1.0f));
+                }
+            }
             //}
         }
 

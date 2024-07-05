@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
+using DeviceContext1 = SharpDX.Direct2D1.DeviceContext1;
 
 namespace Direct2DControl
 {
@@ -20,6 +21,7 @@ namespace Direct2DControl
         private Texture2D renderTarget;
         private Dx11ImageSource d3DSurface;
         private RenderTarget d2DRenderTarget;
+        private DeviceContext1 d2DDeviceContext;
         private SharpDX.Direct2D1.Factory1 d2DFactory;
 
         private readonly Stopwatch renderTimer = new();
@@ -87,7 +89,7 @@ namespace Direct2DControl
             base.Stretch = System.Windows.Media.Stretch.Fill;
         }
 
-        public abstract void Render(RenderTarget target);
+        public abstract void Render(RenderTarget target, DeviceContext1 deviceContext);
 
         // - event handler ---------------------------------------------------------------
 
@@ -213,6 +215,8 @@ namespace Direct2DControl
             var rtp = new RenderTargetProperties(new PixelFormat(Format.Unknown, SharpDX.Direct2D1.AlphaMode.Premultiplied));
             d2DRenderTarget = new(d2DFactory, surface, rtp);
             resCache.RenderTarget = d2DRenderTarget;
+            d2DDeviceContext = d2DRenderTarget.QueryInterface<DeviceContext1>();
+            resCache.DeviceContext = d2DDeviceContext;
             
             d3DSurface.SetRenderTarget(renderTarget);
 
@@ -251,7 +255,7 @@ namespace Direct2DControl
             }
             
             d2DRenderTarget.BeginDraw();
-            Render(d2DRenderTarget);
+            Render(d2DRenderTarget, d2DDeviceContext);
             d2DRenderTarget.EndDraw();
 
             CalcFps();
