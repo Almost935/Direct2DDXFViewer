@@ -36,6 +36,7 @@ namespace Direct2DDXFViewer
     {
         #region Fields
         private Matrix matrix = new();
+        private float zoomFactor = 1.3f;
         private bool isPanning = false;
         private bool isRendering = false;
         private Point lastTranslatePos = new();
@@ -43,9 +44,8 @@ namespace Direct2DDXFViewer
         private bool dxfLoaded = false;
         private Rect currentView = new();
         private BackgroundWorker snapBackgroundWorker;
-        private List<(Geometry, Brush)> geometries = new();
-        private Bitmap bitmapCache;
-        private BitmapRenderTarget bitmapRenderTarget;
+        private BitmapRenderTarget currentBitmapRenderTarget;
+        private BitmapRenderTarget[] bitmapRenderTargets = new BitmapRenderTarget[20];
         private bool bitmapLoaded = false;
         private bool bitmapRenderTargetNeedsUpdate = true;
         private Brush highlightedBrush = null;
@@ -192,7 +192,6 @@ namespace Direct2DDXFViewer
             {
                 isRendering = true;
 
-                deviceContext.AntialiasMode = AntialiasMode.Aliased;
                 deviceContext.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
 
                 //target.AntialiasMode = AntialiasMode.Aliased;
@@ -203,6 +202,10 @@ namespace Direct2DDXFViewer
                     LoadDxf(resCache.Factory, target);
                     ExtentsMatrix = GetInitialMatrix();
                     matrix = ExtentsMatrix;
+                }
+                if (!bitmapLoaded)
+                {
+
                 }
                 // target.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
                 //(float)matrix.OffsetX, (float)matrix.OffsetY);
@@ -218,13 +221,6 @@ namespace Direct2DDXFViewer
 
                 //target.PushAxisAlignedClip(viewport,
                 //    AntialiasMode.PerPrimitive);
-                deviceContext.PushAxisAlignedClip(viewport,
-                   AntialiasMode.PerPrimitive);
-
-                if (!bitmapLoaded)
-                {
-                    LoadBitmap(target);
-                }
 
                 Stopwatch timer = new();
                 timer.Start();
@@ -242,25 +238,10 @@ namespace Direct2DDXFViewer
                                     //DxfHelpers.DrawLine(drawingLine, resCache.Factory, target, currentThickness, GetDrawingObjectBrush(drawingLine));
                                 }
                             }
-                            //if (o is DrawingPolyline2D drawingPolyline2D)
-                            //{
-                            //    if (AssortedHelpers.IsGeometryInRect(viewport, drawingPolyline2D.Geometry, currentThickness))
-                            //    {
-                            //        DxfHelpers.DrawPolyline(drawingPolyline2D, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingPolyline2D));
-                            //    }
-                            //}
-                            //if (o is DrawingPolyline3D drawingPolyline3D)
-                            //{
-                            //    if (AssortedHelpers.IsGeometryInRect(viewport, drawingPolyline3D.Geometry, currentThickness))
-                            //    {
-                            //        DxfHelpers.DrawPolyline(drawingPolyline3D, target.Factory, target, currentThickness, GetDrawingObjectBrush(drawingPolyline3D));
-                            //    }
-                            //}
                         }
                     }
                 }
                 //target.PopAxisAlignedClip();
-                deviceContext.PopAxisAlignedClip();
 
                 Debug.WriteLine($"Render time: {timer.ElapsedMilliseconds} ms");
 
@@ -280,11 +261,11 @@ namespace Direct2DDXFViewer
 
             if (e.Delta > 0)
             {
-                zoom = 1.3f;
+                zoom = zoomFactor;
             }
             else
             {
-                zoom = 1f / 1.3f;
+                zoom = 1f / zoomFactor;
             }
 
             UpdateZoom(zoom);
@@ -336,8 +317,18 @@ namespace Direct2DDXFViewer
             }
         }
 
-        private void LoadBitmap(RenderTarget target)
+        private void InitializeBitmaps(RenderTarget target)
         {
+            for (int i = 0; i < (bitmapRenderTargets.Length) / 2; i++)
+            {
+                if (bitmapRenderTargets[i] is not null)
+                {
+                    bitmapRenderTargets[i].Dispose();
+                    bitmapRenderTargets[i] = null;
+                }
+                BitmapRenderTarget bitmapRenderTarget = new(target, CompatibleRenderTargetOptions.None, target.Size);
+            }
+
             //if (LayerManager is null)
             //{
             //    return;
@@ -374,11 +365,11 @@ namespace Direct2DDXFViewer
         }
         private void RenderBitmap(RenderTarget target)
         {
-            if (bitmapRenderTarget is not null)
+            if (currentBitmapRenderTarget is not null)
             {
                 if (bitmapRenderTargetNeedsUpdate)
                 {
-                    LoadBitmap(target);
+                    InitializeBitmaps(target);
                 }
 
                 RawRectangleF sourceRect = new((float)Extents.Left, (float)Extents.Top, (float)(Extents.Left + target.Size.Width), (float)(Extents.Top + target.Size.Height));
@@ -389,7 +380,7 @@ namespace Direct2DDXFViewer
 
                 //renderTarget.DrawBitmap(bitmap, 1.0f, SharpDX.Direct2D1.BitmapInterpolationMode.Linear, new SharpDX.RectangleF(offsetX, offsetY, offsetX + bitmap.Size.Width, offsetY + bitmap.Size.Height));
 
-                target.DrawBitmap(bitmapRenderTarget.Bitmap, testDestinationRect, 1.0f, BitmapInterpolationMode.Linear, testSourceRect);
+                target.DrawBitmap(currentBitmapRenderTarget.Bitmap, testDestinationRect, 1.0f, BitmapInterpolationMode.Linear, testSourceRect);
             }
         }
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
