@@ -142,7 +142,7 @@ namespace Direct2DDXFViewer.DrawingObjects
                 MiterLimit = 10.0f,
                 DashStyle = DashStyle.Solid,
                 DashOffset = 0.0f,
-                TransformType = StrokeTransformType.Normal
+                TransformType = StrokeTransformType.Hairline
             };
             StrokeStyle = new(Factory, ssp);
         }
