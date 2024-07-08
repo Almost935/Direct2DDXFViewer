@@ -13,6 +13,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 
+using SolidColorBrush = SharpDX.Direct2D1.SolidColorBrush;
+
 namespace Direct2DDXFViewer.BitmapHelpers
 {
     public class BitmapCache
@@ -76,6 +78,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     }
                 }
             }
+
             BitmapRenderTarget.EndDraw();
         }
         public void GetInitialMatrix() 
@@ -87,28 +90,17 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
             _matrix.Translate(-Extents.Left, -Extents.Top);
 
-            double centerX;
-            double centerY;
             if (scaleX < scaleY)
             {
                 Scale = (float)scaleX;
-
-                centerX = Extents.Width * 0.5 * Scale;
-                centerY = Extents.Height * 0.5 * Scale;
             }
             else
             {
                 Scale = (float)scaleY;
-
-                centerX = Extents.Width * 0.5 * Scale;
-                centerY = Extents.Height * 0.5 * Scale;
             }
-            double testCenterX = 0;
-            double testCenterY = Extents.Height / 1.5;
-
-            //_matrix.ScaleAt(Scale, -Scale, Extents.Width / 2, Extents.Height / 2);
-            //_matrix.ScaleAt(Scale, -Scale, testCenterX, testCenterY);
-            _matrix.ScaleAt(2, -2, 0, Extents.Height);
+            
+            _matrix.ScaleAt(Scale, Scale, 0, 0);
+            _matrix.ScaleAt(1, -1, (Extents.Width * Scale) / 2, (Extents.Height * Scale) / 2); // Reverse the coordinate system
         }
         public void Dispose()
         {
