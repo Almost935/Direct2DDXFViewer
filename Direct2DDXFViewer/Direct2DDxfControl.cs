@@ -215,7 +215,6 @@ namespace Direct2DDXFViewer
                 //target.PushAxisAlignedClip(viewport,
                 //    AntialiasMode.PerPrimitive);
 
-
                 timer.Restart();
                 RenderBitmap(target);
                 //target.PopAxisAlignedClip();
@@ -300,13 +299,18 @@ namespace Direct2DDXFViewer
         }
         private void RenderBitmap(RenderTarget target)
         {
-            //target.Transform = new((float)_matrix.M11, (float)_matrix.M12, (float)_matrix.M21, (float)_matrix.M22,
-            //     (float)_matrix.OffsetX, (float)_matrix.OffsetY);
+            target.Transform = new((float)_matrix.M11, (float)_matrix.M12, (float)_matrix.M21, (float)_matrix.M22,
+                    (float)_matrix.OffsetX, (float)_matrix.OffsetY);
+            //target.Transform = new(1, 0, 0, 1,
+            //        (float)_matrix.OffsetX, (float)_matrix.OffsetY);
             target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
             
-            RawRectangleF destRect = new((float)Extents.Left, (float)Extents.Top, (float)Extents.Right, (float)Extents.Bottom);
-
-            RawRectangleF testDestRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
+            RawRectangleF destRect = new((float)Extents.Left, -(float)Extents.Top, 
+                (float)ActualWidth + (float)Extents.Left, 
+                (float)ActualHeight - (float)Extents.Top);
+            RawRectangleF testDestRect = new(0, 0,
+               (float)ActualWidth,
+               (float)ActualHeight);
             RawRectangleF sourceRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
             target.DrawBitmap(_bitmapCache.BitmapRenderTarget.Bitmap, testDestRect, 1.0f, BitmapInterpolationMode.NearestNeighbor, sourceRect);
         }
@@ -348,8 +352,6 @@ namespace Direct2DDXFViewer
 
                 resCache.RenderTarget.Transform = new((float)_matrix.M11, (float)_matrix.M12, (float)_matrix.M21, (float)_matrix.M22,
                     (float)_matrix.OffsetX, (float)_matrix.OffsetY);
-                //bitmapRenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
-                //   (float)matrix.OffsetX, (float)matrix.OffsetY);
 
                 UpdateCurrentView();
             }
@@ -360,8 +362,6 @@ namespace Direct2DDXFViewer
 
             resCache.RenderTarget.Transform = new((float)_matrix.M11, (float)_matrix.M12, (float)_matrix.M21, (float)_matrix.M22,
             (float)(_matrix.OffsetX), (float)(_matrix.OffsetY));
-            //bitmapRenderTarget.Transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22,
-            //(float)(matrix.OffsetX), (float)(matrix.OffsetY));
 
             UpdateCurrentView();
         }
