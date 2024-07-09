@@ -229,7 +229,9 @@ namespace Direct2DDXFViewer
         {
             base.OnRenderSizeChanged(sizeInfo);
 
-            _bitmapRenderTargetNeedsUpdate = true;
+            UpdateTargetAndFactory(resCache.RenderTarget, resCache.Factory);
+
+            _bitmapLoaded = false;
         }
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
@@ -295,10 +297,16 @@ namespace Direct2DDXFViewer
 
         private void InitializeBitmapCache(RenderTarget target)
         {
+            if (_bitmapCache is not null)
+            {
+                _bitmapCache.Dispose();
+                _bitmapCache = null;
+            }
             _bitmapCache = new(target, resCache.Factory, LayerManager, Extents, target.Size);
         }
         private void RenderBitmap(RenderTarget target)
         {
+            if (_bitmapCache is null) { return; }
             target.Transform = new((float)_matrix.M11, (float)_matrix.M12, (float)_matrix.M21, (float)_matrix.M22,
                     (float)_matrix.OffsetX, (float)_matrix.OffsetY);
             //target.Transform = new(1, 0, 0, 1,
@@ -312,6 +320,7 @@ namespace Direct2DDXFViewer
                (float)ActualWidth,
                (float)ActualHeight);
             RawRectangleF sourceRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
+
             target.DrawBitmap(_bitmapCache.BitmapRenderTarget.Bitmap, testDestRect, 1.0f, BitmapInterpolationMode.NearestNeighbor, sourceRect);
         }
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
@@ -389,6 +398,19 @@ namespace Direct2DDXFViewer
             //    (float)_matrix.OffsetX, (float)_matrix.OffsetY);
             //UpdateCurrentView();
             //RenderTargetIsDirty = true;
+        }
+        public void UpdateTargetAndFactory(RenderTarget target, Factory1 factory)
+        {
+            if (LayerManager is null) { return; }
+
+            foreach (var layer in LayerManager.Layers.Values)
+            {
+                foreach (var o in layer.DrawingObjects)
+                {
+                    o.UpdateFactory(factory);
+                    o.UpdateTarget(target);
+                }
+            }
         }
 
 

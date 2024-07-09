@@ -9,7 +9,7 @@ namespace Direct2DDXFViewer.DrawingObjects
     public class ObjectLayerManager
     {
         #region Properties
-        public Dictionary<string, ObjectLayer> Layers { get; set; } = new Dictionary<string, ObjectLayer>();
+        public Dictionary<string, ObjectLayer> Layers { get; set; } = new();
         #endregion
     }
 }

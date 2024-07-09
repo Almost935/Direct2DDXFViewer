@@ -55,6 +55,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         public DrawingLine(Line dxfLine, Factory1 factory, RenderTarget renderTarget)
         {
             DxfLine = dxfLine;
+            Entity = dxfLine;
             Factory = factory; 
             Target = renderTarget;
             StartPoint = new((float)dxfLine.StartPoint.X, (float)dxfLine.StartPoint.Y); 
@@ -62,7 +63,7 @@ namespace Direct2DDXFViewer.DrawingObjects
 
             GetStrokeStyle();
 
-            UpdateBrush(dxfLine, renderTarget);
+            UpdateBrush();
         }
         #endregion
 

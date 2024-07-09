@@ -35,9 +35,10 @@ namespace Direct2DDXFViewer.DrawingObjects
         public DrawingArc(Arc dxfArc, Factory1 factory, RenderTarget renderTarget)
         {
             DxfArc = dxfArc;
+            Entity = dxfArc;
             Factory = factory; 
 
-            UpdateBrush(dxfArc, renderTarget);
+            UpdateBrush();
         }
         #endregion
 

@@ -50,6 +50,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             }
         }
 
+        public EntityObject Entity { get; set; }
         public Geometry Geometry { get; set; }
         public Geometry SimplifiedGeometry { get; set; }
         public GeometryRealization GeometryRealization { get; set; }
@@ -72,67 +73,51 @@ namespace Direct2DDXFViewer.DrawingObjects
         #region Methods
         public abstract void UpdateGeometry();
 
-        public void UpdateBrush(EntityObject entity, RenderTarget target)
+        public void UpdateBrush()
         {
+            if (Entity is null || Target is null)
+            {
+                return;
+            }
+
             if (Brush is not null)
             {
                 Brush.Dispose();
+                Brush = null;
             }
 
-            //if (IsSnapped && IsHighlighted)
-            //{
-            //    if (ResCache.ContainsKey("SnappedHighlightedBrush"))
-            //    {
-            //        Brush = (Brush)ResCache["SnappedHighlightedBrush"];
-            //    }
-            //    else { return; }
-            //}
-            //else if (IsSnapped)
-            //{
-            //    if (ResCache.ContainsKey("SnappedBrush"))
-            //    {
-            //        Brush = (Brush)ResCache["SnappedBrush"];
-            //    }
-            //    else { return; }
-            //}
-            //else if (IsHighlighted)
-            //{
-            //    if (ResCache.ContainsKey("HighlightedBrush"))
-            //    {
-            //        Brush = (Brush)ResCache["HighlightedBrush"];
-            //    }
-            //    else { return; }
-            //}
-            //else
-            //{
-            if (entity.Color.IsByLayer)
+            if (Entity.Color.IsByLayer)
             {
-                if (entity.Layer.Color.R == 255 && entity.Layer.Color.G == 255 && entity.Layer.Color.B == 255)
+                if (Entity.Layer.Color.R == 255 && Entity.Layer.Color.G == 255 && Entity.Layer.Color.B == 255)
                 {
-                    Brush = new SolidColorBrush(target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                    Brush = new SolidColorBrush(Target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
                 }
                 else
                 {
-                    Brush = new SolidColorBrush(target,
-                        new RawColor4((float)(entity.Layer.Color.R / 255), (float)(entity.Layer.Color.G / 255), (float)(entity.Layer.Color.B / 255), 1.0f));
+                    Brush = new SolidColorBrush(Target,
+                        new RawColor4((float)(Entity.Layer.Color.R / 255), (float)(Entity.Layer.Color.G / 255), (float)(Entity.Layer.Color.B / 255), 1.0f));
                 }
             }
             else
             {
-                if (entity.Color.R == 255 && entity.Color.G == 255 && entity.Color.B == 255)
+                if (Entity.Color.R == 255 && Entity.Color.G == 255 && Entity.Color.B == 255)
                 {
-                    Brush = new SolidColorBrush(target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                    Brush = new SolidColorBrush(Target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
                 }
                 else
                 {
-                    Brush = new SolidColorBrush(target, new RawColor4((float)(entity.Color.R) / 255, (float)(entity.Color.G) / 255, (float)(entity.Color.B) / 255, 1.0f));
+                    Brush = new SolidColorBrush(Target, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1.0f));
                 }
             }
-            //}
         }
 
         public void GetStrokeStyle()
         {
+            if (StrokeStyle is not null)
+            {
+                StrokeStyle.Dispose();
+                StrokeStyle = null;
+            }
             StrokeStyleProperties1 ssp = new()
             {
                 StartCap = CapStyle.Round,
@@ -145,6 +130,16 @@ namespace Direct2DDXFViewer.DrawingObjects
                 TransformType = StrokeTransformType.Hairline
             };
             StrokeStyle = new(Factory, ssp);
+        }
+        public void UpdateFactory(Factory1 factory)
+        {
+            Factory = factory;
+            GetStrokeStyle();
+        }
+        public void UpdateTarget(RenderTarget target)
+        {
+            Target = target;
+            UpdateBrush();
         }
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)

@@ -37,9 +37,10 @@ namespace Direct2DDXFViewer.DrawingObjects
         public DrawingCircle(Circle dxfCircle, Factory1 factory, RenderTarget renderTarget)
         {
             DxfCircle = dxfCircle;
+            Entity = dxfCircle;
             Factory = factory; 
 
-            UpdateBrush(dxfCircle, renderTarget);
+            UpdateBrush();
         }
         #endregion
 
