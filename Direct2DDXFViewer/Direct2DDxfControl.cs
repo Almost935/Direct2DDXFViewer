@@ -35,7 +35,8 @@ namespace Direct2DDXFViewer
     public class Direct2DDxfControl : Direct2DControl.Direct2DControl, INotifyPropertyChanged
     {
         #region Fields
-        private Matrix _matrix = new();
+        private Matrix _transformMatrix = new();
+        private Matrix _overallMatrix = new();
         private float _zoomFactor = 1.3f;
         private bool _isPanning = false;
         private bool _isRendering = false;
@@ -197,7 +198,7 @@ namespace Direct2DDXFViewer
                 {
                     LoadDxf(resCache.Factory, target);
                     ExtentsMatrix = GetInitialMatrix();
-                    //_matrix = ExtentsMatrix;
+                    _overallMatrix = ExtentsMatrix;
                 }
 
                 if (!_bitmapLoaded)
@@ -302,26 +303,24 @@ namespace Direct2DDXFViewer
                 _bitmapCache.Dispose();
                 _bitmapCache = null;
             }
-            _bitmapCache = new(target, resCache.Factory, LayerManager, Extents, target.Size);
+            _bitmapCache = new(target, resCache.Factory, LayerManager, Extents, target.Size, ExtentsMatrix);
         }
         private void RenderBitmap(RenderTarget target)
         {
             if (_bitmapCache is null) { return; }
-            target.Transform = new((float)_matrix.M11, (float)_matrix.M12, (float)_matrix.M21, (float)_matrix.M22,
-                    (float)_matrix.OffsetX, (float)_matrix.OffsetY);
-            //target.Transform = new(1, 0, 0, 1,
-            //        (float)_matrix.OffsetX, (float)_matrix.OffsetY);
+
+            target.Transform = new((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22,
+                    (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
+
             target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
             
-            RawRectangleF destRect = new((float)Extents.Left, -(float)Extents.Top, 
-                (float)ActualWidth + (float)Extents.Left, 
-                (float)ActualHeight - (float)Extents.Top);
+            RawRectangleF destRect = new((float)Extents.Left, (float)Extents.Top, (float)Extents.Right, (float)Extents.Bottom);
             RawRectangleF testDestRect = new(0, 0,
                (float)ActualWidth,
                (float)ActualHeight);
             RawRectangleF sourceRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
 
-            target.DrawBitmap(_bitmapCache.BitmapRenderTarget.Bitmap, testDestRect, 1.0f, BitmapInterpolationMode.NearestNeighbor, sourceRect);
+            resCache.DeviceContext.DrawBitmap(_bitmapCache.BitmapRenderTarget.Bitmap, testDestRect, 1.0f, BitmapInterpolationMode.NearestNeighbor, sourceRect);
         }
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
         {
@@ -349,7 +348,7 @@ namespace Direct2DDXFViewer
         }
         private void UpdateDxfPointerCoords()
         {
-            var newMatrix = _matrix;
+            var newMatrix = _overallMatrix;
             newMatrix.Invert();
             DxfPointerCoords = newMatrix.Transform(PointerCoords);
         }
@@ -357,20 +356,22 @@ namespace Direct2DDXFViewer
         {
             if (!_isPanning)
             {
-                _matrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
+                _overallMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
+                _transformMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
 
-                resCache.RenderTarget.Transform = new((float)_matrix.M11, (float)_matrix.M12, (float)_matrix.M21, (float)_matrix.M22,
-                    (float)_matrix.OffsetX, (float)_matrix.OffsetY);
+                //resCache.RenderTarget.Transform = new((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22,
+                //    (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
 
                 UpdateCurrentView();
             }
         }
         private void UpdateTranslate(Vector translate)
         {
-            _matrix.Translate(translate.X, translate.Y);
+            _overallMatrix.Translate(translate.X, translate.Y);
+            _transformMatrix.Translate(translate.X, translate.Y);
 
-            resCache.RenderTarget.Transform = new((float)_matrix.M11, (float)_matrix.M12, (float)_matrix.M21, (float)_matrix.M22,
-            (float)(_matrix.OffsetX), (float)(_matrix.OffsetY));
+            //resCache.RenderTarget.Transform = new((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22,
+            //(float)(_overallMatrix.OffsetX), (float)(_overallMatrix.OffsetY));
 
             UpdateCurrentView();
         }

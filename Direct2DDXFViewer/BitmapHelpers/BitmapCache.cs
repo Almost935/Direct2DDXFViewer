@@ -30,19 +30,21 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public BitmapRenderTarget BitmapRenderTarget { get; set; }
         public float ZoomFactor { get; set; } = 1.0f;
         public Rect Extents { get; set; }
+        public Matrix ExtentsMatrix { get; set; }
         public ObjectLayerManager LayerManager { get; set; } = new();
         public Size2F RenderTargetSize { get; set; }
         public float Scale { get; set; } = 1.0f;
         #endregion
 
         #region Constructors
-        public BitmapCache(RenderTarget renderTarget, Factory1 factory, ObjectLayerManager layerManager, Rect extents, Size2F renderTargetSize)
+        public BitmapCache(RenderTarget renderTarget, Factory1 factory, ObjectLayerManager layerManager, Rect extents, Size2F renderTargetSize, Matrix extentsMatrix)
         {
             _renderTarget = renderTarget;
             LayerManager = layerManager;
             Extents = extents;
             _factory = factory;
             RenderTargetSize = renderTargetSize;
+            ExtentsMatrix = extentsMatrix;
 
             InitializeBitmap();
         }
@@ -86,7 +88,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             BitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, RenderTargetSize);
 
-            GetInitialMatrix();
+            //GetInitialMatrix();
             DrawBitmapObjects();
         }
         public void ZoomToExtents()
@@ -99,7 +101,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
             {
                 BitmapRenderTarget.BeginDraw();
                 BitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0.0f, 1.0f));
-                BitmapRenderTarget.Transform = new RawMatrix3x2((float)_matrix.M11, (float)_matrix.M12, (float)_matrix.M21, (float)_matrix.M22, (float)_matrix.OffsetX, (float)_matrix.OffsetY);
+                
+                BitmapRenderTarget.Transform = new RawMatrix3x2((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
 
                 foreach (var layer in LayerManager.Layers.Values)
                 {
