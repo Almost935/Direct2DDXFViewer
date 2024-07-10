@@ -315,7 +315,7 @@ namespace Direct2DDXFViewer
             target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
             
             RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
-            RawRectangleF sourceRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
+            RawRectangleF sourceRect = new(0, 0, (float)(ActualWidth) * 3, (float)(ActualHeight) * 3);
 
             target.DrawBitmap(_bitmapCache.InitialBitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
         }
