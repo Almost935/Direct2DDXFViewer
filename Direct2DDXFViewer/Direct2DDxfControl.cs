@@ -309,18 +309,15 @@ namespace Direct2DDXFViewer
         {
             if (_bitmapCache is null) { return; }
 
-            target.Transform = new((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22,
-                    (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
-
+            target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
+                    (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
+            
             target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
             
-            RawRectangleF destRect = new((float)Extents.Left, (float)Extents.Top, (float)Extents.Right, (float)Extents.Bottom);
-            RawRectangleF testDestRect = new(0, 0,
-               (float)ActualWidth,
-               (float)ActualHeight);
+            RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
             RawRectangleF sourceRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
 
-            resCache.DeviceContext.DrawBitmap(_bitmapCache.BitmapRenderTarget.Bitmap, testDestRect, 1.0f, BitmapInterpolationMode.NearestNeighbor, sourceRect);
+            target.DrawBitmap(_bitmapCache.InitialBitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
         }
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
         {

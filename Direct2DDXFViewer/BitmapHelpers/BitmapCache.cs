@@ -22,13 +22,12 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Fields
         private readonly RenderTarget _renderTarget;
         private readonly Factory1 _factory;
-        private Matrix _matrix;
         private bool _disposed = false;
         #endregion
 
         #region Properties
-        public BitmapRenderTarget BitmapRenderTarget { get; set; }
-        public float ZoomFactor { get; set; } = 1.0f;
+        public BitmapRenderTarget InitialBitmapRenderTarget { get; set; }
+        public BitmapRenderTarget CurrentBitmapRenderTarget { get; set; }
         public Rect Extents { get; set; }
         public Matrix ExtentsMatrix { get; set; }
         public ObjectLayerManager LayerManager { get; set; } = new();
@@ -60,20 +59,16 @@ namespace Direct2DDXFViewer.BitmapHelpers
         // Protected implementation of Dispose pattern.
         protected virtual void Dispose(bool disposing)
         {
-            if (_disposed)
-            {
-                return;
-            }
+            if (_disposed){ return; }
 
             if (disposing)
             {
                 // Dispose managed state (managed objects).
-                BitmapRenderTarget?.Dispose();
+                InitialBitmapRenderTarget?.Dispose();
             }
 
             // Free unmanaged resources (unmanaged objects) and override finalizer
             // Set large fields to null.
-
             _disposed = true;
         }
 
@@ -86,23 +81,25 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         public void InitializeBitmap()
         {
-            BitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, RenderTargetSize);
+            Size2F size = new(RenderTargetSize.Width * 10, RenderTargetSize.Height * 10);
+            InitialBitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, size);
 
-            //GetInitialMatrix();
             DrawBitmapObjects();
         }
-        public void ZoomToExtents()
+        public BitmapRenderTarget GetZoomedBitmap(float zoom)
         {
+            BitmapRenderTarget bitmapRenderTarget = new(_renderTarget, CompatibleRenderTargetOptions.None, RenderTargetSize);
 
+            return bitmapRenderTarget;
         }
         public void DrawBitmapObjects()
         {
             if (LayerManager is not null)
             {
-                BitmapRenderTarget.BeginDraw();
-                BitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0.0f, 1.0f));
+                InitialBitmapRenderTarget.BeginDraw();
+                InitialBitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0.0f, 1.0f));
                 
-                BitmapRenderTarget.Transform = new RawMatrix3x2((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
+                InitialBitmapRenderTarget.Transform = new RawMatrix3x2((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
 
                 foreach (var layer in LayerManager.Layers.Values)
                 {
@@ -112,35 +109,14 @@ namespace Direct2DDXFViewer.BitmapHelpers
                         {
                             if (o is DrawingLine drawingLine)
                             {
-                                BitmapRenderTarget.DrawLine(drawingLine.StartPoint, drawingLine.EndPoint, drawingLine.Brush, 1.0f, drawingLine.StrokeStyle);
+                                InitialBitmapRenderTarget.DrawLine(drawingLine.StartPoint, drawingLine.EndPoint, drawingLine.Brush, 1.0f, drawingLine.StrokeStyle);
                             }
                         }
                     }
                 }
 
-                 BitmapRenderTarget.EndDraw();
+                 InitialBitmapRenderTarget.EndDraw();
             }
-        }
-        public void GetInitialMatrix()
-        {
-            _matrix = new();
-
-            double scaleX = RenderTargetSize.Width / Extents.Width;
-            double scaleY = RenderTargetSize.Height / Extents.Height;
-
-            _matrix.Translate(-Extents.Left, -Extents.Top);
-
-            if (scaleX < scaleY)
-            {
-                Scale = (float)scaleX;
-            }
-            else
-            {
-                Scale = (float)scaleY;
-            }
-
-            _matrix.ScaleAt(Scale, Scale, 0, 0);
-            _matrix.ScaleAt(1, -1, (Extents.Width * Scale) / 2, (Extents.Height * Scale) / 2); // Reverse the coordinate system
         }
         #endregion
     }
