@@ -303,7 +303,7 @@ namespace Direct2DDXFViewer
                 _bitmapCache.Dispose();
                 _bitmapCache = null;
             }
-            _bitmapCache = new(target, resCache.Factory, LayerManager, Extents, target.Size, ExtentsMatrix);
+            _bitmapCache = new(target, resCache.Factory, LayerManager, Extents, target.Size, ExtentsMatrix, resCache);
         }
         private void RenderBitmap(RenderTarget target)
         {
@@ -315,9 +315,10 @@ namespace Direct2DDXFViewer
             target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
             
             RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
-            RawRectangleF sourceRect = new(0, 0, (float)(ActualWidth) * 3, (float)(ActualHeight) * 3);
+            RawRectangleF sourceRect = new(0, 0, (float)(ActualWidth * _transformMatrix.M11), (float)(ActualHeight * _transformMatrix.M11));
+            
 
-            target.DrawBitmap(_bitmapCache.InitialBitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+            target.DrawBitmap(_bitmapCache.CurrentBitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
         }
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
         {
@@ -359,6 +360,7 @@ namespace Direct2DDXFViewer
                 //resCache.RenderTarget.Transform = new((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22,
                 //    (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
 
+                _bitmapCache.UpdateCurrentBitmap((float)_transformMatrix.M11);
                 UpdateCurrentView();
             }
         }

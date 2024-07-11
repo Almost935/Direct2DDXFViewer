@@ -9,7 +9,9 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
+
 using DeviceContext1 = SharpDX.Direct2D1.DeviceContext1;
+using FeatureLevel = SharpDX.Direct3D.FeatureLevel;
 
 namespace Direct2DControl
 {
@@ -208,8 +210,8 @@ namespace Direct2DControl
             };
 
             renderTarget = new Texture2D(device, renderDesc);
+            resCache.MaxBitmapSize = GetMaxSize(renderTarget.Device.FeatureLevel);
             var surface = renderTarget.QueryInterface<Surface>();
-
             d2DFactory = new SharpDX.Direct2D1.Factory1(FactoryType.MultiThreaded, DebugLevel.Information);
             resCache.Factory = d2DFactory;
             var rtp = new RenderTargetProperties(new PixelFormat(Format.Unknown, SharpDX.Direct2D1.AlphaMode.Premultiplied));
@@ -280,6 +282,24 @@ namespace Direct2DControl
                 frameCount = 0;
                 lastFrameTime = renderTimer.ElapsedMilliseconds;
             }
+        }
+
+        private static int GetMaxSize(FeatureLevel featureLevel)
+        {
+            switch (featureLevel)
+            {
+                case FeatureLevel.Level_10_0:
+                case FeatureLevel.Level_10_1:
+                    return 8192;
+                case FeatureLevel.Level_11_0:
+                case FeatureLevel.Level_11_1:
+                case FeatureLevel.Level_12_0:
+                case FeatureLevel.Level_12_1:
+                    return 16384;
+                default:
+                    throw new NotSupportedException("Unsupported feature level");
+            }
+
         }
     }
 }

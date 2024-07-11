@@ -1,4 +1,5 @@
-﻿using Direct2DDXFViewer.DrawingObjects;
+﻿using Direct2DControl;
+using Direct2DDXFViewer.DrawingObjects;
 using Direct2DDXFViewer.Helpers;
 using netDxf.Entities;
 using SharpDX;
@@ -7,6 +8,7 @@ using SharpDX.Direct3D11;
 using SharpDX.Mathematics.Interop;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,15 +29,21 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         #region Properties
         public BitmapRenderTarget InitialBitmapRenderTarget { get; set; }
-        public Dictionary<float, BitmapRenderTarget> BitmapRenderTargets { get; set; } = [];
+        public RawRectangleF InitialBitmapSourceRect { get; set; }
+        public BitmapRenderTarget CurrentBitmapRenderTarget { get; set; }
+        public RawRectangleF CurrentBitmapSourceRect { get; set; }
+        public Dictionary<float, (BitmapRenderTarget, RawRectangleF)> BitmapRenderTargets { get; set; } = [];
         public Rect Extents { get; set; }
         public Matrix ExtentsMatrix { get; set; }
         public ObjectLayerManager LayerManager { get; set; } = new();
         public Size2F RenderTargetSize { get; set; }
+        public ResourceCache ResCache { get; set; }
+        public Size2F MaxSize { get; set; }
+        public Size2F DPI { get; set; } = new(96.0f, 96.0f);
         #endregion
 
         #region Constructors
-        public BitmapCache(RenderTarget renderTarget, Factory1 factory, ObjectLayerManager layerManager, Rect extents, Size2F renderTargetSize, Matrix extentsMatrix)
+        public BitmapCache(RenderTarget renderTarget, Factory1 factory, ObjectLayerManager layerManager, Rect extents, Size2F renderTargetSize, Matrix extentsMatrix, ResourceCache resCache)
         {
             _renderTarget = renderTarget;
             LayerManager = layerManager;
@@ -43,6 +51,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             _factory = factory;
             RenderTargetSize = renderTargetSize;
             ExtentsMatrix = extentsMatrix;
+            ResCache = resCache;
 
             InitializeBitmap();
         }
@@ -80,28 +89,65 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         public void InitializeBitmap()
         {
-            Size2F size = new(RenderTargetSize.Width * 3, RenderTargetSize.Height * 3);
-            InitialBitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, size)
+            if (RenderTargetSize.Width > RenderTargetSize.Height)
             {
-                DotsPerInch = new(96*3, 96*3),
-                AntialiasMode = AntialiasMode.PerPrimitive
-            };
-
-            DrawBitmapObjects();
-        }
-        public BitmapRenderTarget GetZoomedBitmap(float zoom)
-        {
-
-            if (BitmapRenderTargets.TryGetValue(zoom, out BitmapRenderTarget bitmap))
+                MaxSize = new
+                    (
+                    ResCache.MaxBitmapSize,
+                    ResCache.MaxBitmapSize * (RenderTargetSize.Height / RenderTargetSize.Width)
+                    );
+            }
+            else
             {
-                return bitmap;
+                MaxSize = new
+                    (
+                    ResCache.MaxBitmapSize * (RenderTargetSize.Width / RenderTargetSize.Height),
+                    ResCache.MaxBitmapSize
+                    );
             }
 
-            BitmapRenderTarget bitmapRenderTarget = new(_renderTarget, CompatibleRenderTargetOptions.None, RenderTargetSize)
+            InitialBitmapRenderTarget = GetZoomedBitmap(1.0f);
+            CurrentBitmapRenderTarget = InitialBitmapRenderTarget;
+        }
+        public void UpdateCurrentBitmap(float zoom)
+        {
+            CurrentBitmapRenderTarget = GetZoomedBitmap(zoom);
+        }
+        public (BitmapRenderTarget GetZoomedBitmap(float zoom)
+        {
+            BitmapRenderTarget bitmapRenderTarget;
+            if (BitmapRenderTargets.TryGetValue(zoom, out bitmapRenderTarget))
             {
-                DotsPerInch = new(200, 200),
-                AntialiasMode = AntialiasMode.PerPrimitive
+                return bitmapRenderTarget;
+            }
+
+            Size2F size = new(RenderTargetSize.Width * zoom, RenderTargetSize.Height * zoom);
+
+            if (size.Width > ResCache.MaxBitmapSize ||
+                size.Height > ResCache.MaxBitmapSize)
+            {
+                DPI = new(96 * zoom, 96 * zoom);
+                bitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, MaxSize)
+                {
+                    DotsPerInch = DPI,
+                    AntialiasMode = AntialiasMode.PerPrimitive,
+                };
+                DrawBitmapObjects(bitmapRenderTarget);
+                BitmapRenderTargets.Add(zoom, bitmapRenderTarget);
+
+                Debug.WriteLine($"Bitmap too large. Zoom: {zoom}. Size: {size}");
+
+                return bitmapRenderTarget;
+            }    
+
+            DPI = new(96*zoom, 96*zoom);
+            bitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, size)
+            {
+                DotsPerInch = DPI,
+                AntialiasMode = AntialiasMode.PerPrimitive,
             };
+            DrawBitmapObjects(bitmapRenderTarget);
+            BitmapRenderTargets.Add(zoom, bitmapRenderTarget);
 
             return bitmapRenderTarget;
         }

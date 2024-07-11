@@ -5,6 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SharpDX.Direct2D1;
+using SharpDX.Direct3D;
+
+using FeatureLevel = SharpDX.Direct3D.FeatureLevel;
 
 namespace Direct2DDXFViewer.Helpers
 {
