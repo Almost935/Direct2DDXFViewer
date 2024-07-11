@@ -360,6 +360,7 @@ namespace Direct2DDXFViewer
                 //resCache.RenderTarget.Transform = new((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22,
                 //    (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
 
+                _bitmapCache.Zoom = (float)_transformMatrix.M11;
                 _bitmapCache.UpdateCurrentBitmap((float)_transformMatrix.M11);
                 UpdateCurrentView();
             }

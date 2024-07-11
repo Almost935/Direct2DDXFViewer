@@ -28,10 +28,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region Properties
-        public BitmapRenderTarget InitialBitmapRenderTarget { get; set; }
-        public RawRectangleF InitialBitmapSourceRect { get; set; }
-        public BitmapRenderTarget CurrentBitmapRenderTarget { get; set; }
-        public RawRectangleF CurrentBitmapSourceRect { get; set; }
+        public (BitmapRenderTarget, RawRectangleF) InitialBitmapRenderTarget { get; set; }
+        public (BitmapRenderTarget, RawRectangleF) CurrentBitmapTup { get; set; }
         public Dictionary<float, (BitmapRenderTarget, RawRectangleF)> BitmapRenderTargets { get; set; } = [];
         public Rect Extents { get; set; }
         public Matrix ExtentsMatrix { get; set; }
@@ -39,6 +37,10 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public Size2F RenderTargetSize { get; set; }
         public ResourceCache ResCache { get; set; }
         public Size2F MaxSize { get; set; }
+        public RawRectangleF MaxRect { get; set; }
+        public float MaxZoom { get; set; }
+        public Size2F MaxDpi { get; set; } 
+        public float Zoom { get; set; } = 1.0f;
         public Size2F DPI { get; set; } = new(96.0f, 96.0f);
         #endregion
 
@@ -53,6 +55,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             ExtentsMatrix = extentsMatrix;
             ResCache = resCache;
 
+            GetMaxValues();
             InitializeBitmap();
         }
         #endregion
@@ -87,7 +90,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             Dispose(disposing: false);
         }
 
-        public void InitializeBitmap()
+        public void GetMaxValues()
         {
             if (RenderTargetSize.Width > RenderTargetSize.Height)
             {
@@ -96,6 +99,9 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     ResCache.MaxBitmapSize,
                     ResCache.MaxBitmapSize * (RenderTargetSize.Height / RenderTargetSize.Width)
                     );
+                MaxZoom = MaxSize.Height / RenderTargetSize.Height;
+                MaxDpi = new(96.0f * MaxZoom, 96.0f * MaxZoom);
+                MaxRect = new(0, 0, RenderTargetSize.Width * MaxZoom, RenderTargetSize.Height * MaxZoom);
             }
             else
             {
@@ -104,21 +110,28 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     ResCache.MaxBitmapSize * (RenderTargetSize.Width / RenderTargetSize.Height),
                     ResCache.MaxBitmapSize
                     );
+                MaxZoom = MaxSize.Width / RenderTargetSize.Width;
+                MaxDpi = new(96.0f * MaxZoom, 96.0f * MaxZoom);
+                MaxRect = new(0, 0, RenderTargetSize.Width * MaxZoom, RenderTargetSize.Height * MaxZoom);
             }
+        }
 
-            InitialBitmapRenderTarget = GetZoomedBitmap(1.0f);
+        public void InitializeBitmap()
+        {
+            InitialBitmapRenderTarget = GetZoomedBitmap(1.0f).bitmapRenderTarget;
             CurrentBitmapRenderTarget = InitialBitmapRenderTarget;
+            CurrentBitmapSourceRect = new(0, 0, RenderTargetSize.Width * Zoom, RenderTargetSize.Height * Zoom);
         }
         public void UpdateCurrentBitmap(float zoom)
         {
-            CurrentBitmapRenderTarget = GetZoomedBitmap(zoom);
+            CurrentBitmapRenderTarget = GetZoomedBitmap(zoom).bitmapRenderTarget;
         }
-        public (BitmapRenderTarget GetZoomedBitmap(float zoom)
+        public (BitmapRenderTarget bitmapRenderTarget, RawRectangleF rect) GetZoomedBitmap(float zoom)
         {
-            BitmapRenderTarget bitmapRenderTarget;
-            if (BitmapRenderTargets.TryGetValue(zoom, out bitmapRenderTarget))
+            (BitmapRenderTarget bitmapRenderTarget, RawRectangleF rect) bitmapTup;
+            if (BitmapRenderTargets.TryGetValue(zoom, out bitmapTup))
             {
-                return bitmapRenderTarget;
+                return bitmapTup;
             }
 
             Size2F size = new(RenderTargetSize.Width * zoom, RenderTargetSize.Height * zoom);
@@ -126,30 +139,31 @@ namespace Direct2DDXFViewer.BitmapHelpers
             if (size.Width > ResCache.MaxBitmapSize ||
                 size.Height > ResCache.MaxBitmapSize)
             {
-                DPI = new(96 * zoom, 96 * zoom);
-                bitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, MaxSize)
+                bitmapTup.bitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, MaxSize)
                 {
-                    DotsPerInch = DPI,
+                    DotsPerInch = MaxDpi,
                     AntialiasMode = AntialiasMode.PerPrimitive,
                 };
-                DrawBitmapObjects(bitmapRenderTarget);
-                BitmapRenderTargets.Add(zoom, bitmapRenderTarget);
+                bitmapTup.rect = MaxRect;
+                DrawBitmapObjects(bitmapTup.bitmapRenderTarget);
+                BitmapRenderTargets.Add(zoom, bitmapTup);
 
                 Debug.WriteLine($"Bitmap too large. Zoom: {zoom}. Size: {size}");
 
-                return bitmapRenderTarget;
+                return bitmapTup;
             }    
 
-            DPI = new(96*zoom, 96*zoom);
-            bitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, size)
+            DPI = new( 96 * zoom, 96 * zoom);
+            bitmapTup.bitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, size)
             {
                 DotsPerInch = DPI,
                 AntialiasMode = AntialiasMode.PerPrimitive,
             };
-            DrawBitmapObjects(bitmapRenderTarget);
-            BitmapRenderTargets.Add(zoom, bitmapRenderTarget);
+            bitmapTup.rect = new(0, 0, RenderTargetSize.Width * zoom, RenderTargetSize.Height * zoom);
+            DrawBitmapObjects(bitmapTup.bitmapRenderTarget);
+            BitmapRenderTargets.Add(zoom, bitmapTup);
 
-            return bitmapRenderTarget;
+            return bitmapTup;
         }
         public void DrawBitmapObjects(BitmapRenderTarget bitmapRenderTarget)
         {
