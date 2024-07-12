@@ -4,6 +4,7 @@ using SharpDX.Mathematics.Interop;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -27,8 +28,6 @@ namespace Direct2DDXFViewer.DrawingObjects
                 OnPropertyChanged(nameof(DxfPolyline2D));
             }
         }
-
-        RenderTarget Target { get; set; }
         #endregion
 
         #region Constructor

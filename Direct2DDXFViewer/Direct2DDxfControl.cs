@@ -218,9 +218,13 @@ namespace Direct2DDXFViewer
 
                 timer.Restart();
                 RenderBitmap(target);
-                //target.PopAxisAlignedClip();
 
-                Debug.WriteLine($"Bitmap render time: {timer.ElapsedMilliseconds} ms");
+                if (SnappedObject is not null)
+                {
+                    RenderSnappedObject(target);
+                }
+
+                //target.PopAxisAlignedClip();
 
                 _isRendering = false;
             }
@@ -262,7 +266,7 @@ namespace Direct2DDXFViewer
                 _lastTranslatePos = PointerCoords;
                 RenderTargetIsDirty = true;
             }
-            //Update DxfPointerCoords in background thread
+
             if (!_snapBackgroundWorker.IsBusy)
             {
                 _snapBackgroundWorker.RunWorkerAsync();
@@ -319,10 +323,20 @@ namespace Direct2DDXFViewer
 
             target.DrawBitmap(_bitmapCache.CurrentZoomBitmap.BitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, _bitmapCache.CurrentZoomBitmap.Rect);
         }
+        private void RenderSnappedObject(RenderTarget target)
+        {
+            if (SnappedObject is not null)
+            {
+                if (SnappedObject is DrawingLine line)
+                {
+                    target.DrawLine(line.StartPoint, line.EndPoint, _snappedBrush, 3.0f, line.StrokeStyle);
+                }
+            }
+        }
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
         {
             UpdateDxfPointerCoords();
-            //HitTestGeometry();
+            HitTestGeometry();
         }
         private void HitTestGeometry()
         {
@@ -356,9 +370,6 @@ namespace Direct2DDXFViewer
                 _overallMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
                 _transformMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
 
-                //resCache.RenderTarget.Transform = new((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22,
-                //    (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
-
                 _bitmapCache.UpdateCurrentBitmap((float)_transformMatrix.M11);
                 UpdateCurrentView();
             }
@@ -367,9 +378,6 @@ namespace Direct2DDXFViewer
         {
             _overallMatrix.Translate(translate.X, translate.Y);
             _transformMatrix.Translate(translate.X, translate.Y);
-
-            //resCache.RenderTarget.Transform = new((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22,
-            //(float)(_overallMatrix.OffsetX), (float)(_overallMatrix.OffsetY));
 
             UpdateCurrentView();
         }
@@ -390,15 +398,7 @@ namespace Direct2DDXFViewer
             _snappedBrush ??= new SolidColorBrush(target, new RawColor4((109 / 255), 1.0f, (float)(139 / 255), 1.0f));
             _snappedHighlightedBrush ??= new SolidColorBrush(target, new RawColor4((150 / 255), 1.0f, (float)(171 / 255), 1.0f));
         }
-        public void ZoomToExtents()
-        {
-            //_matrix = ExtentsMatrix;
-            //resCache.RenderTarget.Transform = new((float)_matrix.M11, (float)_matrix.M12, (float)_matrix.M21, (float)_matrix.M22,
-            //    (float)_matrix.OffsetX, (float)_matrix.OffsetY);
-            //UpdateCurrentView();
-            //RenderTargetIsDirty = true;
-        }
-        public void UpdateTargetAndFactory(RenderTarget target, Factory1 factory)
+        private void UpdateTargetAndFactory(RenderTarget target, Factory1 factory)
         {
             if (LayerManager is null) { return; }
 
@@ -411,6 +411,17 @@ namespace Direct2DDXFViewer
                 }
             }
         }
+        
+        
+        public void ZoomToExtents()
+        {
+            _overallMatrix = ExtentsMatrix;
+            _transformMatrix = new();
+            _bitmapCache.ZoomToExtents();
+            UpdateCurrentView();
+            RenderTargetIsDirty = true;
+        }
+        
 
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)

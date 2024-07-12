@@ -30,7 +30,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Properties
         public ZoomBitmap InitialZoomBitmap { get; set; }
         public ZoomBitmap CurrentZoomBitmap { get; set; }
-        public Dictionary<float, ZoomBitmap> ZoomBitmaps { get; set; } = new();
+        public Dictionary<double, ZoomBitmap> ZoomBitmaps { get; set; } = new();
         public Rect Extents { get; set; }
         public Matrix ExtentsMatrix { get; set; }
         public ObjectLayerManager LayerManager { get; set; } = new();
@@ -154,36 +154,36 @@ namespace Direct2DDXFViewer.BitmapHelpers
             }
         }
 
-        public void InitializeBitmap()
+        private void InitializeBitmap()
         {
             InitialZoomBitmap = GetZoomedBitmap(1.0f);
             CurrentZoomBitmap = InitialZoomBitmap;
         }
         public void UpdateCurrentBitmap(float zoom)
         {
-            CurrentZoomBitmap = GetZoomedBitmap(zoom);
+            if (zoom == 1.0f)
+            {
+                CurrentZoomBitmap = InitialZoomBitmap;
+            }
+            else
+            {
+                CurrentZoomBitmap = GetZoomedBitmap(zoom);
+            }
         }
         public ZoomBitmap GetZoomedBitmap(float zoom)
         {
-            if (ZoomBitmaps.TryGetValue(zoom, out ZoomBitmap zoomBitmap))
+            if (ZoomBitmaps.TryGetValue(Math.Round((double)zoom, 3), out ZoomBitmap zoomBitmap))
             {
                 return zoomBitmap;
             }
 
             Size2F size = new(RenderTargetSize.Width * zoom, RenderTargetSize.Height * zoom);
 
-            Debug.WriteLine($"\n");
-
             if (size.Width > ResCache.MaxBitmapSize ||
                 size.Height > ResCache.MaxBitmapSize)
             {
-                Debug.WriteLine($"Bitmap too large.");
-                Debug.WriteLine($"Zoom: {zoom} Size: {size}");
-
                 return MaxZoomBitmap;
             }
-
-            Debug.WriteLine($"Zoom: {zoom} Size: {size}");
 
             zoomBitmap = new();
             zoomBitmap.Zoom = zoom;
@@ -196,7 +196,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 AntialiasMode = AntialiasMode.PerPrimitive,
             };
             DrawBitmapObjects(zoomBitmap.BitmapRenderTarget);
-            ZoomBitmaps.Add(zoom, zoomBitmap);
+            ZoomBitmaps.Add(Math.Round((double)zoom, 3), zoomBitmap);
 
             return zoomBitmap;
         }
@@ -230,16 +230,20 @@ namespace Direct2DDXFViewer.BitmapHelpers
                             {
                                 bitmapRenderTarget.DrawGeometry(drawingPolyline2D.Geometry, drawingPolyline2D.Brush, 1.0f, drawingPolyline2D.StrokeStyle);
                             }
-                            //if (o is DrawingPolyline3D drawingPolyline3D)
-                            //{
-                            //    bitmapRenderTarget.DrawGeometry(drawingPolyline3D.Geometry, drawingPolyline3D.Brush, 1.0f, drawingPolyline3D.StrokeStyle);
-                            //}
+                            if (o is DrawingPolyline3D drawingPolyline3D)
+                            {
+                                bitmapRenderTarget.DrawGeometry(drawingPolyline3D.Geometry, drawingPolyline3D.Brush, 1.0f, drawingPolyline3D.StrokeStyle);
+                            }
                         }
                     }
                 }
 
                 bitmapRenderTarget.EndDraw();
             }
+        }
+        public void ZoomToExtents() 
+        {
+            CurrentZoomBitmap = InitialZoomBitmap;
         }
         #endregion
     }
