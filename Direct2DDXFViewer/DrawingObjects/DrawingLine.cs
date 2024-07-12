@@ -62,7 +62,6 @@ namespace Direct2DDXFViewer.DrawingObjects
             EndPoint = new((float)dxfLine.EndPoint.X, (float)dxfLine.EndPoint.Y);
 
             GetStrokeStyle();
-
             UpdateBrush();
         }
         #endregion
@@ -80,9 +79,6 @@ namespace Direct2DDXFViewer.DrawingObjects
                 sink.Close();
                 
                 Geometry = pathGeometry;
-
-                DeviceContext1 deviceContext = Target.QueryInterface<DeviceContext1>();
-                GeometryRealization = new(deviceContext, Geometry, 10.0f, 0.5f, StrokeStyle);
             }
         }
         #endregion

@@ -36,8 +36,10 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             DxfPolyline2D = dxfPolyline2D;
             Entity = dxfPolyline2D;
-            Factory = factory; 
+            Factory = factory;
+            Target = renderTarget;
 
+            GetStrokeStyle();
             UpdateBrush();
         }
         #endregion
@@ -90,18 +92,19 @@ namespace Direct2DDXFViewer.DrawingObjects
                         sink.AddArc(arcSegment);
                     }
                 }
-
                 sink.EndFigure(DxfPolyline2D.IsClosed ? FigureEnd.Closed : FigureEnd.Open);
                 sink.Close();
 
-                // Simplify the geometry
-                var simplifiedGeometry = new PathGeometry(Factory);
-                using (var simplifiedSink = simplifiedGeometry.Open())
-                {
-                    pathGeometry.Simplify(GeometrySimplificationOption.CubicsAndLines, simplifiedSink);
-                    simplifiedSink.Close();
-                }
-                Geometry = simplifiedGeometry;
+                Geometry = pathGeometry;
+
+                //// Simplify the geometry
+                //var simplifiedGeometry = new PathGeometry(Factory);
+                //using (var simplifiedSink = simplifiedGeometry.Open())
+                //{
+                //    pathGeometry.Simplify(GeometrySimplificationOption.CubicsAndLines, simplifiedSink);
+                //    simplifiedSink.Close();
+                //}
+                //Geometry = simplifiedGeometry;
             }
         }
         #endregion

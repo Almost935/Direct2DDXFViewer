@@ -28,20 +28,15 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region Properties
-        public (BitmapRenderTarget, RawRectangleF) InitialBitmapRenderTarget { get; set; }
-        public (BitmapRenderTarget, RawRectangleF) CurrentBitmapTup { get; set; }
-        public Dictionary<float, (BitmapRenderTarget, RawRectangleF)> BitmapRenderTargets { get; set; } = [];
+        public ZoomBitmap InitialZoomBitmap { get; set; }
+        public ZoomBitmap CurrentZoomBitmap { get; set; }
+        public Dictionary<float, ZoomBitmap> ZoomBitmaps { get; set; } = new();
         public Rect Extents { get; set; }
         public Matrix ExtentsMatrix { get; set; }
         public ObjectLayerManager LayerManager { get; set; } = new();
         public Size2F RenderTargetSize { get; set; }
         public ResourceCache ResCache { get; set; }
-        public Size2F MaxSize { get; set; }
-        public RawRectangleF MaxRect { get; set; }
-        public float MaxZoom { get; set; }
-        public Size2F MaxDpi { get; set; } 
-        public float Zoom { get; set; } = 1.0f;
-        public Size2F DPI { get; set; } = new(96.0f, 96.0f);
+        public ZoomBitmap MaxZoomBitmap { get; set; }
         #endregion
 
         #region Constructors
@@ -75,7 +70,18 @@ namespace Direct2DDXFViewer.BitmapHelpers
             if (disposing)
             {
                 // Dispose managed state (managed objects).
-                InitialBitmapRenderTarget?.Dispose();
+                InitialZoomBitmap?.Dispose();
+                CurrentZoomBitmap?.Dispose();
+                MaxZoomBitmap?.Dispose();
+
+                if (ZoomBitmaps != null)
+                {
+                    foreach (var bitmapTup in ZoomBitmaps.Values)
+                    {
+                        bitmapTup?.Dispose();
+                    }
+                    ZoomBitmaps.Clear();
+                }
             }
 
             // Free unmanaged resources (unmanaged objects) and override finalizer
@@ -94,83 +100,112 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             if (RenderTargetSize.Width > RenderTargetSize.Height)
             {
-                MaxSize = new
+                MaxZoomBitmap?.Dispose();
+
+                Size2F maxSize = new
                     (
                     ResCache.MaxBitmapSize,
                     ResCache.MaxBitmapSize * (RenderTargetSize.Height / RenderTargetSize.Width)
                     );
-                MaxZoom = MaxSize.Height / RenderTargetSize.Height;
-                MaxDpi = new(96.0f * MaxZoom, 96.0f * MaxZoom);
-                MaxRect = new(0, 0, RenderTargetSize.Width * MaxZoom, RenderTargetSize.Height * MaxZoom);
+                float maxZoom = maxSize.Height / RenderTargetSize.Height;
+                Size2F maxDpi = new(96.0f * maxZoom, 96.0f * maxZoom);
+                RawRectangleF maxRect = new(0, 0, RenderTargetSize.Width * maxZoom, RenderTargetSize.Height * maxZoom);
+
+                MaxZoomBitmap = new()
+                {
+                    BitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, maxSize)
+                    {
+                        DotsPerInch = maxDpi,
+                        AntialiasMode = AntialiasMode.PerPrimitive,
+                    },
+                    Size = maxSize,
+                    Zoom = maxZoom,
+                    Dpi = maxDpi,
+                    Rect = maxRect,
+                };
+                DrawBitmapObjects(MaxZoomBitmap.BitmapRenderTarget);
             }
             else
             {
-                MaxSize = new
+                MaxZoomBitmap?.Dispose();
+
+                Size2F maxSize = new
                     (
                     ResCache.MaxBitmapSize * (RenderTargetSize.Width / RenderTargetSize.Height),
                     ResCache.MaxBitmapSize
                     );
-                MaxZoom = MaxSize.Width / RenderTargetSize.Width;
-                MaxDpi = new(96.0f * MaxZoom, 96.0f * MaxZoom);
-                MaxRect = new(0, 0, RenderTargetSize.Width * MaxZoom, RenderTargetSize.Height * MaxZoom);
+                float maxZoom = maxSize.Width / RenderTargetSize.Width;
+                Size2F maxDpi = new(96.0f * maxZoom, 96.0f * maxZoom);
+                RawRectangleF maxRect = new(0, 0, RenderTargetSize.Width * maxZoom, RenderTargetSize.Height * maxZoom);
+
+                MaxZoomBitmap = new()
+                {
+                    BitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, maxSize)
+                    {
+                        DotsPerInch = maxDpi,
+                        AntialiasMode = AntialiasMode.PerPrimitive,
+                    },
+                    Size = maxSize,
+                    Zoom = maxZoom,
+                    Dpi = maxDpi,
+                    Rect = maxRect,
+                };
+                DrawBitmapObjects(MaxZoomBitmap.BitmapRenderTarget);
             }
         }
 
         public void InitializeBitmap()
         {
-            InitialBitmapRenderTarget = GetZoomedBitmap(1.0f).bitmapRenderTarget;
-            CurrentBitmapRenderTarget = InitialBitmapRenderTarget;
-            CurrentBitmapSourceRect = new(0, 0, RenderTargetSize.Width * Zoom, RenderTargetSize.Height * Zoom);
+            InitialZoomBitmap = GetZoomedBitmap(1.0f);
+            CurrentZoomBitmap = InitialZoomBitmap;
         }
         public void UpdateCurrentBitmap(float zoom)
         {
-            CurrentBitmapRenderTarget = GetZoomedBitmap(zoom).bitmapRenderTarget;
+            CurrentZoomBitmap = GetZoomedBitmap(zoom);
         }
-        public (BitmapRenderTarget bitmapRenderTarget, RawRectangleF rect) GetZoomedBitmap(float zoom)
+        public ZoomBitmap GetZoomedBitmap(float zoom)
         {
-            (BitmapRenderTarget bitmapRenderTarget, RawRectangleF rect) bitmapTup;
-            if (BitmapRenderTargets.TryGetValue(zoom, out bitmapTup))
+            if (ZoomBitmaps.TryGetValue(zoom, out ZoomBitmap zoomBitmap))
             {
-                return bitmapTup;
+                return zoomBitmap;
             }
 
             Size2F size = new(RenderTargetSize.Width * zoom, RenderTargetSize.Height * zoom);
 
+            Debug.WriteLine($"\n");
+
             if (size.Width > ResCache.MaxBitmapSize ||
                 size.Height > ResCache.MaxBitmapSize)
             {
-                bitmapTup.bitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, MaxSize)
-                {
-                    DotsPerInch = MaxDpi,
-                    AntialiasMode = AntialiasMode.PerPrimitive,
-                };
-                bitmapTup.rect = MaxRect;
-                DrawBitmapObjects(bitmapTup.bitmapRenderTarget);
-                BitmapRenderTargets.Add(zoom, bitmapTup);
+                Debug.WriteLine($"Bitmap too large.");
+                Debug.WriteLine($"Zoom: {zoom} Size: {size}");
 
-                Debug.WriteLine($"Bitmap too large. Zoom: {zoom}. Size: {size}");
+                return MaxZoomBitmap;
+            }
 
-                return bitmapTup;
-            }    
+            Debug.WriteLine($"Zoom: {zoom} Size: {size}");
 
-            DPI = new( 96 * zoom, 96 * zoom);
-            bitmapTup.bitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, size)
+            zoomBitmap = new();
+            zoomBitmap.Zoom = zoom;
+            zoomBitmap.Size = size;
+            zoomBitmap.Dpi = new(96 * zoom, 96 * zoom);
+            zoomBitmap.Rect = new(0, 0, RenderTargetSize.Width * zoom, RenderTargetSize.Height * zoom);
+            zoomBitmap.BitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, size)
             {
-                DotsPerInch = DPI,
+                DotsPerInch = zoomBitmap.Dpi,
                 AntialiasMode = AntialiasMode.PerPrimitive,
             };
-            bitmapTup.rect = new(0, 0, RenderTargetSize.Width * zoom, RenderTargetSize.Height * zoom);
-            DrawBitmapObjects(bitmapTup.bitmapRenderTarget);
-            BitmapRenderTargets.Add(zoom, bitmapTup);
+            DrawBitmapObjects(zoomBitmap.BitmapRenderTarget);
+            ZoomBitmaps.Add(zoom, zoomBitmap);
 
-            return bitmapTup;
+            return zoomBitmap;
         }
         public void DrawBitmapObjects(BitmapRenderTarget bitmapRenderTarget)
         {
             if (LayerManager is not null)
             {
                 bitmapRenderTarget.BeginDraw();
-                bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 0.0f, 1.0f));
+                bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
 
                 bitmapRenderTarget.Transform = new RawMatrix3x2((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
                 foreach (var layer in LayerManager.Layers.Values)
@@ -183,6 +218,22 @@ namespace Direct2DDXFViewer.BitmapHelpers
                             {
                                 bitmapRenderTarget.DrawLine(drawingLine.StartPoint, drawingLine.EndPoint, drawingLine.Brush, 1.0f, drawingLine.StrokeStyle);
                             }
+                            if (o is DrawingCircle drawingCircle)
+                            {
+                                bitmapRenderTarget.DrawGeometry(drawingCircle.Geometry, drawingCircle.Brush, 1.0f, drawingCircle.StrokeStyle);
+                            }
+                            if (o is DrawingArc drawingArc)
+                            {
+                                bitmapRenderTarget.DrawGeometry(drawingArc.Geometry, drawingArc.Brush, 1.0f, drawingArc.StrokeStyle);
+                            }
+                            if (o is DrawingPolyline2D drawingPolyline2D)
+                            {
+                                bitmapRenderTarget.DrawGeometry(drawingPolyline2D.Geometry, drawingPolyline2D.Brush, 1.0f, drawingPolyline2D.StrokeStyle);
+                            }
+                            //if (o is DrawingPolyline3D drawingPolyline3D)
+                            //{
+                            //    bitmapRenderTarget.DrawGeometry(drawingPolyline3D.Geometry, drawingPolyline3D.Brush, 1.0f, drawingPolyline3D.StrokeStyle);
+                            //}
                         }
                     }
                 }

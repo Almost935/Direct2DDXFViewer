@@ -36,8 +36,9 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             DxfPolyline3D = dxfPolyline3D;
             Entity = dxfPolyline3D;
-            Factory = factory; 
+            Factory = factory;
 
+            GetStrokeStyle();
             UpdateBrush();
         }
         #endregion

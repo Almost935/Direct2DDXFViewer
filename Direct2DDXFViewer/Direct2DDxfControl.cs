@@ -316,9 +316,8 @@ namespace Direct2DDXFViewer
             
             RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
             RawRectangleF sourceRect = new(0, 0, (float)(ActualWidth * _transformMatrix.M11), (float)(ActualHeight * _transformMatrix.M11));
-            
 
-            target.DrawBitmap(_bitmapCache.CurrentBitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+            target.DrawBitmap(_bitmapCache.CurrentZoomBitmap.BitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, _bitmapCache.CurrentZoomBitmap.Rect);
         }
         private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
         {
@@ -360,7 +359,6 @@ namespace Direct2DDXFViewer
                 //resCache.RenderTarget.Transform = new((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22,
                 //    (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
 
-                _bitmapCache.Zoom = (float)_transformMatrix.M11;
                 _bitmapCache.UpdateCurrentBitmap((float)_transformMatrix.M11);
                 UpdateCurrentView();
             }

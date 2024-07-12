@@ -38,8 +38,9 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             DxfCircle = dxfCircle;
             Entity = dxfCircle;
-            Factory = factory; 
+            Factory = factory;
 
+            GetStrokeStyle();
             UpdateBrush();
         }
         #endregion

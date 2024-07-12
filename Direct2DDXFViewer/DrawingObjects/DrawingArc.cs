@@ -36,8 +36,9 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             DxfArc = dxfArc;
             Entity = dxfArc;
-            Factory = factory; 
+            Factory = factory;
 
+            GetStrokeStyle();
             UpdateBrush();
         }
         #endregion
