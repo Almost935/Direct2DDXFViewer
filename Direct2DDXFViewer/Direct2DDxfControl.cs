@@ -123,9 +123,10 @@ namespace Direct2DDXFViewer
                 OnPropertyChanged(nameof(SnappedObject));
             }
         }
-        public List<DrawingObject> HighlightedObjects { get; set; } = new();
 
+        public List<DrawingObject> HighlightedObjects { get; set; } = new();
         public Matrix ExtentsMatrix { get; set; } = new();
+        public Rect InitialView { get; set; }
         #endregion
 
         #region Constructor
@@ -186,6 +187,16 @@ namespace Direct2DDXFViewer
                 return matrix;
             }
         }
+        public void GetInitialView()
+        {
+            double centerX = 0.5 * (Extents.Left + Extents.Right);
+            double centerY = 0.5 * (Extents.Top + Extents.Bottom);
+            InitialView = new(centerX - 0.5 * ActualWidth, centerY - 0.5 * ActualHeight, ActualWidth, ActualHeight);
+            Matrix matrix = new();
+            matrix.ScaleAt(1 / ExtentsMatrix.M11, 1 / ExtentsMatrix.M11, centerX, centerY);
+            InitialView.Transform(matrix);
+            Debug.WriteLine($"\n\n\nInitialView: {InitialView.Left} {InitialView.Top} {InitialView.Right} {InitialView.Bottom}\n\n\n");
+        }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
         {
@@ -202,6 +213,7 @@ namespace Direct2DDXFViewer
                     LoadDxf(resCache.Factory, target);
                     ExtentsMatrix = GetInitialMatrix();
                     _overallMatrix = ExtentsMatrix;
+                    GetInitialView();
                 }
 
                 if (!_bitmapLoaded)
@@ -212,9 +224,9 @@ namespace Direct2DDXFViewer
                     Debug.WriteLine($"bitmap initial load time: {timer.ElapsedMilliseconds} ms");
                 }
 
-                UpdateCurrentView();
-                var viewport = new RawRectangleF((float)_currentView.Left, (float)_currentView.Top,
-                    (float)_currentView.Right, (float)_currentView.Bottom);
+                //UpdateCurrentView();
+                //var viewport = new RawRectangleF((float)_currentView.Left, (float)_currentView.Top,
+                //    (float)_currentView.Right, (float)_currentView.Bottom);
 
                 //target.PushAxisAlignedClip(viewport,
                 //    AntialiasMode.PerPrimitive);
@@ -429,6 +441,12 @@ namespace Direct2DDXFViewer
         }
         private void GetVisibleObjects()
         {
+            _currentView = InitialView;
+            Matrix matrix = _transformMatrix;
+            matrix.Invert();
+            _currentView.Transform(matrix);
+            Debug.WriteLine($"_currentView: {_currentView.Left} {_currentView.Top} {_currentView.Right} {_currentView.Bottom}");
+
             foreach (var layer in LayerManager.Layers.Values)
             {
                 if (layer.IsVisible)
@@ -458,27 +476,29 @@ namespace Direct2DDXFViewer
                 _transformMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
 
                 _bitmapCache.UpdateCurrentBitmap((float)_transformMatrix.M11);
-                UpdateCurrentView();
             }
         }
         private void UpdateTranslate(Vector translate)
         {
             _overallMatrix.Translate(translate.X, translate.Y);
             _transformMatrix.Translate(translate.X, translate.Y);
+        }
+        //private void UpdateCurrentView()
+        //{
+        //    if (resCache.RenderTarget is not null)
+        //    {
+        //        _currentView = new(0, 0, resCache.RenderTarget.Size.Width, resCache.RenderTarget.Size.Height);
+        //        var rawMatrix = resCache.RenderTarget.Transform;
+        //        Matrix matrix = new(rawMatrix.M11, rawMatrix.M12, rawMatrix.M21, rawMatrix.M22, rawMatrix.M31, rawMatrix.M32);
+        //        matrix.Invert();
+        //        _currentView.Transform(matrix);
 
-            UpdateCurrentView();
-        }
-        private void UpdateCurrentView()
-        {
-            if (resCache.RenderTarget is not null)
-            {
-                _currentView = new(0, 0, resCache.RenderTarget.Size.Width, resCache.RenderTarget.Size.Height);
-                var rawMatrix = resCache.RenderTarget.Transform;
-                Matrix matrix = new(rawMatrix.M11, rawMatrix.M12, rawMatrix.M21, rawMatrix.M22, rawMatrix.M31, rawMatrix.M32);
-                matrix.Invert();
-                _currentView.Transform(matrix);
-            }
-        }
+        //        Matrix testMatrix = new(_overallMatrix.M11, _overallMatrix.M12, _overallMatrix.M21, _overallMatrix.M22, _overallMatrix.OffsetX, _overallMatrix.OffsetY);
+        //        testMatrix.Invert();
+        //        Rect testCurrentView = new(0, 0, resCache.RenderTarget.Size.Width, resCache.RenderTarget.Size.Height);
+        //        testCurrentView.Transform(testMatrix);
+        //    }
+        //}
         private void GetBrushes(RenderTarget target)
         {
             resCache.HighlightedBrush ??= new SolidColorBrush(target, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f));
@@ -514,7 +534,6 @@ namespace Direct2DDXFViewer
             _overallMatrix = ExtentsMatrix;
             _transformMatrix = new();
             _bitmapCache.ZoomToExtents();
-            UpdateCurrentView();
             RenderTargetIsDirty = true;
         }
 

@@ -43,7 +43,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public ResourceCache ResCache { get; set; }
         public ZoomBitmap MaxZoomBitmap { get; set; }
         public ZoomBitmap InteractiveZoomBitmap { get; set; }
-        //public GaussianBlur GaussianBlur { get; set; }
         public DrawingObject SnappedObject { get; set; }
         public List<DrawingObject> HighlightedObjects { get; set; } = new();
 
