@@ -20,6 +20,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         private ObjectLayer _layer;
         private bool _isSnapped = false;
         private bool _isHighlighted = false;
+        private float _outerEdgeOpacity = 0.25f;
         #endregion
 
         #region Properties
@@ -54,11 +55,11 @@ namespace Direct2DDXFViewer.DrawingObjects
         public EntityObject Entity { get; set; }
         public Geometry Geometry { get; set; }
         public Geometry SimplifiedGeometry { get; set; }
-        public GeometryRealization GeometryRealization { get; set; }
         public RenderTarget Target { get; set; }
         public DeviceContext1 DeviceContext { get; set; }
         public Factory1 Factory { get; set; }
         public Brush Brush { get; set; }
+        public Brush OuterEdgeBrush { get; set; }
         public StrokeStyle1 StrokeStyle { get; set; }
         public ResourceCache ResCache { get; set; }
         #endregion
@@ -73,6 +74,8 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         #region Methods
         public abstract void UpdateGeometry();
+
+        public abstract void Draw(RenderTarget target, float thickness, Brush brush);
 
         public void UpdateBrush()
         {
@@ -92,11 +95,16 @@ namespace Direct2DDXFViewer.DrawingObjects
                 if (Entity.Layer.Color.R == 255 && Entity.Layer.Color.G == 255 && Entity.Layer.Color.B == 255)
                 {
                     Brush = new SolidColorBrush(Target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                    OuterEdgeBrush = new SolidColorBrush(Target, new RawColor4(0.0f, 0.0f, 0.0f, 1));
+                    OuterEdgeBrush.Opacity = _outerEdgeOpacity;
                 }
                 else
                 {
                     Brush = new SolidColorBrush(Target,
                         new RawColor4((float)(Entity.Layer.Color.R / 255), (float)(Entity.Layer.Color.G / 255), (float)(Entity.Layer.Color.B / 255), 1.0f));
+                    OuterEdgeBrush = new SolidColorBrush(Target,
+                        new RawColor4((float)(Entity.Layer.Color.R / 255), (float)(Entity.Layer.Color.G / 255), (float)(Entity.Layer.Color.B / 255), 1));
+                    OuterEdgeBrush.Opacity = _outerEdgeOpacity;
                 }
             }
             else
@@ -104,10 +112,14 @@ namespace Direct2DDXFViewer.DrawingObjects
                 if (Entity.Color.R == 255 && Entity.Color.G == 255 && Entity.Color.B == 255)
                 {
                     Brush = new SolidColorBrush(Target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                    OuterEdgeBrush = new SolidColorBrush(Target, new RawColor4(0.0f, 0.0f, 0.0f, 1));
+                    OuterEdgeBrush.Opacity = _outerEdgeOpacity;
                 }
                 else
                 {
                     Brush = new SolidColorBrush(Target, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1.0f));
+                    OuterEdgeBrush = new SolidColorBrush(Target, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1f));
+                    OuterEdgeBrush.Opacity = _outerEdgeOpacity;
                 }
             }
         }
@@ -124,11 +136,11 @@ namespace Direct2DDXFViewer.DrawingObjects
                 StartCap = CapStyle.Round,
                 EndCap = CapStyle.Round,
                 DashCap = CapStyle.Flat,
-                LineJoin = LineJoin.Miter,
+                LineJoin = LineJoin.Round,
                 MiterLimit = 10.0f,
                 DashStyle = DashStyle.Solid,
                 DashOffset = 0.0f,
-                TransformType = StrokeTransformType.Hairline
+                TransformType = StrokeTransformType.Normal
             };
             StrokeStyle = new(Factory, ssp);
         }

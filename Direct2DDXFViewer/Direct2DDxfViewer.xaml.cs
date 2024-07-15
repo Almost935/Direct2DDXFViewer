@@ -4,6 +4,7 @@ using SharpDX.Mathematics.Interop;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -27,6 +28,7 @@ namespace Direct2DDXFViewer
     {
         #region Fields
         private Point dxfPointerCoords = new();
+        private Point pointerCoords = new();
         #endregion
 
         #region Properties
@@ -37,6 +39,15 @@ namespace Direct2DDXFViewer
             {
                 dxfPointerCoords = value;
                 OnPropertyChanged(nameof(DxfPointerCoords));
+            }
+        }
+        public Point PointerCoords
+        {
+            get { return pointerCoords; }
+            set
+            {
+                pointerCoords = value;
+                OnPropertyChanged(nameof(PointerCoords));
             }
         }
         #endregion
@@ -62,9 +73,13 @@ namespace Direct2DDXFViewer
 
         private void DxfControl_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(dxfControl.PointerCoords))
+            if (e.PropertyName == nameof(dxfControl.DxfPointerCoords))
             {
                 DxfPointerCoords = dxfControl.DxfPointerCoords;
+            }
+            if (e.PropertyName == nameof(dxfControl.PointerCoords))
+            {
+                PointerCoords = dxfControl.PointerCoords;
             }
         }
 

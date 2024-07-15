@@ -1,4 +1,5 @@
 ﻿using netDxf.Entities;
+using netDxf.Units;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
 using System;
@@ -67,10 +68,13 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
+        public override void Draw(RenderTarget target, float thickness, Brush brush)
+        {
+            target.DrawLine(StartPoint, EndPoint, brush, thickness, StrokeStyle);
+        }
         public override void UpdateGeometry()
         {
             PathGeometry pathGeometry = new(Factory);
-
             using (var sink = pathGeometry.Open())
             {
                 sink.BeginFigure(new RawVector2((float)DxfLine.StartPoint.X, (float)DxfLine.StartPoint.Y), FigureBegin.Filled);

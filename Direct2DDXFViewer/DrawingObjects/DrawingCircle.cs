@@ -29,8 +29,6 @@ namespace Direct2DDXFViewer.DrawingObjects
                 OnPropertyChanged(nameof(DxfCircle));
             }
         }
-
-        RenderTarget Target { get; set; }
         #endregion
 
         #region Constructor
@@ -46,6 +44,10 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
+        public override void Draw(RenderTarget target, float thickness, Brush brush)
+        {
+            target.DrawGeometry(Geometry, brush, thickness, StrokeStyle);
+        }
         public override void UpdateGeometry()
         {
             Ellipse ellipse = new(new RawVector2((float)DxfCircle.Center.X, (float)DxfCircle.Center.Y), (float)DxfCircle.Radius, (float)DxfCircle.Radius);

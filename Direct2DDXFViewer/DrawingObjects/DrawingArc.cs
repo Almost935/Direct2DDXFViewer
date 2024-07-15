@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,8 +28,6 @@ namespace Direct2DDXFViewer.DrawingObjects
                 OnPropertyChanged(nameof(DxfArc));
             }
         }
-
-        RenderTarget Target { get; set; }
         #endregion
 
         #region Constructor
@@ -44,6 +43,10 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
+        public override void Draw(RenderTarget target, float thickness, Brush brush)
+        {
+            target.DrawGeometry(Geometry, brush, thickness, StrokeStyle);
+        }
         public override void UpdateGeometry()
         {
             // Start by getting start and end points using NetDxf ToPolyline2D method

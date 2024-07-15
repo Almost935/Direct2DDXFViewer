@@ -27,8 +27,6 @@ namespace Direct2DDXFViewer.DrawingObjects
                 OnPropertyChanged(nameof(DxfPolyline3D));
             }
         }
-
-        RenderTarget Target { get; set; }
         #endregion
 
         #region Constructor
@@ -44,6 +42,10 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
+        public override void Draw(RenderTarget target, float thickness, Brush brush)
+        {
+            target.DrawGeometry(Geometry, brush, thickness, StrokeStyle);
+        }
         public override void UpdateGeometry()
         {
             PathGeometry pathGeometry = new(Factory);

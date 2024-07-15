@@ -37,20 +37,14 @@ namespace Direct2DDXFViewer
         #region Fields
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
-        private float _zoomFactor = 1.3f;
+        private readonly float _zoomFactor = 1.3f;
         private bool _isPanning = false;
         private bool _isRendering = false;
         private Point _lastTranslatePos = new();
         private bool _dxfLoaded = false;
         private Rect _currentView = new();
-        private BackgroundWorker _snapBackgroundWorker;
         private BitmapCache _bitmapCache;
-        private BitmapRenderTarget _currentBitmapRenderTarget;
         private bool _bitmapLoaded = false;
-        private bool _bitmapRenderTargetNeedsUpdate = true;
-        private Brush _highlightedBrush = null;
-        private Brush _snappedBrush = null;
-        private Brush _snappedHighlightedBrush = null;
 
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\SmallDxf.dxf";
@@ -59,6 +53,10 @@ namespace Direct2DDXFViewer
         private Rect _extents = new();
         private ObjectLayerManager _layerManager;
         private DrawingObject _snappedObject;
+        private List<DrawingObject> _visibleObjects = new();
+
+        private enum SnapMode { Point, Object };
+        private SnapMode _snapMode = SnapMode.Point;
         #endregion
 
         #region Properties
@@ -125,6 +123,7 @@ namespace Direct2DDXFViewer
                 OnPropertyChanged(nameof(SnappedObject));
             }
         }
+        public List<DrawingObject> HighlightedObjects { get; set; } = new();
 
         public Matrix ExtentsMatrix { get; set; } = new();
         #endregion
@@ -132,8 +131,12 @@ namespace Direct2DDXFViewer
         #region Constructor
         public Direct2DDxfControl()
         {
-            _snapBackgroundWorker = new();
-            _snapBackgroundWorker.DoWork += SnapBackgroundWorker_DoWork;
+            UpdateDxfCoordsAsync();
+            RunHitTestAsync();
+            RunGetVisibleObjectsAsync();
+
+            Window window = Application.Current.MainWindow;
+            window.KeyUp += Window_KeyUp; ;
         }
         #endregion
 
@@ -204,7 +207,7 @@ namespace Direct2DDXFViewer
                 if (!_bitmapLoaded)
                 {
                     timer.Restart();
-                    InitializeBitmapCache(target);
+                    InitializeBitmapCaches(target);
                     _bitmapLoaded = true;
                     Debug.WriteLine($"bitmap initial load time: {timer.ElapsedMilliseconds} ms");
                 }
@@ -217,12 +220,7 @@ namespace Direct2DDXFViewer
                 //    AntialiasMode.PerPrimitive);
 
                 timer.Restart();
-                RenderBitmap(target);
-
-                if (SnappedObject is not null)
-                {
-                    RenderSnappedObject(target);
-                }
+                RenderBitmaps(target);
 
                 //target.PopAxisAlignedClip();
 
@@ -236,6 +234,8 @@ namespace Direct2DDXFViewer
 
             UpdateTargetAndFactory(resCache.RenderTarget, resCache.Factory);
 
+            ExtentsMatrix = GetInitialMatrix();
+            _overallMatrix = ExtentsMatrix;
             _bitmapLoaded = false;
         }
         protected override void OnMouseWheel(MouseWheelEventArgs e)
@@ -266,11 +266,6 @@ namespace Direct2DDXFViewer
                 _lastTranslatePos = PointerCoords;
                 RenderTargetIsDirty = true;
             }
-
-            if (!_snapBackgroundWorker.IsBusy)
-            {
-                _snapBackgroundWorker.RunWorkerAsync();
-            }
         }
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
@@ -287,6 +282,23 @@ namespace Direct2DDXFViewer
                 _isPanning = false;
                 RenderTargetIsDirty = true;
             }
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                if (SnappedObject is not null)
+                {
+                    if (HighlightedObjects.Contains(SnappedObject))
+                    {
+                        SnappedObject.IsHighlighted = false;
+                        HighlightedObjects.Remove(SnappedObject);
+                    }
+                    else
+                    {
+                        SnappedObject.IsHighlighted = true;
+                        HighlightedObjects.Add(SnappedObject);
+                    }
+                    RenderTargetIsDirty = true;
+                }
+            }
         }
         protected override void OnMouseLeave(MouseEventArgs e)
         {
@@ -299,8 +311,16 @@ namespace Direct2DDXFViewer
                 _isPanning = true;
             }
         }
+        private void Window_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                ResetSelectedObjects();
+                RenderTargetIsDirty = true;
+            }
+        }
 
-        private void InitializeBitmapCache(RenderTarget target)
+        private void InitializeBitmapCaches(RenderTarget target)
         {
             if (_bitmapCache is not null)
             {
@@ -309,52 +329,119 @@ namespace Direct2DDXFViewer
             }
             _bitmapCache = new(target, resCache.Factory, LayerManager, Extents, target.Size, ExtentsMatrix, resCache);
         }
-        private void RenderBitmap(RenderTarget target)
+        private void RenderBitmaps(RenderTarget target)
         {
             if (_bitmapCache is null) { return; }
 
             target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
                     (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-            
-            target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
-            
+
+            target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 0.0f));
+
             RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
-            RawRectangleF sourceRect = new(0, 0, (float)(ActualWidth * _transformMatrix.M11), (float)(ActualHeight * _transformMatrix.M11));
 
             target.DrawBitmap(_bitmapCache.CurrentZoomBitmap.BitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, _bitmapCache.CurrentZoomBitmap.Rect);
+
+
+            RenderInteractiveObjects(target);
         }
-        private void RenderSnappedObject(RenderTarget target)
+        private void RenderInteractiveObjects(RenderTarget target)
         {
-            if (SnappedObject is not null)
+            if (_bitmapCache is not null)
             {
-                if (SnappedObject is DrawingLine line)
+                target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
+
+                RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
+
+                _bitmapCache.UpdateInteractiveObjects(SnappedObject, HighlightedObjects);
+
+                target.DrawBitmap(_bitmapCache.InteractiveZoomBitmap.BitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, _bitmapCache.InteractiveZoomBitmap.Rect);
+            }
+        }
+        private async void RunHitTestAsync()
+        {
+            while (true)
+            {
+                await Task.Delay(100);
+
+                if (_snapMode == SnapMode.Point)
                 {
-                    target.DrawLine(line.StartPoint, line.EndPoint, _snappedBrush, 3.0f, line.StrokeStyle);
+                    await Task.Run(() => HitTestPoints());
+                }
+                else if (_snapMode == SnapMode.Object)
+                {
+                    await Task.Run(() => HitTestGeometry());
                 }
             }
         }
-        private void SnapBackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
-        {
-            UpdateDxfPointerCoords();
-            HitTestGeometry();
-        }
         private void HitTestGeometry()
         {
+            if (LayerManager is null) { return; }
+
+            float thickness = (float)(2 / _transformMatrix.M11);
+
+            // Check if mouse is still over the same object
+            if (SnappedObject is not null)
+            {
+                if (SnappedObject.Geometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness, SnappedObject.StrokeStyle))
+                {
+                    return;
+                }
+                else
+                {
+                    SnappedObject.IsSnapped = false;
+                    SnappedObject = null;
+                }
+            }
+
             foreach (var layer in LayerManager.Layers.Values)
             {
                 if (layer.IsVisible)
                 {
                     foreach (var o in layer.DrawingObjects)
                     {
-                        if (o.Geometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), 3))
+                        if (o.Geometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness, o.StrokeStyle))
                         {
                             SnappedObject = o;
                             SnappedObject.IsSnapped = true;
+                            RenderTargetIsDirty = true;
 
                             return;
                         }
                     }
                 }
+            }
+
+            if (SnappedObject is null) { RenderTargetIsDirty = true; }
+        }
+        private void HitTestPoints()
+        {
+            
+        }
+        private async void RunGetVisibleObjectsAsync()
+        {
+            while (true)
+            {
+                await Task.Delay(2000);
+
+                await Task.Run(() => GetVisibleObjects());
+            }
+        }
+        private void GetVisibleObjects()
+        {
+            foreach (var layer in LayerManager.Layers.Values)
+            {
+                if (layer.IsVisible)
+                {
+                    
+                }
+            }
+        }
+        private async void UpdateDxfCoordsAsync()
+        {
+            while (true)
+            {
+                await Task.Run(() => UpdateDxfPointerCoords());
             }
         }
         private void UpdateDxfPointerCoords()
@@ -394,9 +481,10 @@ namespace Direct2DDXFViewer
         }
         private void GetBrushes(RenderTarget target)
         {
-            _highlightedBrush ??= new SolidColorBrush(target, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f));
-            _snappedBrush ??= new SolidColorBrush(target, new RawColor4((109 / 255), 1.0f, (float)(139 / 255), 1.0f));
-            _snappedHighlightedBrush ??= new SolidColorBrush(target, new RawColor4((150 / 255), 1.0f, (float)(171 / 255), 1.0f));
+            resCache.HighlightedBrush ??= new SolidColorBrush(target, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f));
+
+            resCache.HighlightedOuterEdgeBrush ??= new SolidColorBrush(target, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f))
+            { Opacity = 0.2f };
         }
         private void UpdateTargetAndFactory(RenderTarget target, Factory1 factory)
         {
@@ -408,11 +496,19 @@ namespace Direct2DDXFViewer
                 {
                     o.UpdateFactory(factory);
                     o.UpdateTarget(target);
+                    o.UpdateGeometry();
                 }
             }
         }
-        
-        
+        private void ResetSelectedObjects()
+        {
+            foreach (var o in HighlightedObjects)
+            {
+                o.IsHighlighted = false;
+            }
+            HighlightedObjects.Clear();
+        }
+
         public void ZoomToExtents()
         {
             _overallMatrix = ExtentsMatrix;
@@ -421,8 +517,6 @@ namespace Direct2DDXFViewer
             UpdateCurrentView();
             RenderTargetIsDirty = true;
         }
-        
-
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {

@@ -58,6 +58,14 @@
                                Margin="20 0 20 0"
                                VerticalAlignment="Center"
                                FontSize="12" />
+                    <TextBlock Text="{Binding ElementName=dxfViewer, Path=PointerCoords, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=N3}"
+                               Margin="20 0 20 0"
+                               VerticalAlignment="Center"
+                               FontSize="12" />
+                    <TextBlock Text="{Binding ElementName=dxfViewer, Path=InteractiveCanvasCoords, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=N3}"
+                               Margin="20 0 20 0"
+                               VerticalAlignment="Center"
+                               FontSize="12" />
                 </WrapPanel>
             </Border>
         </Grid>

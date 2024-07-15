@@ -36,6 +36,8 @@ namespace Direct2DControl
 
         public Factory1 Factory { get; set; }
         public int MaxBitmapSize { get; set; }
+        public Brush HighlightedBrush { get; set; }
+        public Brush HighlightedOuterEdgeBrush { get; set; }
 
         public object this[string key]
         {

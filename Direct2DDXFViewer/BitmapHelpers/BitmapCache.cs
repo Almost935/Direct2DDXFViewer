@@ -4,6 +4,7 @@ using Direct2DDXFViewer.Helpers;
 using netDxf.Entities;
 using SharpDX;
 using SharpDX.Direct2D1;
+using SharpDX.Direct2D1.Effects;
 using SharpDX.Direct3D11;
 using SharpDX.Mathematics.Interop;
 using System;
@@ -22,9 +23,13 @@ namespace Direct2DDXFViewer.BitmapHelpers
     public class BitmapCache : IDisposable
     {
         #region Fields
-        private readonly RenderTarget _renderTarget;
+        public readonly RenderTarget _renderTarget;
+
         private readonly Factory1 _factory;
         private bool _disposed = false;
+        private float highlightedThickness = 2.0f;
+        private float snappedOuterThickness = 7.0f;
+        private float highlightedOuterThickness = 9.0f;
         #endregion
 
         #region Properties
@@ -37,6 +42,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public Size2F RenderTargetSize { get; set; }
         public ResourceCache ResCache { get; set; }
         public ZoomBitmap MaxZoomBitmap { get; set; }
+        public ZoomBitmap InteractiveZoomBitmap { get; set; }
+        //public GaussianBlur GaussianBlur { get; set; }
+        public DrawingObject SnappedObject { get; set; }
+        public List<DrawingObject> HighlightedObjects { get; set; } = new();
+
         #endregion
 
         #region Constructors
@@ -123,7 +133,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     Dpi = maxDpi,
                     Rect = maxRect,
                 };
-                DrawBitmapObjects(MaxZoomBitmap.BitmapRenderTarget);
+                DrawDxfBitmapObjects(MaxZoomBitmap.BitmapRenderTarget, 1.0f);
             }
             else
             {
@@ -150,7 +160,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     Dpi = maxDpi,
                     Rect = maxRect,
                 };
-                DrawBitmapObjects(MaxZoomBitmap.BitmapRenderTarget);
+                DrawDxfBitmapObjects(MaxZoomBitmap.BitmapRenderTarget, 1.0f);
             }
         }
 
@@ -195,12 +205,12 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 DotsPerInch = zoomBitmap.Dpi,
                 AntialiasMode = AntialiasMode.PerPrimitive,
             };
-            DrawBitmapObjects(zoomBitmap.BitmapRenderTarget);
+            DrawDxfBitmapObjects(zoomBitmap.BitmapRenderTarget, zoom);
             ZoomBitmaps.Add(Math.Round((double)zoom, 3), zoomBitmap);
 
             return zoomBitmap;
         }
-        public void DrawBitmapObjects(BitmapRenderTarget bitmapRenderTarget)
+        public void DrawDxfBitmapObjects(BitmapRenderTarget bitmapRenderTarget, float zoom)
         {
             if (LayerManager is not null)
             {
@@ -208,32 +218,16 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
 
                 bitmapRenderTarget.Transform = new RawMatrix3x2((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
+
+                float strokeThickness = 1.0f / (bitmapRenderTarget.Transform.M11 * zoom);
+
                 foreach (var layer in LayerManager.Layers.Values)
                 {
                     if (layer.IsVisible)
                     {
                         foreach (var o in layer.DrawingObjects)
                         {
-                            if (o is DrawingLine drawingLine)
-                            {
-                                bitmapRenderTarget.DrawLine(drawingLine.StartPoint, drawingLine.EndPoint, drawingLine.Brush, 1.0f, drawingLine.StrokeStyle);
-                            }
-                            if (o is DrawingCircle drawingCircle)
-                            {
-                                bitmapRenderTarget.DrawGeometry(drawingCircle.Geometry, drawingCircle.Brush, 1.0f, drawingCircle.StrokeStyle);
-                            }
-                            if (o is DrawingArc drawingArc)
-                            {
-                                bitmapRenderTarget.DrawGeometry(drawingArc.Geometry, drawingArc.Brush, 1.0f, drawingArc.StrokeStyle);
-                            }
-                            if (o is DrawingPolyline2D drawingPolyline2D)
-                            {
-                                bitmapRenderTarget.DrawGeometry(drawingPolyline2D.Geometry, drawingPolyline2D.Brush, 1.0f, drawingPolyline2D.StrokeStyle);
-                            }
-                            if (o is DrawingPolyline3D drawingPolyline3D)
-                            {
-                                bitmapRenderTarget.DrawGeometry(drawingPolyline3D.Geometry, drawingPolyline3D.Brush, 1.0f, drawingPolyline3D.StrokeStyle);
-                            }
+                            o.Draw(bitmapRenderTarget, strokeThickness, o.Brush);
                         }
                     }
                 }
@@ -241,9 +235,63 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 bitmapRenderTarget.EndDraw();
             }
         }
-        public void ZoomToExtents() 
+        public void DrawInteractiveBitmapObjects(BitmapRenderTarget bitmapRenderTarget, float zoom)
+        {
+            bitmapRenderTarget.BeginDraw();
+            bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 0.0f));
+
+            bitmapRenderTarget.Transform = new RawMatrix3x2((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
+
+            float highlightedStrokeThickness = highlightedThickness / (bitmapRenderTarget.Transform.M11 * zoom);
+            float outerHighlightedStrokeThickness = highlightedOuterThickness / (bitmapRenderTarget.Transform.M11 * zoom);
+            float outerSnappedStrokeThickness = snappedOuterThickness / (bitmapRenderTarget.Transform.M11 * zoom);
+
+            foreach (var o in HighlightedObjects)
+            {
+                o.Draw(bitmapRenderTarget, highlightedStrokeThickness, ResCache.HighlightedBrush);
+            }
+
+            if (SnappedObject is not null)
+            {
+                if (SnappedObject.IsHighlighted)
+                {
+                    SnappedObject.Draw(bitmapRenderTarget, outerHighlightedStrokeThickness, ResCache.HighlightedOuterEdgeBrush);
+                }
+                else
+                {
+                    SnappedObject.Draw(bitmapRenderTarget, outerSnappedStrokeThickness, SnappedObject.OuterEdgeBrush);
+                }
+            }
+
+            bitmapRenderTarget.EndDraw();
+        }
+        public void ZoomToExtents()
         {
             CurrentZoomBitmap = InitialZoomBitmap;
+        }
+        public void UpdateInteractiveObjects(DrawingObject snappedDrawingObject, List<DrawingObject> highlightedDrawingObjects)
+        {
+            if (CurrentZoomBitmap is null) { return; }
+
+            if (InteractiveZoomBitmap is null)
+            {
+                InteractiveZoomBitmap = new();
+            }
+
+            InteractiveZoomBitmap.Zoom = CurrentZoomBitmap.Zoom;
+            InteractiveZoomBitmap.Size = CurrentZoomBitmap.Size;
+            InteractiveZoomBitmap.Dpi = CurrentZoomBitmap.Dpi;
+            InteractiveZoomBitmap.Rect = CurrentZoomBitmap.Rect;
+            InteractiveZoomBitmap.BitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, CurrentZoomBitmap.Size)
+            {
+                DotsPerInch = CurrentZoomBitmap.Dpi,
+                AntialiasMode = AntialiasMode.PerPrimitive,
+            };
+
+            SnappedObject = snappedDrawingObject;
+            HighlightedObjects = highlightedDrawingObjects;
+
+            DrawInteractiveBitmapObjects(InteractiveZoomBitmap.BitmapRenderTarget, CurrentZoomBitmap.Zoom);
         }
         #endregion
     }
