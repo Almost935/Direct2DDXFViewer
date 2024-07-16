@@ -13,10 +13,13 @@ namespace Direct2DDXFViewer
     {
         public QuadTreeNode Root { get; private set; }
         public float Zoom { get; private set; }
+        public double MaxSize { get; private set; }
 
-        public QuadTree(BitmapRenderTarget renderTarget, int levels)
+        public QuadTree(BitmapRenderTarget renderTarget, float zoom, double maxSize)
         {
             var bitmap = renderTarget.Bitmap;
+            Zoom = zoom;
+            MaxSize = maxSize;
             var bounds = new RawRectangleF(0, 0, bitmap.Size.Width, bitmap.Size.Height);
             Root = new QuadTreeNode(bounds, bitmap);
             Root.Subdivide(renderTarget, levels);
@@ -39,6 +42,15 @@ namespace Direct2DDXFViewer
                 {
                     DrawNode(renderTarget, child);
                 }
+            }
+        }
+        private void GetLevels(double mazSize)
+        {
+            double size = mazSize;
+            while (size > 1)
+            {
+                size /= 2;
+                levels++;
             }
         }
     }
