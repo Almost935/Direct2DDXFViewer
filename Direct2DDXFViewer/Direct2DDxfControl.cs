@@ -133,11 +133,11 @@ namespace Direct2DDXFViewer
         public Direct2DDxfControl()
         {
             UpdateDxfCoordsAsync();
-            RunHitTestAsync();
-            RunGetVisibleObjectsAsync();
+            //RunHitTestAsync();
+            //RunGetVisibleObjectsAsync();
 
-            Window window = Application.Current.MainWindow;
-            window.KeyUp += Window_KeyUp; ;
+            //Window window = Application.Current.MainWindow;
+            //window.KeyUp += Window_KeyUp;
         }
         #endregion
 
@@ -191,11 +191,11 @@ namespace Direct2DDXFViewer
         {
             double centerX = 0.5 * (Extents.Left + Extents.Right);
             double centerY = 0.5 * (Extents.Top + Extents.Bottom);
-            InitialView = new(centerX - 0.5 * ActualWidth, centerY - 0.5 * ActualHeight, ActualWidth, ActualHeight);
+            Rect rect = new(centerX - 0.5 * ActualWidth, centerY - 0.5 * ActualHeight, ActualWidth, ActualHeight);
             Matrix matrix = new();
             matrix.ScaleAt(1 / ExtentsMatrix.M11, 1 / ExtentsMatrix.M11, centerX, centerY);
-            InitialView.Transform(matrix);
-            Debug.WriteLine($"\n\n\nInitialView: {InitialView.Left} {InitialView.Top} {InitialView.Right} {InitialView.Bottom}\n\n\n");
+            rect.Transform(matrix);
+            InitialView = rect;
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
@@ -441,11 +441,15 @@ namespace Direct2DDXFViewer
         }
         private void GetVisibleObjects()
         {
-            _currentView = InitialView;
-            Matrix matrix = _transformMatrix;
-            matrix.Invert();
-            _currentView.Transform(matrix);
-            Debug.WriteLine($"_currentView: {_currentView.Left} {_currentView.Top} {_currentView.Right} {_currentView.Bottom}");
+            var coordMatrix = _overallMatrix;
+            coordMatrix.Invert();
+
+            Point topLeft = coordMatrix.Transform(new Point(0, 0));
+            Point bottomRight = coordMatrix.Transform(new Point(ActualWidth, ActualHeight));
+            Double width = Math.Abs(bottomRight.X - topLeft.X);
+            Double height = Math.Abs(bottomRight.Y - topLeft.Y);
+            Rect rect = new(topLeft.X, topLeft.Y, width, height);
+            //Debug.WriteLine($"\nrect: {rect.Left} {rect.Top} {rect.Right} {rect.Bottom}");
 
             foreach (var layer in LayerManager.Layers.Values)
             {
