@@ -54,6 +54,7 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public EntityObject Entity { get; set; }
         public Geometry Geometry { get; set; }
+        public RectangleGeometry Bounds { get; set; }
         public Geometry SimplifiedGeometry { get; set; }
         public RenderTarget Target { get; set; }
         public DeviceContext1 DeviceContext { get; set; }

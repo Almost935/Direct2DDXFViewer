@@ -29,6 +29,7 @@ using PixelFormat = SharpDX.Direct2D1.PixelFormat;
 using AlphaMode = SharpDX.Direct2D1.AlphaMode;
 using Factory1 = SharpDX.Direct2D1.Factory1;
 using BitmapCache = Direct2DDXFViewer.BitmapHelpers.BitmapCache;
+using System.Drawing;
 
 namespace Direct2DDXFViewer
 {
