@@ -45,6 +45,7 @@ namespace Direct2DDXFViewer
         private bool _dxfLoaded = false;
         private Rect _currentView = new();
         private BitmapCache _bitmapCache;
+        private QuadTreeCache _quadTreeCache;
         private bool _bitmapLoaded = false;
 
         private DxfDocument _dxfDoc;
@@ -97,6 +98,9 @@ namespace Direct2DDXFViewer
                 OnPropertyChanged(nameof(DxfPointerCoords));
             }
         }
+        /// <summary>
+        /// The extents of the drawing objects in the DXF file.
+        /// </summary>
         public Rect Extents
         {
             get { return _extents; }
@@ -221,6 +225,7 @@ namespace Direct2DDXFViewer
                 {
                     timer.Restart();
                     InitializeBitmapCaches(target);
+                    InitializeQuadTreeCache(target);
                     _bitmapLoaded = true;
                     Debug.WriteLine($"bitmap initial load time: {timer.ElapsedMilliseconds} ms");
                 }
@@ -234,6 +239,7 @@ namespace Direct2DDXFViewer
 
                 timer.Restart();
                 RenderBitmaps(target);
+                
 
                 //target.PopAxisAlignedClip();
 
@@ -335,29 +341,53 @@ namespace Direct2DDXFViewer
 
         private void InitializeBitmapCaches(RenderTarget target)
         {
-            if (_bitmapCache is not null)
-            {
-                _bitmapCache.Dispose();
-                _bitmapCache = null;
-            }
-            _bitmapCache = new(target, resCache.Factory, LayerManager, Extents, target.Size, ExtentsMatrix, resCache);
+            //if (_bitmapCache is not null)
+            //{
+            //    _bitmapCache.Dispose();
+            //    _bitmapCache = null;
+            //}
+            //_bitmapCache = new(target, resCache.Factory, LayerManager, Extents, target.Size, ExtentsMatrix, resCache);
+        }
+        private void InitializeQuadTreeCache(RenderTarget target)
+        {
+            _quadTreeCache = new(target, resCache.Factory, LayerManager, Extents, ExtentsMatrix, resCache, _zoomFactor);
         }
         private void RenderBitmaps(RenderTarget target)
         {
-            if (_bitmapCache is null) { return; }
-
+            if (_quadTreeCache is null) { return; }
+            
+            target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 0.0f));
             target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
                     (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
+            RenderQuadTree(target, _quadTreeCache.GetQuadTree((float)_transformMatrix.M11));
 
-            target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 0.0f));
+            //if (_bitmapCache is null) { return; }
 
-            RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
+            //target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
+            //        (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
 
-            target.DrawBitmap(_bitmapCache.CurrentZoomBitmap.BitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, _bitmapCache.CurrentZoomBitmap.Rect);
+            //target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 0.0f));
 
+            //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
 
-            RenderInteractiveObjects(target);
+            //target.DrawBitmap(_bitmapCache.CurrentZoomBitmap.BitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, _bitmapCache.CurrentZoomBitmap.Rect);
+
+            //RenderInteractiveObjects(target);
         }
+        private void RenderQuadTree(RenderTarget target, QuadTree quadTree)
+        {
+            List<QuadTreeNode> quadTreeNodes = quadTree.GetQuadTreeView(_currentView);
+
+            int count = 0;
+            foreach (var node in quadTreeNodes)
+            {
+                count++;
+                Debug.WriteLine($"count: {count} node.Bounds: {node.Bounds}");
+
+                target.DrawBitmap(node.Bitmap, new RawRectangleF((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom), 1.0f, BitmapInterpolationMode.Linear);
+            }
+        }
+
         private void RenderInteractiveObjects(RenderTarget target)
         {
             if (_bitmapCache is not null)

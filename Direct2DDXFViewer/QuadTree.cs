@@ -1,4 +1,5 @@
-﻿using Direct2DDXFViewer.BitmapHelpers;
+﻿using Direct2DControl;
+using Direct2DDXFViewer.BitmapHelpers;
 using SharpDX;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
@@ -7,44 +8,36 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Direct2DDXFViewer
 {
     public class QuadTree
     {
-        public ZoomBitmap _zoomBitmap = new();
+        private RenderTarget _renderTarget;
+        private ResourceCache _resCache;
 
+        public Bitmap OverallBitmap { get; set; }
         public QuadTreeNode Root { get; private set; }
         public float Zoom { get; private set; }
-        public double MaxSize { get; private set; }
         public int Levels { get; private set; }
+        public Rect Rect { get; set; }
+        public Size2F Size { get; set; }
+        public Size2F Dpi { get; set; }
 
-        public QuadTree(BitmapRenderTarget bitmapRenderTarget, float zoom, double maxSize)
+        public QuadTree(RenderTarget renderTarget, Bitmap overallBitmap, float zoom, ResourceCache resCache)
         {
-            RenderBitmap(bitmapRenderTarget, zoom);
-            var bitmap = bitmapRenderTarget.Bitmap;
+            OverallBitmap = overallBitmap;
+            _renderTarget = renderTarget;
             Zoom = zoom;
-            MaxSize = maxSize;
-            GetLevels(maxSize, bitmapRenderTarget.Size);
+            _resCache = resCache;
+            GetLevels(_resCache.MaxBitmapSize, OverallBitmap.Size);
 
-            var bounds = new RawRectangleF(0, 0, bitmap.Size.Width, bitmap.Size.Height);
-            Root = new QuadTreeNode(bounds, bitmap);
-            Root.Subdivide(bitmapRenderTarget, Levels);
+            var bounds = new Rect(0, 0, OverallBitmap.Size.Width, OverallBitmap.Size.Height);
+            Root = new QuadTreeNode(bounds, OverallBitmap);
+            Root.Subdivide(_renderTarget, Levels);
         }
 
-        private void RenderBitmap(RenderTarget bitmapRenderTarget, float zoom)
-        {
-            _zoomBitmap.Zoom = zoom;
-            _zoomBitmap.Size = size;
-            _zoomBitmap.Dpi = new(96 * zoom, 96 * zoom);
-            _zoomBitmap.Rect = new(0, 0, RenderTargetSize.Width * zoom, RenderTargetSize.Height * zoom);
-            _zoomBitmap.BitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, size)
-            {
-                DotsPerInch = _zoomBitmap.Dpi,
-                AntialiasMode = AntialiasMode.PerPrimitive,
-            };
-            DrawDxfBitmapObjects(_zoomBitmap.BitmapRenderTarget, zoom);
-        }
         private void GetLevels(double maxSize, Size2F renderTargetSize)
         {
             if (renderTargetSize.Width > renderTargetSize.Height)
@@ -55,6 +48,15 @@ namespace Direct2DDXFViewer
             {
                 Levels = (int)Math.Ceiling(renderTargetSize.Height / maxSize);
             }
+        }
+
+        public List<QuadTreeNode> GetQuadTreeView(Rect rect)
+        {
+            List<QuadTreeNode> quadTreeNodes = new();
+
+            quadTreeNodes.AddRange(Root.GetIntersectingQuadTreeNodes(rect));
+
+            return quadTreeNodes;
         }
     }
 }
