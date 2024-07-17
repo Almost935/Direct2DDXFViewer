@@ -1,4 +1,5 @@
 ﻿using Direct2DDXFViewer.BitmapHelpers;
+using SharpDX;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
 using System;
@@ -11,46 +12,48 @@ namespace Direct2DDXFViewer
 {
     public class QuadTree
     {
+        public ZoomBitmap _zoomBitmap = new();
+
         public QuadTreeNode Root { get; private set; }
         public float Zoom { get; private set; }
         public double MaxSize { get; private set; }
+        public int Levels { get; private set; }
 
-        public QuadTree(BitmapRenderTarget renderTarget, float zoom, double maxSize)
+        public QuadTree(BitmapRenderTarget bitmapRenderTarget, float zoom, double maxSize)
         {
-            var bitmap = renderTarget.Bitmap;
+            RenderBitmap(bitmapRenderTarget, zoom);
+            var bitmap = bitmapRenderTarget.Bitmap;
             Zoom = zoom;
             MaxSize = maxSize;
+            GetLevels(maxSize, bitmapRenderTarget.Size);
+
             var bounds = new RawRectangleF(0, 0, bitmap.Size.Width, bitmap.Size.Height);
             Root = new QuadTreeNode(bounds, bitmap);
-            Root.Subdivide(renderTarget, levels);
+            Root.Subdivide(bitmapRenderTarget, Levels);
         }
 
-        public void Draw(RenderTarget renderTarget)
+        private void RenderBitmap(RenderTarget bitmapRenderTarget, float zoom)
         {
-            DrawNode(renderTarget, Root);
-        }
-
-        private void DrawNode(RenderTarget renderTarget, QuadTreeNode node)
-        {
-            if (node.Children.Count == 0)
+            _zoomBitmap.Zoom = zoom;
+            _zoomBitmap.Size = size;
+            _zoomBitmap.Dpi = new(96 * zoom, 96 * zoom);
+            _zoomBitmap.Rect = new(0, 0, RenderTargetSize.Width * zoom, RenderTargetSize.Height * zoom);
+            _zoomBitmap.BitmapRenderTarget = new BitmapRenderTarget(_renderTarget, CompatibleRenderTargetOptions.None, size)
             {
-                renderTarget.DrawBitmap(node.Bitmap, node.Bounds, 1.0f, BitmapInterpolationMode.Linear);
+                DotsPerInch = _zoomBitmap.Dpi,
+                AntialiasMode = AntialiasMode.PerPrimitive,
+            };
+            DrawDxfBitmapObjects(_zoomBitmap.BitmapRenderTarget, zoom);
+        }
+        private void GetLevels(double maxSize, Size2F renderTargetSize)
+        {
+            if (renderTargetSize.Width > renderTargetSize.Height)
+            {
+                Levels = (int)Math.Ceiling(renderTargetSize.Width / maxSize);
             }
             else
             {
-                foreach (var child in node.Children)
-                {
-                    DrawNode(renderTarget, child);
-                }
-            }
-        }
-        private void GetLevels(double mazSize)
-        {
-            double size = mazSize;
-            while (size > 1)
-            {
-                size /= 2;
-                levels++;
+                Levels = (int)Math.Ceiling(renderTargetSize.Height / maxSize);
             }
         }
     }
