@@ -16,6 +16,7 @@ namespace Direct2DDXFViewer
         public Rect Bounds { get; private set; }
         public Bitmap Bitmap { get; private set; }
         public List<QuadTreeNode> ChildNodes { get; private set; }
+        public float Zoom { get; private set; }
 
         public QuadTreeNode(Rect bounds, Bitmap bitmap)
         {
@@ -26,8 +27,7 @@ namespace Direct2DDXFViewer
 
         public void Subdivide(RenderTarget renderTarget, int level)
         {
-            Debug.WriteLine($"level: {level}");
-            if (level <= 0) { return; }
+            if (level < 4) { return; }
 
             double halfWidth = Math.Abs((Bounds.Right - Bounds.Left) / 2);
             double halfHeight = Math.Abs((Bounds.Bottom - Bounds.Top) / 2);

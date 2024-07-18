@@ -72,16 +72,16 @@ namespace Direct2DDXFViewer
             // Get initial (zoom = 1) QuadTree
             GetQuadTree(1);
 
-            //for (int i = 1; i <= _initialLoadFactor; i++)
-            //{
-            //    float zoom = i * _zoomFactor;
-            //    GetQuadTree(zoom);
-            //}
-            //for (int i = 1; i <= _initialLoadFactor; i++)
-            //{
-            //    float zoom = i * (1 / _zoomFactor);
-            //    GetQuadTree(zoom);
-            //}
+            for (int i = 1; i <= _initialLoadFactor; i++)
+            {
+                float zoom = i * _zoomFactor;
+                GetQuadTree(zoom);
+            }
+            for (int i = 1; i <= _initialLoadFactor; i++)
+            {
+                float zoom = i * (1 / _zoomFactor);
+                GetQuadTree(zoom);
+            }
         }
 
         /// <summary>

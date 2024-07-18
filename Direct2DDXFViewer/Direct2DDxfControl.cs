@@ -378,12 +378,8 @@ namespace Direct2DDXFViewer
         {
             List<QuadTreeNode> quadTreeNodes = quadTree.GetQuadTreeView(_currentView);
 
-            int count = 0;
             foreach (var node in quadTreeNodes)
             {
-                count++;
-                Debug.WriteLine($"count: {count} node.Bounds: {node.Bounds}");
-
                 target.DrawBitmap(node.Bitmap, new RawRectangleF((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom), 1.0f, BitmapInterpolationMode.Linear);
             }
         }
@@ -480,7 +476,6 @@ namespace Direct2DDXFViewer
             Double width = Math.Abs(bottomRight.X - topLeft.X);
             Double height = Math.Abs(bottomRight.Y - topLeft.Y);
             Rect rect = new(topLeft.X, topLeft.Y, width, height);
-            //Debug.WriteLine($"\nrect: {rect.Left} {rect.Top} {rect.Right} {rect.Bottom}");
 
             foreach (var layer in LayerManager.Layers.Values)
             {
@@ -510,7 +505,7 @@ namespace Direct2DDXFViewer
                 _overallMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
                 _transformMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
 
-                _bitmapCache.UpdateCurrentBitmap((float)_transformMatrix.M11);
+                //_bitmapCache.UpdateCurrentBitmap((float)_transformMatrix.M11);
             }
         }
         private void UpdateTranslate(Vector translate)
