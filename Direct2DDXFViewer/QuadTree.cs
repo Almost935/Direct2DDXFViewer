@@ -17,25 +17,27 @@ namespace Direct2DDXFViewer
     {
         private RenderTarget _renderTarget;
         private ResourceCache _resCache;
+        private float _maxBitmapSize;
 
         public Bitmap OverallBitmap { get; set; }
         public QuadTreeNode Root { get; private set; }
         public float Zoom { get; private set; }
         public int Levels { get; private set; }
-        public Rect Rect { get; set; }
         public Size2F Size { get; set; }
         public Size2F Dpi { get; set; }
 
-        public QuadTree(RenderTarget renderTarget, Bitmap overallBitmap, float zoom, ResourceCache resCache)
+        public QuadTree(RenderTarget renderTarget, Bitmap overallBitmap, float zoom, ResourceCache resCache, float maxBitmapSize, Size2F dpi)
         {
             OverallBitmap = overallBitmap;
             _renderTarget = renderTarget;
             Zoom = zoom;
             _resCache = resCache;
-            GetLevels(_resCache.MaxBitmapSize, OverallBitmap.Size);
+            _maxBitmapSize = maxBitmapSize;
+            Dpi = dpi;
+            GetLevels(_maxBitmapSize, OverallBitmap.Size);
 
             var bounds = new Rect(0, 0, OverallBitmap.Size.Width, OverallBitmap.Size.Height);
-            Root = new QuadTreeNode(bounds, OverallBitmap);
+            Root = new QuadTreeNode(bounds, OverallBitmap, Zoom, Dpi);
             Root.Subdivide(_renderTarget, Levels);
         }
 

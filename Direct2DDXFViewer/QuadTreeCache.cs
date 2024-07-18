@@ -11,6 +11,7 @@ using System.Windows.Media;
 using System.Windows;
 using SharpDX.Mathematics.Interop;
 using Direct2DDXFViewer.BitmapHelpers;
+using System.Diagnostics;
 
 namespace Direct2DDXFViewer
 {
@@ -28,11 +29,13 @@ namespace Direct2DDXFViewer
         private float _zoomFactor;
         private int _initialLoadFactor = 5;
 
-        private const float maxSize = 5000;
+        private const float _maxBitmapSize = 5000;
         #endregion
 
         #region Properties
         public Dictionary<double, QuadTree> QuadTrees { get; private set; }
+        public QuadTree CurrentQuadTree { get; private set; }
+        public QuadTree InitialQuadTree { get; private set; }
         #endregion
 
         #region Constructors
@@ -70,17 +73,33 @@ namespace Direct2DDXFViewer
         private void Initialize()
         {
             // Get initial (zoom = 1) QuadTree
-            GetQuadTree(1);
+            InitialQuadTree = GetQuadTree(1);
+            CurrentQuadTree = InitialQuadTree;
 
+            float zoom = 1;
             for (int i = 1; i <= _initialLoadFactor; i++)
             {
-                float zoom = i * _zoomFactor;
+                zoom *= _zoomFactor;
                 GetQuadTree(zoom);
             }
+
+            zoom = 1;
             for (int i = 1; i <= _initialLoadFactor; i++)
             {
-                float zoom = i * (1 / _zoomFactor);
+                zoom *= (1 / _zoomFactor);
                 GetQuadTree(zoom);
+            }
+        }
+
+        public void UpdateCurrentQuadTree(float zoom)
+        {
+            if (zoom == 1.0f)
+            {
+                CurrentQuadTree = InitialQuadTree;
+            }
+            else
+            {
+                CurrentQuadTree = GetQuadTree(zoom);
             }
         }
 
@@ -113,7 +132,7 @@ namespace Direct2DDXFViewer
                 DotsPerInch = dpi,
                 AntialiasMode = AntialiasMode.PerPrimitive
             };
-            
+
             bitmapRenderTarget.BeginDraw();
             bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
 
@@ -122,7 +141,7 @@ namespace Direct2DDXFViewer
             _layerManager.Draw(bitmapRenderTarget, thickness);
             bitmapRenderTarget.EndDraw();
 
-            quadTree = new QuadTree(_renderTarget, bitmapRenderTarget.Bitmap, zoom, _resCache);
+            quadTree = new QuadTree(_renderTarget, bitmapRenderTarget.Bitmap, zoom, _resCache, _maxBitmapSize, dpi);
             QuadTrees.Add(Math.Round((double)zoom, 3), quadTree);
             return quadTree;
         }
@@ -168,7 +187,7 @@ namespace Direct2DDXFViewer
             _layerManager.Draw(bitmapRenderTarget, thickness);
             bitmapRenderTarget.EndDraw();
 
-            QuadTree maxSizeQuadTree = new(renderTarget, bitmapRenderTarget.Bitmap, maxZoom, _resCache);
+            QuadTree maxSizeQuadTree = new(renderTarget, bitmapRenderTarget.Bitmap, maxZoom, _resCache, _maxBitmapSize, maxDpi);
             return maxSizeQuadTree;
         }
         #endregion

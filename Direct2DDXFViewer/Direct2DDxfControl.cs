@@ -224,7 +224,7 @@ namespace Direct2DDXFViewer
                 if (!_bitmapLoaded)
                 {
                     timer.Restart();
-                    InitializeBitmapCaches(target);
+                    //InitializeBitmapCaches(target);
                     InitializeQuadTreeCache(target);
                     _bitmapLoaded = true;
                     Debug.WriteLine($"bitmap initial load time: {timer.ElapsedMilliseconds} ms");
@@ -341,12 +341,12 @@ namespace Direct2DDXFViewer
 
         private void InitializeBitmapCaches(RenderTarget target)
         {
-            //if (_bitmapCache is not null)
-            //{
-            //    _bitmapCache.Dispose();
-            //    _bitmapCache = null;
-            //}
-            //_bitmapCache = new(target, resCache.Factory, LayerManager, Extents, target.Size, ExtentsMatrix, resCache);
+            if (_bitmapCache is not null)
+            {
+                _bitmapCache.Dispose();
+                _bitmapCache = null;
+            }
+            _bitmapCache = new(target, resCache.Factory, LayerManager, Extents, target.Size, ExtentsMatrix, resCache);
         }
         private void InitializeQuadTreeCache(RenderTarget target)
         {
@@ -355,11 +355,11 @@ namespace Direct2DDXFViewer
         private void RenderBitmaps(RenderTarget target)
         {
             if (_quadTreeCache is null) { return; }
-            
+
             target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 0.0f));
             target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
                     (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-            RenderQuadTree(target, _quadTreeCache.GetQuadTree((float)_transformMatrix.M11));
+            RenderQuadTree(target, _quadTreeCache.CurrentQuadTree);
 
             //if (_bitmapCache is null) { return; }
 
@@ -504,6 +504,8 @@ namespace Direct2DDXFViewer
             {
                 _overallMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
                 _transformMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
+
+                _quadTreeCache.UpdateCurrentQuadTree((float)_transformMatrix.M11);
 
                 //_bitmapCache.UpdateCurrentBitmap((float)_transformMatrix.M11);
             }
