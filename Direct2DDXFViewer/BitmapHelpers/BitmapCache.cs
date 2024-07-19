@@ -214,7 +214,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             if (LayerManager is not null)
             {
                 bitmapRenderTarget.BeginDraw();
-                bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
+                bitmapRenderTarget.Clear(new RawColor4(1, 0, 0, 0.25f));
 
                 bitmapRenderTarget.Transform = new RawMatrix3x2((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
 

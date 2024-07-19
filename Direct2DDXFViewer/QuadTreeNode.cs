@@ -42,7 +42,7 @@ namespace Direct2DDXFViewer
                 double halfWidth = Math.Abs((Bounds.Right - Bounds.Left) / 2);
                 double halfHeight = Math.Abs((Bounds.Bottom - Bounds.Top) / 2);
 
-                Debug.WriteLine($"\nlevel: {level} Zoom: {Zoom} halfWidth: {halfWidth} halfHeight: {halfHeight}");
+                //Debug.WriteLine($"\nlevel: {level} Zoom: {Zoom} halfWidth: {halfWidth} halfHeight: {halfHeight}");
 
                 var childBounds = new[]
                 {

@@ -224,7 +224,7 @@ namespace Direct2DDXFViewer
                 if (!_bitmapLoaded)
                 {
                     timer.Restart();
-                    //InitializeBitmapCaches(target);
+                    InitializeBitmapCaches(target);
                     InitializeQuadTreeCache(target);
                     _bitmapLoaded = true;
                     Debug.WriteLine($"bitmap initial load time: {timer.ElapsedMilliseconds} ms");
@@ -369,19 +369,22 @@ namespace Direct2DDXFViewer
             //target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 0.0f));
 
             //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
-
             //target.DrawBitmap(_bitmapCache.CurrentZoomBitmap.BitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, _bitmapCache.CurrentZoomBitmap.Rect);
-
+            //Debug.WriteLine($"_bitmapCache: destRect: {destRect.Left} {destRect.Top} {destRect.Right} {destRect.Bottom}" +
+            //    $"\n_bitmapCache.CurrentZoomBitmap.Rect: {_bitmapCache.CurrentZoomBitmap.Rect.Left} {_bitmapCache.CurrentZoomBitmap.Rect.Top} {_bitmapCache.CurrentZoomBitmap.Rect.Right} {_bitmapCache.CurrentZoomBitmap.Rect.Bottom}");
             //RenderInteractiveObjects(target);
         }
         private void RenderQuadTree(RenderTarget target, QuadTree quadTree)
         {
             List<QuadTreeNode> quadTreeNodes = quadTree.GetQuadTreeView(_currentView);
-            Debug.WriteLine($"\nquadTreeNodes.Count: {quadTreeNodes.Count}" +
-                $"\nquadTree.Zoom: {quadTree.Zoom}");
+
+            Debug.WriteLine($"quadTreeNodes.Count: {quadTreeNodes.Count}");
+
             foreach (var node in quadTreeNodes)
             {
-                target.DrawBitmap(node.Bitmap, new RawRectangleF((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom), 1.0f, BitmapInterpolationMode.Linear);
+                RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
+                RawRectangleF sourceRect = new((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom);
+                target.DrawBitmap(node.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
             }
         }
 

@@ -29,7 +29,7 @@ namespace Direct2DDXFViewer
         private float _zoomFactor;
         private int _initialLoadFactor = 5;
 
-        private const float _maxBitmapSize = 5000;
+        private const float _maxBitmapSize = 1000;
         #endregion
 
         #region Properties
@@ -134,7 +134,7 @@ namespace Direct2DDXFViewer
             };
 
             bitmapRenderTarget.BeginDraw();
-            bitmapRenderTarget.Clear(new RawColor4(1, 0, 1, 1));
+            bitmapRenderTarget.Clear(new RawColor4(0, 1, 0, 0.25f));
 
             bitmapRenderTarget.Transform = new RawMatrix3x2((float)_extentsMatrix.M11, (float)_extentsMatrix.M12, (float)_extentsMatrix.M21, (float)_extentsMatrix.M22, (float)_extentsMatrix.OffsetX, (float)_extentsMatrix.OffsetY);
             float thickness = 1.0f / (bitmapRenderTarget.Transform.M11 * zoom);
@@ -157,6 +157,7 @@ namespace Direct2DDXFViewer
             float maxZoom;
             Size2F maxDpi;
             RawRectangleF maxRect;
+
             if (renderTarget.Size.Width > renderTarget.Size.Height)
             {
                 maxSize = new(_resCache.MaxBitmapSize, _resCache.MaxBitmapSize * (renderTarget.Size.Height / renderTarget.Size.Width));
@@ -182,8 +183,7 @@ namespace Direct2DDXFViewer
             float thickness = 1.0f / (bitmapRenderTarget.Transform.M11 * maxZoom);
 
             bitmapRenderTarget.BeginDraw();
-            bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
-
+            bitmapRenderTarget.Clear(new RawColor4(0, 1, 0, 0.25f));
             _layerManager.Draw(bitmapRenderTarget, thickness);
             bitmapRenderTarget.EndDraw();
 
