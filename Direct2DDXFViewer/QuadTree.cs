@@ -37,7 +37,7 @@ namespace Direct2DDXFViewer
             GetLevels(_maxBitmapSize, OverallBitmap.Size);
 
             var bounds = new Rect(0, 0, OverallBitmap.Size.Width, OverallBitmap.Size.Height);
-            Root = new QuadTreeNode(bounds, OverallBitmap, Zoom, Dpi);
+            Root = new QuadTreeNode(bounds, OverallBitmap, Zoom, Dpi, _maxBitmapSize);
             Root.Subdivide(_renderTarget, Levels);
         }
 
@@ -45,11 +45,29 @@ namespace Direct2DDXFViewer
         {
             if (renderTargetSize.Width > renderTargetSize.Height)
             {
-                Levels = (int)Math.Ceiling(renderTargetSize.Width / maxSize);
+                if (renderTargetSize.Width < maxSize) { Levels = 1; return; }
+
+                Levels = 0;
+                float size = renderTargetSize.Width;
+                while (size > maxSize)
+                {
+                    Levels++;
+                    size /= 2;
+                }
+                return;
             }
             else
             {
-                Levels = (int)Math.Ceiling(renderTargetSize.Height / maxSize);
+                if (renderTargetSize.Height < maxSize) { Levels = 1; return; }
+
+                Levels = 0;
+                float size = renderTargetSize.Height;
+                while (size > maxSize)
+                {
+                    Levels++;
+                    size /= 2;
+                }
+                return;
             }
         }
 

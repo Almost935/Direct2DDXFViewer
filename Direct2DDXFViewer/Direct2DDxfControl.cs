@@ -356,7 +356,7 @@ namespace Direct2DDXFViewer
         {
             if (_quadTreeCache is null) { return; }
 
-            target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 0.0f));
+            target.Clear(new RawColor4(0, 0, 0, 0));
             target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
                     (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
             RenderQuadTree(target, _quadTreeCache.CurrentQuadTree);
@@ -377,7 +377,8 @@ namespace Direct2DDXFViewer
         private void RenderQuadTree(RenderTarget target, QuadTree quadTree)
         {
             List<QuadTreeNode> quadTreeNodes = quadTree.GetQuadTreeView(_currentView);
-
+            Debug.WriteLine($"\nquadTreeNodes.Count: {quadTreeNodes.Count}" +
+                $"\nquadTree.Zoom: {quadTree.Zoom}");
             foreach (var node in quadTreeNodes)
             {
                 target.DrawBitmap(node.Bitmap, new RawRectangleF((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom), 1.0f, BitmapInterpolationMode.Linear);

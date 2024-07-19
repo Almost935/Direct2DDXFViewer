@@ -134,7 +134,7 @@ namespace Direct2DDXFViewer
             };
 
             bitmapRenderTarget.BeginDraw();
-            bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 1.0f));
+            bitmapRenderTarget.Clear(new RawColor4(1, 0, 1, 1));
 
             bitmapRenderTarget.Transform = new RawMatrix3x2((float)_extentsMatrix.M11, (float)_extentsMatrix.M12, (float)_extentsMatrix.M21, (float)_extentsMatrix.M22, (float)_extentsMatrix.OffsetX, (float)_extentsMatrix.OffsetY);
             float thickness = 1.0f / (bitmapRenderTarget.Transform.M11 * zoom);
