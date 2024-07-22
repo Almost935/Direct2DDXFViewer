@@ -126,7 +126,6 @@ namespace Direct2DDXFViewer
 
             // Create a new quad tree
             Size2F dpi = new(96.0f * zoom, 96.0f * zoom);
-            Rect rect = new(0, 0, _renderTargetSize.Width * zoom, _renderTargetSize.Height * zoom);
             BitmapRenderTarget bitmapRenderTarget = new(_renderTarget, CompatibleRenderTargetOptions.None, size)
             {
                 DotsPerInch = dpi,

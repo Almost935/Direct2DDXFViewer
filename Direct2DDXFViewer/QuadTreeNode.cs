@@ -42,12 +42,10 @@ namespace Direct2DDXFViewer
                 double halfWidth = Math.Abs((Bounds.Right - Bounds.Left) / 2);
                 double halfHeight = Math.Abs((Bounds.Bottom - Bounds.Top) / 2);
 
-                //Debug.WriteLine($"\nlevel: {level} Zoom: {Zoom} halfWidth: {halfWidth} halfHeight: {halfHeight}");
-
-                Rect rect1 = new Rect(Bounds.Left, Bounds.Top, (Bounds.Left + halfWidth), (Bounds.Top + halfHeight));
-                Rect rect2 = new Rect((Bounds.Left + halfWidth), Bounds.Top, Bounds.Right, (Bounds.Top + halfHeight));
-                Rect rect3 = new Rect(Bounds.Left, (Bounds.Top + halfHeight), (Bounds.Left + halfWidth), Bounds.Bottom);
-                Rect rect4 = new Rect((Bounds.Left + halfWidth), (Bounds.Top + halfHeight), Bounds.Right, Bounds.Bottom);
+                Rect rect1 = new(new Point(Bounds.Left, Bounds.Top), new Point((Bounds.Left + halfWidth), (Bounds.Top + halfHeight)));
+                Rect rect2 = new(new Point((Bounds.Left + halfWidth), Bounds.Top), new Point(Bounds.Right, (Bounds.Top + halfHeight)));
+                Rect rect3 = new(new Point(Bounds.Left, (Bounds.Top + halfHeight)), new Point((Bounds.Left + halfWidth), Bounds.Bottom));
+                Rect rect4 = new(new Point((Bounds.Left + halfWidth), (Bounds.Top + halfHeight)), new Point(Bounds.Right, Bounds.Bottom));
 
                 var childBounds = new[]
                 { rect1, rect2, rect3, rect4 };
