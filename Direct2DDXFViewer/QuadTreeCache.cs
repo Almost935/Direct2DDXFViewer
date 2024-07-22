@@ -187,6 +187,8 @@ namespace Direct2DDXFViewer
             _layerManager.Draw(bitmapRenderTarget, thickness);
             bitmapRenderTarget.EndDraw();
 
+
+
             QuadTree maxSizeQuadTree = new(renderTarget, bitmapRenderTarget.Bitmap, maxZoom, _resCache, _maxBitmapSize, maxDpi);
             return maxSizeQuadTree;
         }

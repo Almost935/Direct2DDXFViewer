@@ -44,13 +44,13 @@ namespace Direct2DDXFViewer
 
                 //Debug.WriteLine($"\nlevel: {level} Zoom: {Zoom} halfWidth: {halfWidth} halfHeight: {halfHeight}");
 
+                Rect rect1 = new Rect(Bounds.Left, Bounds.Top, (Bounds.Left + halfWidth), (Bounds.Top + halfHeight));
+                Rect rect2 = new Rect((Bounds.Left + halfWidth), Bounds.Top, Bounds.Right, (Bounds.Top + halfHeight));
+                Rect rect3 = new Rect(Bounds.Left, (Bounds.Top + halfHeight), (Bounds.Left + halfWidth), Bounds.Bottom);
+                Rect rect4 = new Rect((Bounds.Left + halfWidth), (Bounds.Top + halfHeight), Bounds.Right, Bounds.Bottom);
+
                 var childBounds = new[]
-                {
-            new Rect(Bounds.Left, Bounds.Top, (Bounds.Left + halfWidth), (Bounds.Top + halfHeight)),
-            new Rect((Bounds.Left + halfWidth), Bounds.Top, Bounds.Right, (Bounds.Top + halfHeight)),
-            new Rect(Bounds.Left, (Bounds.Top + halfHeight), (Bounds.Left + halfWidth), Bounds.Bottom),
-            new Rect((Bounds.Left+ halfWidth), (Bounds.Top + halfHeight), Bounds.Right, Bounds.Bottom),
-            };
+                { rect1, rect2, rect3, rect4 };
 
                 foreach (var bounds in childBounds)
                 {
