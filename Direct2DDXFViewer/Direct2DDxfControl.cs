@@ -378,12 +378,13 @@ namespace Direct2DDXFViewer
         {
             List<QuadTreeNode> quadTreeNodes = quadTree.GetQuadTreeView(_currentView);
 
+            Debug.WriteLine($"\nquadTree.Zoom: {quadTree.Zoom} quadTree.Levels: {quadTree.Levels} quadTreeNodes.Count: {quadTreeNodes.Count}");
+
             foreach (var node in quadTreeNodes)
             {
-                RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
+                //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
+                RawRectangleF destRect = new((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom);
                 RawRectangleF sourceRect = new((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom);
-
-                Debug.WriteLine($"\n\n\nsourceRect: {sourceRect.Left} {sourceRect.Top} {sourceRect.Right} {sourceRect.Bottom}");
 
                 target.DrawBitmap(node.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
             }

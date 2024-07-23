@@ -13,12 +13,16 @@ using System.Windows;
 
 namespace Direct2DDXFViewer
 {
-    public class QuadTree
+    public class QuadTree : IDisposable
     {
+        #region Fields
         private RenderTarget _renderTarget;
         private ResourceCache _resCache;
         private float _maxBitmapSize;
+        private bool _disposed = false;
+        #endregion
 
+        #region Properties
         public Bitmap OverallBitmap { get; set; }
         public Rect TreeBounds { get; set; }
         public QuadTreeNode Root { get; private set; }
@@ -26,7 +30,9 @@ namespace Direct2DDXFViewer
         public int Levels { get; private set; }
         public Size2F Size { get; set; }
         public Size2F Dpi { get; set; }
+        #endregion
 
+        #region Constructors
         public QuadTree(RenderTarget renderTarget, Bitmap overallBitmap, float zoom, ResourceCache resCache, float maxBitmapSize, Size2F dpi)
         {
             OverallBitmap = overallBitmap;
@@ -41,7 +47,9 @@ namespace Direct2DDXFViewer
             Root = new QuadTreeNode(TreeBounds, OverallBitmap, Zoom, Dpi, _maxBitmapSize);
             Root.Subdivide(_renderTarget, Levels);
         }
+        #endregion
 
+        #region Methods
         private void GetLevels(double maxSize, Size2F renderTargetSize)
         {
             if (renderTargetSize.Width > renderTargetSize.Height)
@@ -79,5 +87,37 @@ namespace Direct2DDXFViewer
 
             return quadTreeNodes;
         }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed state (managed objects).
+                    OverallBitmap?.Dispose();
+                    Root?.Dispose();
+                }
+
+                // Free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // Set large fields to null.
+
+                _disposed = true;
+            }
+        }
+
+        // Override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
+        ~QuadTree()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(false);
+        }
+        #endregion
     }
 }

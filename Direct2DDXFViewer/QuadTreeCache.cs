@@ -15,7 +15,7 @@ using System.Diagnostics;
 
 namespace Direct2DDXFViewer
 {
-    public class QuadTreeCache
+    public class QuadTreeCache : IDisposable
     {
         #region Fields
         private RenderTarget _renderTarget;
@@ -28,6 +28,7 @@ namespace Direct2DDXFViewer
         private QuadTree _maxSizeQuadTree;
         private float _zoomFactor;
         private int _initialLoadFactor = 5;
+        private bool _disposed = false;
 
         private const float _maxBitmapSize = 1000;
         #endregion
@@ -58,7 +59,7 @@ namespace Direct2DDXFViewer
             _factory = factory;
             _extentsMatrix = extentsMatrix;
             _resCache = resCache;
-            _maxSizeQuadTree = GetMaxSizeQuadTree(renderTarget);
+            //_maxSizeQuadTree = GetMaxSizeQuadTree(renderTarget);
             _zoomFactor = zoomFactor;
             QuadTrees = new();
 
@@ -142,6 +143,9 @@ namespace Direct2DDXFViewer
 
             quadTree = new QuadTree(_renderTarget, bitmapRenderTarget.Bitmap, zoom, _resCache, _maxBitmapSize, dpi);
             QuadTrees.Add(Math.Round((double)zoom, 3), quadTree);
+
+            //Debug.WriteLine($"\nzoom: {zoom} quadTree.Levels: {quadTree.Levels}");
+
             return quadTree;
         }
 
@@ -190,6 +194,46 @@ namespace Direct2DDXFViewer
 
             QuadTree maxSizeQuadTree = new(renderTarget, bitmapRenderTarget.Bitmap, maxZoom, _resCache, _maxBitmapSize, maxDpi);
             return maxSizeQuadTree;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed state (managed objects).
+                    if (QuadTrees != null)
+                    {
+                        foreach (var quadTree in QuadTrees.Values)
+                        {
+                            quadTree.Dispose();
+                        }
+                        QuadTrees.Clear();
+                    }
+
+                    InitialQuadTree?.Dispose();
+                    // Note: CurrentQuadTree and InitialQuadTree might point to the same object, so no need to dispose CurrentQuadTree separately
+                }
+
+                // Free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // Set large fields to null.
+
+                _disposed = true;
+            }
+        }
+
+        // Override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
+        ~QuadTreeCache()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(false);
         }
         #endregion
     }
