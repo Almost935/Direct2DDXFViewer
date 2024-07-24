@@ -43,7 +43,7 @@ namespace Direct2DDXFViewer
         private bool _isRendering = false;
         private Point _lastTranslatePos = new();
         private bool _dxfLoaded = false;
-        private Rect _currentView = new();
+        private Rect _currentView;
         private BitmapCache _bitmapCache;
         private QuadTreeCache _quadTreeCache;
         private bool _bitmapLoaded = false;
@@ -138,6 +138,7 @@ namespace Direct2DDXFViewer
         public Direct2DDxfControl()
         {
             UpdateDxfCoordsAsync();
+            UpdateCurrentView();
             //RunHitTestAsync();
             //RunGetVisibleObjectsAsync();
 
@@ -201,6 +202,8 @@ namespace Direct2DDXFViewer
             matrix.ScaleAt(1 / ExtentsMatrix.M11, 1 / ExtentsMatrix.M11, centerX, centerY);
             rect.Transform(matrix);
             InitialView = rect;
+
+            _currentView = new(0, 0, this.ActualWidth, this.ActualHeight);
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
@@ -230,7 +233,7 @@ namespace Direct2DDXFViewer
                     Debug.WriteLine($"bitmap initial load time: {timer.ElapsedMilliseconds} ms");
                 }
 
-                //UpdateCurrentView();
+                UpdateCurrentView();
                 //var viewport = new RawRectangleF((float)_currentView.Left, (float)_currentView.Top,
                 //    (float)_currentView.Right, (float)_currentView.Bottom);
 
@@ -380,13 +383,22 @@ namespace Direct2DDXFViewer
 
             Debug.WriteLine($"\nquadTree.Zoom: {quadTree.Zoom} quadTree.Levels: {quadTree.Levels} quadTreeNodes.Count: {quadTreeNodes.Count}");
 
-            foreach (var node in quadTreeNodes)
+            //foreach (var node in quadTreeNodes)
+            //{
+            //    //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
+            //    RawRectangleF destRect = new((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom);
+            //    RawRectangleF sourceRect = new((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom);
+
+            //    target.DrawBitmap(node.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+            //}
+
+            for (int i = 0; i < quadTreeNodes.Count; i++)
             {
                 //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
-                RawRectangleF destRect = new((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom);
-                RawRectangleF sourceRect = new((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom);
+                RawRectangleF destRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
+                RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
 
-                target.DrawBitmap(node.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+                target.DrawBitmap(quadTreeNodes[i].Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
             }
         }
 
@@ -521,22 +533,22 @@ namespace Direct2DDXFViewer
             _overallMatrix.Translate(translate.X, translate.Y);
             _transformMatrix.Translate(translate.X, translate.Y);
         }
-        //private void UpdateCurrentView()
-        //{
-        //    if (resCache.RenderTarget is not null)
-        //    {
-        //        _currentView = new(0, 0, resCache.RenderTarget.Size.Width, resCache.RenderTarget.Size.Height);
-        //        var rawMatrix = resCache.RenderTarget.Transform;
-        //        Matrix matrix = new(rawMatrix.M11, rawMatrix.M12, rawMatrix.M21, rawMatrix.M22, rawMatrix.M31, rawMatrix.M32);
-        //        matrix.Invert();
-        //        _currentView.Transform(matrix);
+        private void UpdateCurrentView()
+        {
+            if (resCache.RenderTarget is not null)
+            {
+                _currentView = new(0, 0, resCache.RenderTarget.Size.Width, resCache.RenderTarget.Size.Height);
+                var rawMatrix = resCache.RenderTarget.Transform;
+                Matrix matrix = new(rawMatrix.M11, rawMatrix.M12, rawMatrix.M21, rawMatrix.M22, rawMatrix.M31, rawMatrix.M32);
+                matrix.Invert();
+                _currentView.Transform(matrix);
 
-        //        Matrix testMatrix = new(_overallMatrix.M11, _overallMatrix.M12, _overallMatrix.M21, _overallMatrix.M22, _overallMatrix.OffsetX, _overallMatrix.OffsetY);
-        //        testMatrix.Invert();
-        //        Rect testCurrentView = new(0, 0, resCache.RenderTarget.Size.Width, resCache.RenderTarget.Size.Height);
-        //        testCurrentView.Transform(testMatrix);
-        //    }
-        //}
+                //Matrix testMatrix = new(_overallMatrix.M11, _overallMatrix.M12, _overallMatrix.M21, _overallMatrix.M22, _overallMatrix.OffsetX, _overallMatrix.OffsetY);
+                //testMatrix.Invert();
+                //Rect testCurrentView = new(0, 0, resCache.RenderTarget.Size.Width, resCache.RenderTarget.Size.Height);
+                //testCurrentView.Transform(testMatrix);
+            }
+        }
         private void GetBrushes(RenderTarget target)
         {
             resCache.HighlightedBrush ??= new SolidColorBrush(target, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f));
