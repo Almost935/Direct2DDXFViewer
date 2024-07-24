@@ -360,8 +360,8 @@ namespace Direct2DDXFViewer
             if (_quadTreeCache is null) { return; }
 
             target.Clear(new RawColor4(0, 0, 0, 0));
-            target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
-                    (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
+            //target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
+            //        (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
             RenderQuadTree(target, _quadTreeCache.CurrentQuadTree);
 
             //if (_bitmapCache is null) { return; }
@@ -381,25 +381,38 @@ namespace Direct2DDXFViewer
         {
             List<QuadTreeNode> quadTreeNodes = quadTree.GetQuadTreeView(_currentView);
 
-            Debug.WriteLine($"\nquadTree.Zoom: {quadTree.Zoom} quadTree.Levels: {quadTree.Levels} quadTreeNodes.Count: {quadTreeNodes.Count}");
-
-            //foreach (var node in quadTreeNodes)
-            //{
-            //    //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
-            //    RawRectangleF destRect = new((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom);
-            //    RawRectangleF sourceRect = new((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom);
-
-            //    target.DrawBitmap(node.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
-            //}
-
-            for (int i = 0; i < quadTreeNodes.Count; i++)
+            int count = 0;
+            foreach (var node in quadTreeNodes)
             {
-                //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
-                RawRectangleF destRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
-                RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
+                double left = ActualWidth * (node.Bounds.Left / node.Bounds.Right);
+                double top = ActualHeight * (node.Bounds.Top / node.Bounds.Height);
+                double right = left + (0.5 * ActualWidth);
+                double bottom = top + (0.5 * ActualHeight);
 
-                target.DrawBitmap(quadTreeNodes[i].Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+                Rect transformedBounds = node.Bounds;
+                transformedBounds.Transform(_transformMatrix);
+                //RawRectangleF destRect = new((float)left, (float)top, (float)right, (float)bottom);
+                RawRectangleF destRect = new((float)transformedBounds.Left, (float)transformedBounds.Top, (float)transformedBounds.Right, (float)transformedBounds.Bottom);
+                RawRectangleF sourceRect = new((float)node.Bounds.Left, (float)node.Bounds.Top, (float)node.Bounds.Right, (float)node.Bounds.Bottom);
+                //target.DrawBitmap(node.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+
+                target.DrawBitmap(quadTree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
             }
+
+            //for (int i = 1; i < quadTreeNodes.Count; i++)
+            //{
+
+            //    //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
+            //    RawRectangleF destRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
+            //    RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
+
+            //    Debug.WriteLine($"\ndestRect: {destRect.Left} {destRect.Top} {destRect.Right} {destRect.Bottom}");
+            //    Debug.WriteLine($"sourceRect: {sourceRect.Left} {sourceRect.Top} {sourceRect.Right} {sourceRect.Bottom}");
+
+            //    //target.DrawBitmap(quadTreeNodes[i].Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+
+            //    target.DrawBitmap(quadTree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+            //}
         }
 
         private void RenderInteractiveObjects(RenderTarget target)

@@ -118,7 +118,7 @@ namespace Direct2DDXFViewer
             }
 
             // If render target size multiplied by the zoom is greater than the max bitmap size, return the max zoom bitmap
-            Size2F size = new(_renderTargetSize.Width * zoom * 2, _renderTargetSize.Height * zoom * 2);
+            Size2F size = new(_renderTargetSize.Width * zoom, _renderTargetSize.Height * zoom);
             if (size.Width > _resCache.MaxBitmapSize ||
                 size.Height > _resCache.MaxBitmapSize)
             {
