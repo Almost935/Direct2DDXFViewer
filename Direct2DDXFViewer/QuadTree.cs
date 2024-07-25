@@ -50,6 +50,7 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Methods
+
         private void GetLevels(double maxSize, Size2F renderTargetSize)
         {
             if (renderTargetSize.Width > renderTargetSize.Height)
