@@ -168,8 +168,8 @@ namespace Direct2DDXFViewer
             _bounds = new Rect[] {
                 new Rect(0, 0, (ActualWidth / 2), (ActualHeight / 2)),
                 new Rect((ActualWidth / 2), 0, (ActualWidth / 2), (ActualHeight / 2)),
-                new Rect(0, 0, (ActualWidth / 2), (ActualHeight / 2)),
-                new(0, 0, (ActualWidth / 2), (ActualHeight / 2))
+                new Rect(0, (ActualHeight / 2), (ActualWidth / 2), (ActualHeight / 2)),
+                new((ActualWidth / 2), (ActualHeight / 2), (ActualWidth / 2), (ActualHeight / 2))
                 };
         }
 
@@ -399,7 +399,7 @@ namespace Direct2DDXFViewer
             //RawRectangleF testSourceRect = new((float)_quadTreeCache.CurrentQuadTree.Root.Bounds.Left, (float)_quadTreeCache.CurrentQuadTree.Root.Bounds.Top, (float)_quadTreeCache.CurrentQuadTree.Root.Bounds.Right, (float)_quadTreeCache.CurrentQuadTree.Root.Bounds.Bottom);
             //target.DrawBitmap(_quadTreeCache.CurrentQuadTree.OverallBitmap, testDestRect, 1.0f, BitmapInterpolationMode.Linear, testSourceRect);
 
-            for (int i = 0; i < (quadTreeNodes.Count-2); i++)
+            for (int i = 0; i < quadTreeNodes.Count; i++)
             {
                 Rect transformedBounds = _bounds[i];
                 transformedBounds.Transform(_transformMatrix);
