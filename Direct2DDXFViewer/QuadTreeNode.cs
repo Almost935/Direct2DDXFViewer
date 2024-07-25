@@ -22,6 +22,7 @@ namespace Direct2DDXFViewer
 
         #region Properties
         public Rect Bounds { get; private set; }
+        public Rect InitialBounds { get; private set; }
         public Bitmap Bitmap { get; private set; }
         public List<QuadTreeNode> ChildNodes { get; private set; }
         public float Zoom { get; private set; }
@@ -32,6 +33,7 @@ namespace Direct2DDXFViewer
         public QuadTreeNode(Rect bounds, Bitmap? bitmap, float zoom, Size2F dpi, float maxBitmapSize)
         {
             Bounds = bounds;
+            InitialBounds = bounds;
             Zoom = zoom;
             ChildNodes = new();
             Dpi = dpi;
