@@ -165,7 +165,7 @@ namespace Direct2DDXFViewer
                 DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, target);
             }
 
-            _bounds = new Rect[] {
+            _bounds = new[] {
                 new Rect(0, 0, (ActualWidth / 2), (ActualHeight / 2)),
                 new Rect((ActualWidth / 2), 0, (ActualWidth / 2), (ActualHeight / 2)),
                 new Rect(0, (ActualHeight / 2), (ActualWidth / 2), (ActualHeight / 2)),
@@ -372,49 +372,39 @@ namespace Direct2DDXFViewer
             //target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
             //        (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
             RenderQuadTree(target, _quadTreeCache.CurrentQuadTree);
-
-            //if (_bitmapCache is null) { return; }
-
-            //target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
-            //        (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-
-            //target.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 0.0f));
-
-            //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
-            //target.DrawBitmap(_bitmapCache.CurrentZoomBitmap.BitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, _bitmapCache.CurrentZoomBitmap.Rect);
-            //Debug.WriteLine($"_bitmapCache: destRect: {destRect.Left} {destRect.Top} {destRect.Right} {destRect.Bottom}" +
-            //    $"\n_bitmapCache.CurrentZoomBitmap.Rect: {_bitmapCache.CurrentZoomBitmap.Rect.Left} {_bitmapCache.CurrentZoomBitmap.Rect.Top} {_bitmapCache.CurrentZoomBitmap.Rect.Right} {_bitmapCache.CurrentZoomBitmap.Rect.Bottom}");
-            //RenderInteractiveObjects(target);
         }
         private void RenderQuadTree(RenderTarget target, QuadTree quadTree)
         {
             List<QuadTreeNode> quadTreeNodes = quadTree.GetQuadTreeView(_currentView);
 
-            Brush brush = new SolidColorBrush(target, new RawColor4(0, 0, 0, 1.0f));
+            Brush blackBrush = new SolidColorBrush(target, new RawColor4(0, 0, 0, 1));
+            Brush redBrush = new SolidColorBrush(target, new RawColor4(1, 0, 0, 1));
 
             for (int i = 0; i < quadTreeNodes.Count; i++)
             {
                 Rect transformedBounds = _bounds[i];
                 Rect testBounds = quadTreeNodes[i].DestRect;
 
-                Debug.WriteLine($"\nBefore: \n{transformedBounds}" +
-                    $"\n{testBounds}");
+                //Debug.WriteLine($"\nBefore: \n{transformedBounds}" +
+                //    $"\n{testBounds}");
 
                 transformedBounds.Transform(_transformMatrix);
                 testBounds.Transform(_transformMatrix);
 
                 RawRectangleF destRect = new((float)transformedBounds.Left, (float)transformedBounds.Top, (float)transformedBounds.Right, (float)transformedBounds.Bottom);
+                RawRectangleF testRect = new((float)testBounds.Left, (float)testBounds.Top, (float)testBounds.Right, (float)testBounds.Bottom);
                 //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
                 RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
 
-                Debug.WriteLine($"\nAfter: \n{transformedBounds}" +
-                    $"\n{testBounds}");
+                //Debug.WriteLine($"\nAfter: \n{transformedBounds}" +
+                //    $"\n{testBounds}");
 
                 target.DrawBitmap(quadTree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
-                target.DrawRectangle(destRect, brush);
+                target.DrawRectangle(destRect, blackBrush);
+                target.DrawRectangle(testRect, redBrush);
             }
 
-            brush.Dispose();
+            blackBrush.Dispose();
         }
 
         private void RenderInteractiveObjects(RenderTarget target)

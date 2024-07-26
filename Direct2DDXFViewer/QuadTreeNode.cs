@@ -30,10 +30,10 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTreeNode(Rect bounds, Bitmap? bitmap, float zoom, Size2F dpi, float maxBitmapSize)
+        public QuadTreeNode(Rect bounds, Rect destRect, Bitmap? bitmap, float zoom, Size2F dpi, float maxBitmapSize)
         {
             Bounds = bounds;
-            DestRect = Bounds;
+            DestRect = destRect;
             Zoom = zoom;
             ChildNodes = new();
             Dpi = dpi;
@@ -53,16 +53,29 @@ namespace Direct2DDXFViewer
             {
                 double halfWidth = Math.Abs((Bounds.Right - Bounds.Left) / 2);
                 double halfHeight = Math.Abs((Bounds.Bottom - Bounds.Top) / 2);
-
                 Rect rect1 = new(new Point(Bounds.Left, Bounds.Top), new Point((Bounds.Left + halfWidth), (Bounds.Top + halfHeight)));
                 Rect rect2 = new(new Point((Bounds.Left + halfWidth), Bounds.Top), new Point(Bounds.Right, (Bounds.Top + halfHeight)));
                 Rect rect3 = new(new Point(Bounds.Left, (Bounds.Top + halfHeight)), new Point((Bounds.Left + halfWidth), Bounds.Bottom));
                 Rect rect4 = new(new Point((Bounds.Left + halfWidth), (Bounds.Top + halfHeight)), new Point(Bounds.Right, Bounds.Bottom));
 
+                double destHalfWidth = Math.Abs((DestRect.Right - DestRect.Left) / 2);
+                double destHalfHeight = Math.Abs((DestRect.Bottom - DestRect.Top) / 2);
+                Rect destRect1 = new(new Point(DestRect.Left, DestRect.Top), new Point((Bounds.Left + destHalfWidth), (DestRect.Top + destHalfHeight)));
+                Rect destRect2 = new(new Point((DestRect.Left + destHalfWidth), DestRect.Top), new Point(DestRect.Right, (DestRect.Top + destHalfHeight)));
+                Rect destRect3 = new(new Point(DestRect.Left, (DestRect.Top + destHalfHeight)), new Point((DestRect.Left + destHalfWidth), DestRect.Bottom));
+                Rect destRect4 = new(new Point((DestRect.Left + destHalfWidth), (DestRect.Top + destHalfHeight)), new Point(DestRect.Right, DestRect.Bottom));
+
+                Debug.WriteLine($"\nSubdivide: renderTarget: {renderTarget.Size.Width} {renderTarget.Size.Height} " +
+                    $"\nZoom: {Zoom}" +
+                    $"\nDestRect: {DestRect}" +
+                    $"\ndestRect1: {destRect1} \ndestRect2: {destRect2} \ndestRect3: {destRect3} \ndestRect4: {destRect4}");
+
                 var childBounds = new[]
                 { rect1, rect2, rect3, rect4 };
+                var destChildBounds = new[]
+                { destRect1, destRect2, destRect3, destRect4 };
 
-                foreach (var bounds in childBounds)
+                for (int i = 0; i < childBounds.Count(); i++)
                 {
                     using (var childRenderTarget = new BitmapRenderTarget(renderTarget, CompatibleRenderTargetOptions.None, new Size2F((float)halfWidth, (float)halfHeight)))
                     {
@@ -70,15 +83,15 @@ namespace Direct2DDXFViewer
                         childRenderTarget.AntialiasMode = AntialiasMode.PerPrimitive;
                         childRenderTarget.BeginDraw();
 
-                        RawRectangleF destRect = new((float)(bounds.Left), (float)(bounds.Top), (float)(bounds.Right), (float)(bounds.Bottom));
+                        RawRectangleF destRect = new((float)(childBounds[i].Left), (float)(childBounds[i].Top), (float)(childBounds[i].Right), (float)(childBounds[i].Bottom));
                         //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
-                        RawRectangleF sourceRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
+                        RawRectangleF sourceRect = new((float)childBounds[i].Left, (float)childBounds[i].Top, (float)childBounds[i].Right, (float)childBounds[i].Bottom);
                         //RawRectangleF sourceRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
 
                         childRenderTarget.DrawBitmap(Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
                         childRenderTarget.EndDraw();
 
-                        ChildNodes.Add(new QuadTreeNode(bounds, childRenderTarget.Bitmap, Zoom, Dpi, _maxBitmapSize));
+                        ChildNodes.Add(new QuadTreeNode(childBounds[i], destChildBounds[i], childRenderTarget.Bitmap, Zoom, Dpi, _maxBitmapSize));
                     }
                 }
 
