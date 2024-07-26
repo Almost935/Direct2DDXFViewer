@@ -44,6 +44,9 @@ namespace Direct2DDXFViewer
             GetLevels(_maxBitmapSize, OverallBitmap.Size);
 
             TreeBounds = new Rect(0, 0, OverallBitmap.Size.Width, OverallBitmap.Size.Height);
+
+            Debug.WriteLine($"TreeBounds: {TreeBounds}");
+
             Root = new QuadTreeNode(TreeBounds, OverallBitmap, Zoom, Dpi, _maxBitmapSize);
             Root.Subdivide(_renderTarget, Levels);
         }

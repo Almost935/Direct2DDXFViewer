@@ -395,13 +395,20 @@ namespace Direct2DDXFViewer
             for (int i = 0; i < quadTreeNodes.Count; i++)
             {
                 Rect transformedBounds = _bounds[i];
+                Rect testBounds = quadTreeNodes[i].DestRect;
+
+                Debug.WriteLine($"\nBefore: \n{transformedBounds}" +
+                    $"\n{testBounds}");
+
                 transformedBounds.Transform(_transformMatrix);
+                testBounds.Transform(_transformMatrix);
+
                 RawRectangleF destRect = new((float)transformedBounds.Left, (float)transformedBounds.Top, (float)transformedBounds.Right, (float)transformedBounds.Bottom);
                 //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
                 RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
-                //target.DrawBitmap(node.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
 
-                Debug.WriteLine($"\nquadTreeNodes[i].Zoom: {quadTreeNodes[i].Zoom} transformedBounds: {transformedBounds} quadTreeNodes[i].InitialBounds: {quadTreeNodes[i].InitialBounds}");
+                Debug.WriteLine($"\nAfter: \n{transformedBounds}" +
+                    $"\n{testBounds}");
 
                 target.DrawBitmap(quadTree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
                 target.DrawRectangle(destRect, brush);
