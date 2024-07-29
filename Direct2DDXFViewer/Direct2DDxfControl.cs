@@ -377,31 +377,24 @@ namespace Direct2DDXFViewer
         {
             List<QuadTreeNode> quadTreeNodes = quadTree.GetQuadTreeView(_currentView);
 
+            Debug.WriteLine($"\nquadTree.Zoom: {quadTree.Zoom}" +
+                $"\nquadTreeNodes.Count: {quadTreeNodes.Count}");
+
             Brush blackBrush = new SolidColorBrush(target, new RawColor4(0, 0, 0, 1));
-            Brush redBrush = new SolidColorBrush(target, new RawColor4(1, 0, 0, 1));
 
             for (int i = 0; i < quadTreeNodes.Count; i++)
             {
-                Rect transformedBounds = _bounds[i];
-                Rect testBounds = quadTreeNodes[i].DestRect;
+                Rect bounds = quadTreeNodes[i].DestRect;
 
-                //Debug.WriteLine($"\nBefore: \n{transformedBounds}" +
-                //    $"\n{testBounds}");
+                //Debug.WriteLine($"before: {bounds.Width} {bounds.Height}");
 
-                transformedBounds.Transform(_transformMatrix);
-                testBounds.Transform(_transformMatrix);
+                bounds.Transform(_transformMatrix);
 
-                RawRectangleF destRect = new((float)transformedBounds.Left, (float)transformedBounds.Top, (float)transformedBounds.Right, (float)transformedBounds.Bottom);
-                RawRectangleF testRect = new((float)testBounds.Left, (float)testBounds.Top, (float)testBounds.Right, (float)testBounds.Bottom);
-                //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
+                RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
                 RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
-
-                //Debug.WriteLine($"\nAfter: \n{transformedBounds}" +
-                //    $"\n{testBounds}");
 
                 target.DrawBitmap(quadTree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
                 target.DrawRectangle(destRect, blackBrush);
-                target.DrawRectangle(testRect, redBrush);
             }
 
             blackBrush.Dispose();
@@ -543,10 +536,12 @@ namespace Direct2DDXFViewer
             if (resCache.RenderTarget is not null)
             {
                 _currentView = new(0, 0, resCache.RenderTarget.Size.Width, resCache.RenderTarget.Size.Height);
-                var rawMatrix = resCache.RenderTarget.Transform;
-                Matrix matrix = new(rawMatrix.M11, rawMatrix.M12, rawMatrix.M21, rawMatrix.M22, rawMatrix.M31, rawMatrix.M32);
-                matrix.Invert();
-                _currentView.Transform(matrix);
+                _currentView.Transform(_transformMatrix);
+
+                //var rawMatrix = resCache.RenderTarget.Transform;
+                //Matrix matrix = new(rawMatrix.M11, rawMatrix.M12, rawMatrix.M21, rawMatrix.M22, rawMatrix.M31, rawMatrix.M32);
+                //matrix.Invert();
+                //_currentView.Transform(matrix);
 
                 //Matrix testMatrix = new(_overallMatrix.M11, _overallMatrix.M12, _overallMatrix.M21, _overallMatrix.M22, _overallMatrix.OffsetX, _overallMatrix.OffsetY);
                 //testMatrix.Invert();

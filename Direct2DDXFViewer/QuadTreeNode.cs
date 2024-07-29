@@ -65,10 +65,14 @@ namespace Direct2DDXFViewer
                 Rect destRect3 = new(new Point(DestRect.Left, (DestRect.Top + destHalfHeight)), new Point((DestRect.Left + destHalfWidth), DestRect.Bottom));
                 Rect destRect4 = new(new Point((DestRect.Left + destHalfWidth), (DestRect.Top + destHalfHeight)), new Point(DestRect.Right, DestRect.Bottom));
 
-                Debug.WriteLine($"\nSubdivide: renderTarget: {renderTarget.Size.Width} {renderTarget.Size.Height} " +
-                    $"\nZoom: {Zoom}" +
-                    $"\nDestRect: {DestRect}" +
-                    $"\ndestRect1: {destRect1} \ndestRect2: {destRect2} \ndestRect3: {destRect3} \ndestRect4: {destRect4}");
+                
+                //Debug.WriteLine($"\ndestHalfWidth: {destHalfWidth} destHalfHeight: {destHalfHeight} " +
+                //    $"\nDestRect: {DestRect.Left} {DestRect.Top} {DestRect.Right} {DestRect.Bottom}" +
+                //    $"\ndestRect1: {destRect1.Left} {destRect1.Top} {destRect1.Right} {destRect1.Bottom}" +
+                //    $"\ndestRect2: {destRect2.Left} {destRect2.Top} {destRect2.Right} {destRect2.Bottom}" +
+                //    $"\ndestRect3: {destRect3.Left} {destRect3.Top} {destRect3.Right} {destRect3.Bottom}" +
+                //    $"\ndestRect4: {destRect4.Left} {destRect4.Top} {destRect4.Right} {destRect4.Bottom}" +
+                //    $"\nZoom: {Zoom}");
 
                 var childBounds = new[]
                 { rect1, rect2, rect3, rect4 };
@@ -104,7 +108,16 @@ namespace Direct2DDXFViewer
 
         public List<QuadTreeNode> GetIntersectingQuadTreeNodes(Rect view)
         {
+            Debug.WriteLine($"\nview: {view}");
+
             List<QuadTreeNode> intersectingNodes = new();
+
+            Debug.WriteLine($"Bounds: {Bounds}");
+            Debug.WriteLine($"this.Bounds.Contains(view): {this.Bounds.Contains(view)}");
+            Debug.WriteLine($"this.Bounds.IntersectsWith(view): {this.Bounds.IntersectsWith(view)}");
+            Debug.WriteLine($"Zoom: {Zoom}");
+            Debug.WriteLine($"ChildNodes.Count: {ChildNodes.Count}");
+            Debug.WriteLine($"Bounds Width and Height: {Bounds.Width} {Bounds.Height}\n");
 
             if (this.Bounds.Contains(view) || this.Bounds.IntersectsWith(view))
             {
