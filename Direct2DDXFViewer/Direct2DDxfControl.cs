@@ -138,7 +138,7 @@ namespace Direct2DDXFViewer
 
         #region Constructor
         public Direct2DDxfControl()
-        { 
+        {
             UpdateDxfCoordsAsync();
             UpdateCurrentView();
             //RunHitTestAsync();
@@ -251,7 +251,7 @@ namespace Direct2DDXFViewer
 
                 timer.Restart();
                 RenderBitmaps(target);
-                
+
 
                 //target.PopAxisAlignedClip();
 
@@ -377,21 +377,24 @@ namespace Direct2DDXFViewer
         {
             List<QuadTreeNode> quadTreeNodes = quadTree.GetQuadTreeView(_currentView);
 
-            Debug.WriteLine($"\nquadTree.Zoom: {quadTree.Zoom}" +
-                $"\nquadTreeNodes.Count: {quadTreeNodes.Count}");
+            //Debug.WriteLine($"\n\n\n\n\nquadTree.Zoom: {quadTree.Zoom}" +
+            //    $"\nquadTreeNodes.Count: {quadTreeNodes.Count}");
 
             Brush blackBrush = new SolidColorBrush(target, new RawColor4(0, 0, 0, 1));
 
             for (int i = 0; i < quadTreeNodes.Count; i++)
             {
+                //Debug.WriteLine($"\nquadTreeNodes[i].ChildNodes.Count: {quadTreeNodes[i].ChildNodes.Count}" +
+                //   $"\nquadTreeNodes[i].DestRect (destRect): {quadTreeNodes[i].DestRect.Width} {quadTreeNodes[i].DestRect.Height}");
+
                 Rect bounds = quadTreeNodes[i].DestRect;
-
-                //Debug.WriteLine($"before: {bounds.Width} {bounds.Height}");
-
                 bounds.Transform(_transformMatrix);
 
                 RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
                 RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
+
+                //Debug.WriteLine($"\nquadTreeNodes[i].ChildNodes.Count: {quadTreeNodes[i].ChildNodes.Count}" +
+                //    $"\nbounds (destRect): {bounds.Width} {bounds.Height}");
 
                 target.DrawBitmap(quadTree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
                 target.DrawRectangle(destRect, blackBrush);
@@ -471,7 +474,7 @@ namespace Direct2DDXFViewer
         }
         private void HitTestPoints()
         {
-            
+
         }
         private async void RunGetVisibleObjectsAsync()
         {
@@ -497,7 +500,7 @@ namespace Direct2DDXFViewer
             {
                 if (layer.IsVisible)
                 {
-                    
+
                 }
             }
         }

@@ -60,12 +60,12 @@ namespace Direct2DDXFViewer
 
                 double destHalfWidth = Math.Abs((DestRect.Right - DestRect.Left) / 2);
                 double destHalfHeight = Math.Abs((DestRect.Bottom - DestRect.Top) / 2);
-                Rect destRect1 = new(new Point(DestRect.Left, DestRect.Top), new Point((Bounds.Left + destHalfWidth), (DestRect.Top + destHalfHeight)));
+                Rect destRect1 = new(new Point(DestRect.Left, DestRect.Top), new Point((DestRect.Left + destHalfWidth), (DestRect.Top + destHalfHeight)));
                 Rect destRect2 = new(new Point((DestRect.Left + destHalfWidth), DestRect.Top), new Point(DestRect.Right, (DestRect.Top + destHalfHeight)));
                 Rect destRect3 = new(new Point(DestRect.Left, (DestRect.Top + destHalfHeight)), new Point((DestRect.Left + destHalfWidth), DestRect.Bottom));
                 Rect destRect4 = new(new Point((DestRect.Left + destHalfWidth), (DestRect.Top + destHalfHeight)), new Point(DestRect.Right, DestRect.Bottom));
 
-                
+
                 //Debug.WriteLine($"\ndestHalfWidth: {destHalfWidth} destHalfHeight: {destHalfHeight} " +
                 //    $"\nDestRect: {DestRect.Left} {DestRect.Top} {DestRect.Right} {DestRect.Bottom}" +
                 //    $"\ndestRect1: {destRect1.Left} {destRect1.Top} {destRect1.Right} {destRect1.Bottom}" +
@@ -88,12 +88,12 @@ namespace Direct2DDXFViewer
                         childRenderTarget.BeginDraw();
 
                         RawRectangleF destRect = new((float)(childBounds[i].Left), (float)(childBounds[i].Top), (float)(childBounds[i].Right), (float)(childBounds[i].Bottom));
-                        //RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
                         RawRectangleF sourceRect = new((float)childBounds[i].Left, (float)childBounds[i].Top, (float)childBounds[i].Right, (float)childBounds[i].Bottom);
-                        //RawRectangleF sourceRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
 
                         childRenderTarget.DrawBitmap(Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
                         childRenderTarget.EndDraw();
+
+                        //Debug.WriteLine($"destChildBounds[i]: {destChildBounds[i].Width} {destChildBounds[i].Height}");
 
                         ChildNodes.Add(new QuadTreeNode(childBounds[i], destChildBounds[i], childRenderTarget.Bitmap, Zoom, Dpi, _maxBitmapSize));
                     }
@@ -108,16 +108,16 @@ namespace Direct2DDXFViewer
 
         public List<QuadTreeNode> GetIntersectingQuadTreeNodes(Rect view)
         {
-            Debug.WriteLine($"\nview: {view}");
+            //Debug.WriteLine($"\nview: {view}");
 
             List<QuadTreeNode> intersectingNodes = new();
 
-            Debug.WriteLine($"Bounds: {Bounds}");
-            Debug.WriteLine($"this.Bounds.Contains(view): {this.Bounds.Contains(view)}");
-            Debug.WriteLine($"this.Bounds.IntersectsWith(view): {this.Bounds.IntersectsWith(view)}");
-            Debug.WriteLine($"Zoom: {Zoom}");
-            Debug.WriteLine($"ChildNodes.Count: {ChildNodes.Count}");
-            Debug.WriteLine($"Bounds Width and Height: {Bounds.Width} {Bounds.Height}\n");
+            //Debug.WriteLine($"Bounds: {Bounds}");
+            //Debug.WriteLine($"this.Bounds.Contains(view): {this.Bounds.Contains(view)}");
+            //Debug.WriteLine($"this.Bounds.IntersectsWith(view): {this.Bounds.IntersectsWith(view)}");
+            //Debug.WriteLine($"Zoom: {Zoom}");
+            //Debug.WriteLine($"ChildNodes.Count: {ChildNodes.Count}");
+            //Debug.WriteLine($"Bounds Width and Height: {Bounds.Width} {Bounds.Height}\n");
 
             if (this.Bounds.Contains(view) || this.Bounds.IntersectsWith(view))
             {
