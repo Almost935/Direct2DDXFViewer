@@ -239,7 +239,7 @@ namespace Direct2DDXFViewer
                     InitializeBitmapCaches(target);
                     InitializeQuadTreeCache(target);
                     _bitmapLoaded = true;
-                    Debug.WriteLine($"bitmap initial load time: {timer.ElapsedMilliseconds} ms");
+                    //Debug.WriteLine($"bitmap initial load time: {timer.ElapsedMilliseconds} ms");
                 }
 
                 UpdateCurrentView();
@@ -375,14 +375,13 @@ namespace Direct2DDXFViewer
         }
         private void RenderQuadTree(RenderTarget target, QuadTree quadTree)
         {
-            Debug.WriteLine("\n\n\n\n\n");
+            //Debug.WriteLine("\n\n\n\n\n");
             List<QuadTreeNode> quadTreeNodes = quadTree.GetQuadTreeView(_currentView);
 
-            Debug.WriteLine($"quadTree.Zoom: {quadTree.Zoom}" +
-                $"\nquadTreeNodes.Count: {quadTreeNodes.Count}");
+            //Debug.WriteLine($"quadTree.Zoom: {quadTree.Zoom}" +
+            //    $"\nquadTreeNodes.Count: {quadTreeNodes.Count}");
 
             Brush blackBrush = new SolidColorBrush(target, new RawColor4(0, 0, 0, 1));
-            Brush redBrush = new SolidColorBrush(target, new RawColor4(1, 0, 0, 1));
 
             for (int i = 0; i < quadTreeNodes.Count; i++)
             {
@@ -391,8 +390,6 @@ namespace Direct2DDXFViewer
 
                 Rect bounds = quadTreeNodes[i].DestRect;
                 bounds.Transform(_transformMatrix);
-
-                Need to try transforming the DestRect with the _transformMatrix to get whether its in view
 
                 RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
                 RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
@@ -403,11 +400,6 @@ namespace Direct2DDXFViewer
                 target.DrawBitmap(quadTree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
                 target.DrawRectangle(destRect, blackBrush);
             }
-
-            Debug.WriteLine($"target.Transform: {target.Transform.M11} {target.Transform.M12} {target.Transform.M21} {target.Transform.M22} {target.Transform.M31} {target.Transform.M32}");
-
-            RawRectangleF rect = new((float)_currentView.Left, (float)_currentView.Top, (float)_currentView.Right, (float)_currentView.Bottom);
-            target.DrawRectangle(rect, redBrush);
 
             blackBrush.Dispose();
         }
@@ -548,7 +540,9 @@ namespace Direct2DDXFViewer
             if (resCache.RenderTarget is not null)
             {
                 _currentView = new(0, 0, resCache.RenderTarget.Size.Width, resCache.RenderTarget.Size.Height);
-                //_currentView.Transform(_transformMatrix);
+                var matrix = _transformMatrix;
+                matrix.Invert();
+                _currentView.Transform(matrix);
 
                 //var rawMatrix = resCache.RenderTarget.Transform;
                 //Matrix matrix = new(rawMatrix.M11, rawMatrix.M12, rawMatrix.M21, rawMatrix.M22, rawMatrix.M31, rawMatrix.M32);

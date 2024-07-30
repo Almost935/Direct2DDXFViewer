@@ -111,13 +111,7 @@ namespace Direct2DDXFViewer
         {
             List<QuadTreeNode> intersectingNodes = new();
 
-            Debug.WriteLine($"\nview: {view}");
-            Debug.WriteLine($"Bounds: {Bounds.Left} {Bounds.Top} {Bounds.Right} {Bounds.Bottom}");
-            Debug.WriteLine($"Bounds Width and Height: {Bounds.Width} {Bounds.Height}");
-            Debug.WriteLine($"view.Contains(Bounds): {view.Contains(Bounds)}");
-            Debug.WriteLine($"view.IntersectsWith(Bounds): {view.IntersectsWith(Bounds)}");
-
-            if (view.Contains(Bounds) || view.IntersectsWith(Bounds))
+            if (view.Contains(DestRect) || view.IntersectsWith(DestRect))
             {
                 if (ChildNodes.Count == 0)
                 {

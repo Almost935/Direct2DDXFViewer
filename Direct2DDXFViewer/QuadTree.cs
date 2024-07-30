@@ -84,10 +84,10 @@ namespace Direct2DDXFViewer
             }
         }
 
-        public List<QuadTreeNode> GetQuadTreeView(Rect rect)
+        public List<QuadTreeNode> GetQuadTreeView(Rect view)
         {
             List<QuadTreeNode> quadTreeNodes = new();
-            quadTreeNodes.AddRange(Root.GetIntersectingQuadTreeNodes(rect));
+            quadTreeNodes.AddRange(Root.GetIntersectingQuadTreeNodes(view));
 
             return quadTreeNodes;
         }

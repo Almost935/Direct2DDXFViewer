@@ -12,6 +12,7 @@ using System.Windows;
 using SharpDX.Mathematics.Interop;
 using Direct2DDXFViewer.BitmapHelpers;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 
 namespace Direct2DDXFViewer
 {
@@ -22,19 +23,20 @@ namespace Direct2DDXFViewer
         private Size2F _renderTargetSize;
         private Factory1 _factory;
         private ObjectLayerManager _layerManager;
-        private Rect _extents;
         private Matrix _extentsMatrix;
         private ResourceCache _resCache;
         private QuadTree _maxSizeQuadTree;
-        private float _zoomFactor;
-        private int _initialLoadFactor = 5;
+        private readonly float _zoomFactor;
+        private int _initialLoadFactor = 2;
+        private int _updatedCurrentQuadTreeLoadFactor = 2;
+        private int _loadFactor = 10;
         private bool _disposed = false;
 
-        private const float _maxBitmapSize = 1000;
+        private const float _maxBitmapSize = 5000;
         #endregion
 
         #region Properties
-        public Dictionary<double, QuadTree> QuadTrees { get; private set; }
+        public ConcurrentDictionary<double, QuadTree> QuadTrees { get; private set; }
         public QuadTree CurrentQuadTree { get; private set; }
         public QuadTree InitialQuadTree { get; private set; }
         #endregion
@@ -55,7 +57,6 @@ namespace Direct2DDXFViewer
             _renderTarget = renderTarget;
             _renderTargetSize = new Size2F(renderTarget.Size.Width, renderTarget.Size.Height);
             _layerManager = layerManager;
-            _extents = extents;
             _factory = factory;
             _extentsMatrix = extentsMatrix;
             _resCache = resCache;
@@ -97,10 +98,12 @@ namespace Direct2DDXFViewer
             if (zoom == 1.0f)
             {
                 CurrentQuadTree = InitialQuadTree;
+                GetAdjacentZoomQuadTreesAsync(CurrentQuadTree);
             }
             else
             {
                 CurrentQuadTree = GetQuadTree(zoom);
+                GetAdjacentZoomQuadTreesAsync(CurrentQuadTree);
             }
         }
 
@@ -111,9 +114,12 @@ namespace Direct2DDXFViewer
         /// <returns>The quad tree for the specified zoom level.</returns>
         public QuadTree GetQuadTree(float zoom)
         {
+            Debug.WriteLine($"Searching for QuadTree for {zoom} factor.");
             // If the zoom is already in the dictionary, return the quad tree
             if (QuadTrees.TryGetValue(Math.Round(zoom, 3), out QuadTree quadTree))
             {
+                Debug.WriteLine($"QuadTree exists");
+
                 return quadTree;
             }
 
@@ -122,8 +128,12 @@ namespace Direct2DDXFViewer
             if (size.Width > _resCache.MaxBitmapSize ||
                 size.Height > _resCache.MaxBitmapSize)
             {
+                Debug.WriteLine($"Max Size QuadTree Returned");
+
                 return _maxSizeQuadTree;
             }
+
+            Debug.WriteLine($"New quadtree for zoom level: {zoom}");
 
             // Create a new quad tree
             Size2F dpi = new(96.0f * zoom, 96.0f * zoom);
@@ -142,11 +152,28 @@ namespace Direct2DDXFViewer
             bitmapRenderTarget.EndDraw();
 
             quadTree = new QuadTree(_renderTarget, bitmapRenderTarget.Bitmap, zoom, _resCache, _maxBitmapSize, dpi);
-            QuadTrees.Add(Math.Round((double)zoom, 3), quadTree);
-
+            QuadTrees.TryAdd(Math.Round((double)zoom, 3), quadTree);
             //Debug.WriteLine($"\nzoom: {zoom} quadTree.Levels: {quadTree.Levels}");
 
             return quadTree;
+        }
+
+        private async Task GetAdjacentZoomQuadTreesAsync(QuadTree currentQuadTree)
+        {
+            float zoom = currentQuadTree.Zoom;
+            Debug.WriteLine($"\n\nGetAdjacentZoomQuadTreesAsync:");
+            for (int i = 1; i <= _updatedCurrentQuadTreeLoadFactor; i++)
+            {
+                zoom *= _zoomFactor;
+                await Task.Run(() => GetQuadTree(zoom));
+            }
+
+            zoom = 1;
+            for (int i = 1; i <= _updatedCurrentQuadTreeLoadFactor; i++)
+            {
+                zoom *= (1 / _zoomFactor);
+                await Task.Run(() => GetQuadTree(zoom));
+            }
         }
 
         /// <summary>
