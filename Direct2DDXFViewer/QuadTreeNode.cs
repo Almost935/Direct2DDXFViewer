@@ -10,6 +10,7 @@ using System.Windows;
 using System.Diagnostics;
 using Direct2DControl;
 using System.Xml.Linq;
+using System.Windows.Media;
 
 namespace Direct2DDXFViewer
 {
@@ -108,18 +109,15 @@ namespace Direct2DDXFViewer
 
         public List<QuadTreeNode> GetIntersectingQuadTreeNodes(Rect view)
         {
-            //Debug.WriteLine($"\nview: {view}");
-
             List<QuadTreeNode> intersectingNodes = new();
 
-            //Debug.WriteLine($"Bounds: {Bounds}");
-            //Debug.WriteLine($"this.Bounds.Contains(view): {this.Bounds.Contains(view)}");
-            //Debug.WriteLine($"this.Bounds.IntersectsWith(view): {this.Bounds.IntersectsWith(view)}");
-            //Debug.WriteLine($"Zoom: {Zoom}");
-            //Debug.WriteLine($"ChildNodes.Count: {ChildNodes.Count}");
-            //Debug.WriteLine($"Bounds Width and Height: {Bounds.Width} {Bounds.Height}\n");
+            Debug.WriteLine($"\nview: {view}");
+            Debug.WriteLine($"Bounds: {Bounds.Left} {Bounds.Top} {Bounds.Right} {Bounds.Bottom}");
+            Debug.WriteLine($"Bounds Width and Height: {Bounds.Width} {Bounds.Height}");
+            Debug.WriteLine($"view.Contains(Bounds): {view.Contains(Bounds)}");
+            Debug.WriteLine($"view.IntersectsWith(Bounds): {view.IntersectsWith(Bounds)}");
 
-            if (this.Bounds.Contains(view) || this.Bounds.IntersectsWith(view))
+            if (view.Contains(Bounds) || view.IntersectsWith(Bounds))
             {
                 if (ChildNodes.Count == 0)
                 {

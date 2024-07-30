@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 
 namespace Direct2DDXFViewer
 {
@@ -45,8 +46,6 @@ namespace Direct2DDXFViewer
 
             TreeBounds = new Rect(0, 0, OverallBitmap.Size.Width, OverallBitmap.Size.Height);
             Rect destRect = new(0, 0, renderTarget.Size.Width, renderTarget.Size.Height);
-
-            //Debug.WriteLine($"TreeBounds: {TreeBounds.Left} {TreeBounds.Top} {TreeBounds.Right} {TreeBounds.Bottom}");
 
             Root = new QuadTreeNode(TreeBounds, destRect, OverallBitmap, Zoom, Dpi, _maxBitmapSize);
             Root.Subdivide(_renderTarget, Levels);
