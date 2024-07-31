@@ -239,7 +239,7 @@ namespace Direct2DDXFViewer
                     InitializeBitmapCaches(target);
                     InitializeQuadTreeCache(target);
                     _bitmapLoaded = true;
-                    //Debug.WriteLine($"bitmap initial load time: {timer.ElapsedMilliseconds} ms");
+                    Debug.WriteLine($"\nbitmap initial load time: {timer.ElapsedMilliseconds} ms\n");
                 }
 
                 UpdateCurrentView();
