@@ -19,6 +19,8 @@ namespace Direct2DDXFViewer
     public class QuadTreeCache : IDisposable
     {
         #region Fields
+        public enum QuadTreeGetterType { New, Existing };
+
         private RenderTarget _renderTarget;
         private Size2F _renderTargetSize;
         private Factory1 _factory;
@@ -27,7 +29,7 @@ namespace Direct2DDXFViewer
         private ResourceCache _resCache;
         private readonly float _zoomFactor;
         private int _initialLoadFactor = 2;
-        private int _updatedCurrentQuadTreeLoadFactor = 2;
+        private int _updatedCurrentQuadTreeLoadFactor = 1;
         private int _asyncInitialLoadFactor = 10;
         private bool _disposed = false;
 
@@ -74,7 +76,7 @@ namespace Direct2DDXFViewer
         private void Initialize()
         {
             // Get initial (zoom = 1) QuadTree
-            InitialQuadTree = GetQuadTree(1);
+            InitialQuadTree = GetQuadTree(1).quadTree;
             CurrentQuadTree = InitialQuadTree;
 
             float zoom = 1;
@@ -97,12 +99,17 @@ namespace Direct2DDXFViewer
             if (zoom == 1.0f)
             {
                 CurrentQuadTree = InitialQuadTree;
-                GetAdjacentZoomQuadTreesAsync(CurrentQuadTree);
             }
             else
             {
-                CurrentQuadTree = GetQuadTree(zoom);
-                GetAdjacentZoomQuadTreesAsync(CurrentQuadTree);
+                var tup = GetQuadTree(zoom);
+                CurrentQuadTree = tup.quadTree;
+                var info = tup.info;
+                
+                if (info == QuadTreeGetterType.New)
+                {
+                    GetAdjacentZoomQuadTreesAsync(CurrentQuadTree);
+                }
             }
         }
 
@@ -111,15 +118,12 @@ namespace Direct2DDXFViewer
         /// </summary>
         /// <param name="zoom">The zoom level.</param>
         /// <returns>The quad tree for the specified zoom level.</returns>
-        public QuadTree GetQuadTree(float zoom)
+        public (QuadTree quadTree, QuadTreeGetterType info) GetQuadTree(float zoom)
         {
-            Debug.WriteLine($"\nSearching for QuadTree for {zoom} factor.");
             // If the zoom is already in the dictionary, return the quad tree
             if (QuadTrees.TryGetValue(Math.Round(zoom, 3), out QuadTree quadTree))
             {
-                Debug.WriteLine($"QuadTree exists");
-
-                return quadTree;
+                return (quadTree, QuadTreeGetterType.Existing);
             }
 
             // If render target size multiplied by the zoom is greater than the max bitmap size, return the max zoom bitmap
@@ -127,14 +131,11 @@ namespace Direct2DDXFViewer
             if (size.Width > _resCache.MaxBitmapSize ||
                 size.Height > _resCache.MaxBitmapSize)
             {
-                Debug.WriteLine($"Max Size QuadTree Returned");
                 quadTree = GetMaxSizeQuadTree(zoom);
                 QuadTrees.TryAdd(Math.Round((double)zoom, 3), quadTree);
 
-                return quadTree;
+                return (quadTree, QuadTreeGetterType.Existing);
             }
-
-            Debug.WriteLine($"New quadtree for zoom level: {zoom}");
 
             // Create a new quad tree
             Size2F dpi = new(96.0f * zoom, 96.0f * zoom);
@@ -155,7 +156,7 @@ namespace Direct2DDXFViewer
             quadTree = new QuadTree(_renderTarget, bitmapRenderTarget.Bitmap, zoom, _resCache, _maxBitmapSize, dpi);
             QuadTrees.TryAdd(Math.Round((double)zoom, 3), quadTree);
 
-            return quadTree;
+            return (quadTree, QuadTreeGetterType.New);
         }
 
         /// <summary>
@@ -249,14 +250,13 @@ namespace Direct2DDXFViewer
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
             {
                 if (disposing)
                 {
-                    // Dispose managed state (managed objects).
+                    // Dispose managed resources
                     if (QuadTrees != null)
                     {
                         foreach (var quadTree in QuadTrees.Values)
@@ -268,19 +268,20 @@ namespace Direct2DDXFViewer
 
                     InitialQuadTree?.Dispose();
                     // Note: CurrentQuadTree and InitialQuadTree might point to the same object, so no need to dispose CurrentQuadTree separately
+
+                    _renderTarget?.Dispose();
+                    _factory?.Dispose();
+                    _layerManager?.Dispose();
+                    _resCache?.Dispose();
                 }
 
-                // Free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // Set large fields to null.
+                // Free unmanaged resources (if any)
 
                 _disposed = true;
             }
         }
-
-        // Override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
         ~QuadTreeCache()
         {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(false);
         }
         #endregion

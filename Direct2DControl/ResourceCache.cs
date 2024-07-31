@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Direct2DControl
 {
-    public class ResourceCache
+    public class ResourceCache : IDisposable
     {
         // - field -----------------------------------------------------------------------
 
@@ -15,6 +15,7 @@ namespace Direct2DControl
         private Dictionary<string, object> resources = new Dictionary<string, object>();
         private RenderTarget renderTarget = null;
         private DeviceContext1 deviceContext = null;
+        private bool _disposed = false;
 
         // - property --------------------------------------------------------------------
 
@@ -147,6 +148,37 @@ namespace Direct2DControl
 
                 resources.Add(key, res);
             }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    Clear();
+                    Disposer.SafeDispose(ref renderTarget);
+                    Disposer.SafeDispose(ref deviceContext);
+                    HighlightedBrush.Dispose();
+                    HighlightedOuterEdgeBrush.Dispose();
+                }
+
+                // Free unmanaged resources (if any)
+
+                _disposed = true;
+            }
+        }
+
+        ~ResourceCache()
+        {
+            Dispose(false);
         }
     }
 }

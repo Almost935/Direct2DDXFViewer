@@ -86,8 +86,15 @@ namespace Direct2DDXFViewer
 
         public List<QuadTreeNode> GetQuadTreeView(Rect view)
         {
+            Stopwatch timer = new();
+            timer.Start();
+
             List<QuadTreeNode> quadTreeNodes = new();
             quadTreeNodes.AddRange(Root.GetIntersectingQuadTreeNodes(view));
+
+            
+            Debug.WriteLine($"GetQuadTreeView: {timer.ElapsedMilliseconds} ms");
+            timer.Stop();
 
             return quadTreeNodes;
         }
@@ -97,7 +104,6 @@ namespace Direct2DDXFViewer
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
@@ -111,12 +117,14 @@ namespace Direct2DDXFViewer
 
                 // Free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // Set large fields to null.
+                _renderTarget = null;
+                _resCache = null;
+                OverallBitmap = null;
+                Root = null;
 
                 _disposed = true;
             }
         }
-
-        // Override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
         ~QuadTree()
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.

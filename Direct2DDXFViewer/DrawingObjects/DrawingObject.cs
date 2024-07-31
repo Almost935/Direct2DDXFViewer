@@ -14,13 +14,14 @@ using System.Threading.Tasks;
 
 namespace Direct2DDXFViewer.DrawingObjects
 {
-    public abstract class DrawingObject : INotifyPropertyChanged
+    public abstract class DrawingObject : INotifyPropertyChanged, IDisposable
     {
         #region Fields
         private ObjectLayer _layer;
         private bool _isSnapped = false;
         private bool _isHighlighted = false;
         private float _outerEdgeOpacity = 0.25f;
+        private bool _disposed = false;
         #endregion
 
         #region Properties
@@ -159,6 +160,37 @@ namespace Direct2DDXFViewer.DrawingObjects
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                // Dispose managed resources
+                Brush?.Dispose();
+                OuterEdgeBrush?.Dispose();
+                StrokeStyle?.Dispose();
+                Geometry?.Dispose();
+                Bounds?.Dispose();
+                SimplifiedGeometry?.Dispose();
+            }
+
+            // Free unmanaged resources if any
+
+            _disposed = true;
+        }
+
+        ~DrawingObject()
+        {
+            Dispose(false);
         }
         #endregion
     }

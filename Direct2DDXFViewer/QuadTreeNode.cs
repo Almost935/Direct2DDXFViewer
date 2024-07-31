@@ -134,6 +134,7 @@ namespace Direct2DDXFViewer
             Dispose(true);
             GC.SuppressFinalize(this);
         }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
@@ -150,10 +151,11 @@ namespace Direct2DDXFViewer
 
                 // Free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // Set large fields to null.
-
+                ChildNodes.Clear();
                 _disposed = true;
             }
         }
+
         ~QuadTreeNode()
         {
             Dispose(false);

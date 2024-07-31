@@ -65,46 +65,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region Methods
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this); // Prevent finalizer from running
-        }
-
-        // Protected implementation of Dispose pattern.
-        protected virtual void Dispose(bool disposing)
-        {
-            if (_disposed) { return; }
-
-            if (disposing)
-            {
-                // Dispose managed state (managed objects).
-                InitialZoomBitmap?.Dispose();
-                CurrentZoomBitmap?.Dispose();
-                MaxZoomBitmap?.Dispose();
-
-                if (ZoomBitmaps != null)
-                {
-                    foreach (var bitmapTup in ZoomBitmaps.Values)
-                    {
-                        bitmapTup?.Dispose();
-                    }
-                    ZoomBitmaps.Clear();
-                }
-            }
-
-            // Free unmanaged resources (unmanaged objects) and override finalizer
-            // Set large fields to null.
-            _disposed = true;
-        }
-
-        // Override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        ~BitmapCache()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: false);
-        }
-
         public void GetMaxValues()
         {
             if (RenderTargetSize.Width > RenderTargetSize.Height)
@@ -291,6 +251,51 @@ namespace Direct2DDXFViewer.BitmapHelpers
             HighlightedObjects = highlightedDrawingObjects;
 
             DrawInteractiveBitmapObjects(InteractiveZoomBitmap.BitmapRenderTarget, CurrentZoomBitmap.Zoom);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this); // Prevent finalizer from running
+        }
+
+        // Protected implementation of Dispose pattern.
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) { return; }
+
+            if (disposing)
+            {
+                // Dispose managed state (managed objects).
+                InitialZoomBitmap?.Dispose();
+                CurrentZoomBitmap?.Dispose();
+                MaxZoomBitmap?.Dispose();
+                InteractiveZoomBitmap?.Dispose();
+
+                if (ZoomBitmaps != null)
+                {
+                    foreach (var bitmap in ZoomBitmaps.Values)
+                    {
+                        bitmap?.Dispose();
+                    }
+                    ZoomBitmaps.Clear();
+                }
+
+                // Dispose other managed resources if any
+                LayerManager?.Dispose();
+                ResCache?.Dispose();
+            }
+
+            // Free unmanaged resources (unmanaged objects) and override finalizer
+            // Set large fields to null.
+            _disposed = true;
+        }
+
+        // Override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        ~BitmapCache()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: false);
         }
         #endregion
     }

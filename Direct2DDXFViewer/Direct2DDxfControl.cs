@@ -34,7 +34,7 @@ using System.Xml.Linq;
 
 namespace Direct2DDXFViewer
 {
-    public class Direct2DDxfControl : Direct2DControl.Direct2DControl, INotifyPropertyChanged
+    public class Direct2DDxfControl : Direct2DControl.Direct2DControl, INotifyPropertyChanged, IDisposable
     {
         #region Fields
         private Matrix _transformMatrix = new();
@@ -49,6 +49,7 @@ namespace Direct2DDXFViewer
         private QuadTreeCache _quadTreeCache;
         private bool _bitmapLoaded = false;
         private Rect[] _bounds;
+        private bool _disposed = false;
 
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\SmallDxf.dxf";
@@ -239,7 +240,6 @@ namespace Direct2DDXFViewer
                     InitializeBitmapCaches(target);
                     InitializeQuadTreeCache(target);
                     _bitmapLoaded = true;
-                    Debug.WriteLine($"\nbitmap initial load time: {timer.ElapsedMilliseconds} ms\n");
                 }
 
                 UpdateCurrentView();
@@ -283,7 +283,6 @@ namespace Direct2DDXFViewer
             }
 
             UpdateZoom(zoom);
-
             RenderTargetIsDirty = true;
         }
         protected override void OnMouseMove(MouseEventArgs e)
@@ -293,6 +292,9 @@ namespace Direct2DDXFViewer
             if (_isPanning)
             {
                 var translate = PointerCoords - _lastTranslatePos;
+
+                if (translate.LengthSquared < 0.5) { return; } //Prevent unneccessary translations
+
                 UpdateTranslate(translate);
                 _lastTranslatePos = PointerCoords;
                 RenderTargetIsDirty = true;
@@ -375,33 +377,18 @@ namespace Direct2DDXFViewer
         }
         private void RenderQuadTree(RenderTarget target, QuadTree quadTree)
         {
-            //Debug.WriteLine("\n\n\n\n\n");
             List<QuadTreeNode> quadTreeNodes = quadTree.GetQuadTreeView(_currentView);
-
-            //Debug.WriteLine($"quadTree.Zoom: {quadTree.Zoom}" +
-            //    $"\nquadTreeNodes.Count: {quadTreeNodes.Count}");
-
-            Brush blackBrush = new SolidColorBrush(target, new RawColor4(0, 0, 0, 1));
 
             for (int i = 0; i < quadTreeNodes.Count; i++)
             {
-                //Debug.WriteLine($"\nquadTreeNodes[i].ChildNodes.Count: {quadTreeNodes[i].ChildNodes.Count}" +
-                //   $"\nquadTreeNodes[i].DestRect (destRect): {quadTreeNodes[i].DestRect.Width} {quadTreeNodes[i].DestRect.Height}");
-
                 Rect bounds = quadTreeNodes[i].DestRect;
                 bounds.Transform(_transformMatrix);
 
                 RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
                 RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
 
-                //Debug.WriteLine($"\nquadTreeNodes[i].ChildNodes.Count: {quadTreeNodes[i].ChildNodes.Count}" +
-                //    $"\nbounds (destRect): {bounds.Width} {bounds.Height}");
-
-                target.DrawBitmap(quadTree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
-                target.DrawRectangle(destRect, blackBrush);
+                target.DrawBitmap(quadTree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.NearestNeighbor, sourceRect);
             }
-
-            blackBrush.Dispose();
         }
 
         private void RenderInteractiveObjects(RenderTarget target)
@@ -482,7 +469,6 @@ namespace Direct2DDXFViewer
             while (true)
             {
                 await Task.Delay(2000);
-
                 await Task.Run(() => GetVisibleObjects());
             }
         }
@@ -509,6 +495,7 @@ namespace Direct2DDXFViewer
         {
             while (true)
             {
+                await Task.Delay(75);
                 await Task.Run(() => UpdateDxfPointerCoords());
             }
         }
@@ -526,8 +513,6 @@ namespace Direct2DDXFViewer
                 _transformMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
 
                 _quadTreeCache.UpdateCurrentQuadTree((float)_transformMatrix.M11);
-
-                //_bitmapCache.UpdateCurrentBitmap((float)_transformMatrix.M11);
             }
         }
         private void UpdateTranslate(Vector translate)
@@ -596,6 +581,38 @@ namespace Direct2DDXFViewer
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    _bitmapCache?.Dispose();
+                    _quadTreeCache?.Dispose();
+                    _bitmapCache = null;
+                    _quadTreeCache = null;
+
+                    // Dispose other managed resources if any
+                }
+
+                // Free unmanaged resources if any
+
+                _disposed = true;
+            }
+        }
+
+        ~Direct2DDxfControl()
+        {
+            Dispose(false);
         }
         #endregion
     }

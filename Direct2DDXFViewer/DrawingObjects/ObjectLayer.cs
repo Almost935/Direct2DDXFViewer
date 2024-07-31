@@ -9,12 +9,13 @@ using System.Threading.Tasks;
 
 namespace Direct2DDXFViewer.DrawingObjects
 {
-    public class ObjectLayer : INotifyPropertyChanged
+    public class ObjectLayer : INotifyPropertyChanged, IDisposable
     {
         #region Fields
         private string _name;
         private List<DrawingObject> _drawingObjects = new();
         private bool isVisible = true;
+        private bool _disposed = false;
         #endregion
 
         #region Properties
@@ -65,6 +66,42 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 drawingObject.Draw(renderTarget, thickness, drawingObject.Brush);
             }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                // Dispose managed resources
+                if (_drawingObjects != null)
+                {
+                    foreach (var drawingObject in _drawingObjects)
+                    {
+                        if (drawingObject is IDisposable disposable)
+                        {
+                            disposable.Dispose();
+                        }
+                    }
+                    _drawingObjects.Clear();
+                }
+            }
+
+            // Free unmanaged resources if any
+
+            _disposed = true;
+        }
+
+        ~ObjectLayer()
+        {
+            Dispose(false);
         }
         #endregion
     }
