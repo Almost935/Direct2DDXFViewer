@@ -373,7 +373,7 @@ namespace Direct2DDXFViewer
             target.Clear(new RawColor4(0, 0, 0, 0));
             //target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
             //        (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-            RenderQuadTree(target, _quadTreeCache.CurrentQuadTree);
+            RenderQuadTree(target, _quadTreeCache.CurrentQuadTrees);
         }
         private void RenderQuadTree(RenderTarget target, QuadTree quadTree)
         {

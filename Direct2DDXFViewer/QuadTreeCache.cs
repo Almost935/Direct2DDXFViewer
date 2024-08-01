@@ -13,6 +13,7 @@ using SharpDX.Mathematics.Interop;
 using Direct2DDXFViewer.BitmapHelpers;
 using System.Diagnostics;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 
 namespace Direct2DDXFViewer
 {
@@ -36,10 +37,10 @@ namespace Direct2DDXFViewer
         private const float _maxBitmapSize = 10000;
         #endregion
 
-        #region Properties
-        public ConcurrentDictionary<double, QuadTree> QuadTrees { get; private set; }
-        public QuadTree CurrentQuadTree { get; private set; }
-        public QuadTree InitialQuadTree { get; private set; }
+        #region Properties 
+        public ConcurrentDictionary<double, List<QuadTree>> QuadTrees { get; private set; }
+        public List<QuadTree> CurrentQuadTrees { get; private set; }
+        public List<QuadTree> InitialQuadTrees { get; private set; }
         #endregion
 
         #region Constructors
@@ -76,8 +77,8 @@ namespace Direct2DDXFViewer
         private void Initialize()
         {
             // Get initial (zoom = 1) QuadTree
-            InitialQuadTree = GetQuadTree(1).quadTree;
-            CurrentQuadTree = InitialQuadTree;
+            InitialQuadTrees = GetQuadTree(1).quadTree;
+            CurrentQuadTrees = InitialQuadTrees;
 
             float zoom = 1;
             for (int i = 1; i <= _initialLoadFactor; i++)
@@ -98,17 +99,17 @@ namespace Direct2DDXFViewer
         {
             if (zoom == 1.0f)
             {
-                CurrentQuadTree = InitialQuadTree;
+                CurrentQuadTrees = InitialQuadTrees;
             }
             else
             {
                 var tup = GetQuadTree(zoom);
-                CurrentQuadTree = tup.quadTree;
+                CurrentQuadTrees = tup.quadTrees;
                 var info = tup.info;
                 
                 if (info == QuadTreeGetterType.New)
                 {
-                    GetAdjacentZoomQuadTreesAsync(CurrentQuadTree);
+                    GetAdjacentZoomQuadTreesAsync(CurrentQuadTrees);
                 }
             }
         }
@@ -118,12 +119,12 @@ namespace Direct2DDXFViewer
         /// </summary>
         /// <param name="zoom">The zoom level.</param>
         /// <returns>The quad tree for the specified zoom level.</returns>
-        public (QuadTree quadTree, QuadTreeGetterType info) GetQuadTree(float zoom)
+        public (List<QuadTree> quadTrees, QuadTreeGetterType info) GetQuadTree(float zoom)
         {
             // If the zoom is already in the dictionary, return the quad tree
-            if (QuadTrees.TryGetValue(Math.Round(zoom, 3), out QuadTree quadTree))
+            if (QuadTrees.TryGetValue(Math.Round(zoom, 3), out List<QuadTree> quadTrees))
             {
-                return (quadTree, QuadTreeGetterType.Existing);
+                return (quadTrees, QuadTreeGetterType.Existing);
             }
 
             // If render target size multiplied by the zoom is greater than the max bitmap size, return the max zoom bitmap
@@ -131,10 +132,10 @@ namespace Direct2DDXFViewer
             if (size.Width > _resCache.MaxBitmapSize ||
                 size.Height > _resCache.MaxBitmapSize)
             {
-                quadTree = GetMaxSizeQuadTree(zoom);
-                QuadTrees.TryAdd(Math.Round((double)zoom, 3), quadTree);
+                //quadTree = GetMaxSizeQuadTree(zoom);
+                //QuadTrees.TryAdd(Math.Round((double)zoom, 3), quadTree);
 
-                return (quadTree, QuadTreeGetterType.Existing);
+                //return (quadTree, QuadTreeGetterType.Existing);
             }
 
             // Create a new quad tree
@@ -153,27 +154,51 @@ namespace Direct2DDXFViewer
             _layerManager.Draw(bitmapRenderTarget, thickness);
             bitmapRenderTarget.EndDraw();
 
-            quadTree = new QuadTree(_renderTarget, bitmapRenderTarget.Bitmap, zoom, _resCache, _maxBitmapSize, dpi);
-            QuadTrees.TryAdd(Math.Round((double)zoom, 3), quadTree);
+            quadTrees = new List<QuadTree>() {new QuadTree(_renderTarget, bitmapRenderTarget.Bitmap, zoom, _maxBitmapSize, dpi)};
+            QuadTrees.TryAdd(Math.Round((double)zoom, 3), quadTrees);
 
-            return (quadTree, QuadTreeGetterType.New);
+            return (quadTrees, QuadTreeGetterType.New);
+        }
+
+        private QuadTree CreateQuadTree(RenderTarget renderTarget, float zoom, Size2F size, Matrix extentsMatrix, float maxBitmapSize)
+        {
+            Size2F dpi = new(96.0f * zoom, 96.0f * zoom);
+            BitmapRenderTarget bitmapRenderTarget = new(_renderTarget, CompatibleRenderTargetOptions.None, size)
+            {
+                DotsPerInch = dpi,
+                AntialiasMode = AntialiasMode.PerPrimitive
+            };
+
+            bitmapRenderTarget.BeginDraw();
+            bitmapRenderTarget.Clear(new RawColor4(0, 1, 0, 0.25f));
+
+            bitmapRenderTarget.Transform = new RawMatrix3x2((float)_extentsMatrix.M11, (float)_extentsMatrix.M12, (float)_extentsMatrix.M21, (float)_extentsMatrix.M22, (float)_extentsMatrix.OffsetX, (float)_extentsMatrix.OffsetY);
+            float thickness = 1.0f / (bitmapRenderTarget.Transform.M11 * zoom);
+            _layerManager.Draw(bitmapRenderTarget, thickness);
+            bitmapRenderTarget.EndDraw();
+
+            QuadTree quadTree = new(_renderTarget, bitmapRenderTarget.Bitmap, zoom, _maxBitmapSize, dpi);
+
+            return quadTree;
         }
 
         /// <summary>
         /// Verify's that the QuadTree's adjacent to the given QuadTree are already cached and, if not, created.
         /// </summary>
-        /// <param name="currentQuadTree">The QuadTree from which the adjacent QuadTree's will be verified</param>
+        /// <param name="currentQuadTrees">The QuadTree from which the adjacent QuadTree's will be verified</param>
         /// <returns></returns>
-        private async Task GetAdjacentZoomQuadTreesAsync(QuadTree currentQuadTree)
+        private async Task GetAdjacentZoomQuadTreesAsync(List<QuadTree> currentQuadTrees)
         {
-            float zoom = currentQuadTree.Zoom;
+            if (currentQuadTrees.Count == 0) { return; }
+
+            float zoom = currentQuadTrees.First().Zoom;
             for (int i = 1; i <= _updatedCurrentQuadTreeLoadFactor; i++)
             {
                 zoom *= _zoomFactor;
                 await Task.Run(() => GetQuadTree(zoom));
             }
 
-            zoom = currentQuadTree.Zoom;
+            zoom = currentQuadTrees.First().Zoom;
             for (int i = 1; i <= _updatedCurrentQuadTreeLoadFactor; i++)
             {
                 zoom *= (1 / _zoomFactor);
@@ -266,7 +291,7 @@ namespace Direct2DDXFViewer
                         QuadTrees.Clear();
                     }
 
-                    InitialQuadTree?.Dispose();
+                    InitialQuadTrees?.Dispose();
                     // Note: CurrentQuadTree and InitialQuadTree might point to the same object, so no need to dispose CurrentQuadTree separately
 
                     _renderTarget?.Dispose();

@@ -18,7 +18,6 @@ namespace Direct2DDXFViewer
     {
         #region Fields
         private RenderTarget _renderTarget;
-        private ResourceCache _resCache;
         private float _maxBitmapSize;
         private bool _disposed = false;
         #endregion
@@ -34,12 +33,11 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTree(RenderTarget renderTarget, Bitmap overallBitmap, float zoom, ResourceCache resCache, float maxBitmapSize, Size2F dpi)
+        public QuadTree(RenderTarget renderTarget, Bitmap overallBitmap, float zoom, float maxBitmapSize, Size2F dpi)
         {
             OverallBitmap = overallBitmap;
             _renderTarget = renderTarget;
             Zoom = zoom;
-            _resCache = resCache;
             _maxBitmapSize = maxBitmapSize;
             Dpi = dpi;
             GetLevels(_maxBitmapSize, OverallBitmap.Size);
@@ -86,15 +84,8 @@ namespace Direct2DDXFViewer
 
         public List<QuadTreeNode> GetQuadTreeView(Rect view)
         {
-            Stopwatch timer = new();
-            timer.Start();
-
             List<QuadTreeNode> quadTreeNodes = new();
             quadTreeNodes.AddRange(Root.GetIntersectingQuadTreeNodes(view));
-
-            
-            Debug.WriteLine($"GetQuadTreeView: {timer.ElapsedMilliseconds} ms");
-            timer.Stop();
 
             return quadTreeNodes;
         }
@@ -118,7 +109,6 @@ namespace Direct2DDXFViewer
                 // Free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // Set large fields to null.
                 _renderTarget = null;
-                _resCache = null;
                 OverallBitmap = null;
                 Root = null;
 
