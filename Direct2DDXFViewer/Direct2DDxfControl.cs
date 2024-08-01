@@ -373,21 +373,26 @@ namespace Direct2DDXFViewer
             target.Clear(new RawColor4(0, 0, 0, 0));
             //target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
             //        (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-            RenderQuadTree(target, _quadTreeCache.CurrentQuadTrees);
+            RenderQuadTrees(target, _quadTreeCache.CurrentQuadTrees);
         }
-        private void RenderQuadTree(RenderTarget target, QuadTree quadTree)
+        private void RenderQuadTrees(RenderTarget target, List<QuadTree> quadTrees)
         {
-            List<QuadTreeNode> quadTreeNodes = quadTree.GetQuadTreeView(_currentView);
+            Debug.WriteLineIf(quadTrees.Count > 1, $"QuadTrees: {quadTrees.Count}");
 
-            for (int i = 0; i < quadTreeNodes.Count; i++)
+            foreach (var quadtree in quadTrees)
             {
-                Rect bounds = quadTreeNodes[i].DestRect;
-                bounds.Transform(_transformMatrix);
+                List<QuadTreeNode> quadTreeNodes = quadtree.GetQuadTreeView(_currentView);
 
-                RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
-                RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
+                for (int i = 0; i < quadTreeNodes.Count; i++)
+                {
+                    Rect bounds = quadTreeNodes[i].DestRect;
+                    bounds.Transform(_transformMatrix);
 
-                target.DrawBitmap(quadTree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.NearestNeighbor, sourceRect);
+                    RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
+                    RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
+
+                    target.DrawBitmap(quadtree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.NearestNeighbor, sourceRect);
+                }
             }
         }
 

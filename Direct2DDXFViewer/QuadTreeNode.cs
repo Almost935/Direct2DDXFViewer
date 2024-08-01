@@ -92,6 +92,7 @@ namespace Direct2DDXFViewer
                         RawRectangleF sourceRect = new((float)childBounds[i].Left, (float)childBounds[i].Top, (float)childBounds[i].Right, (float)childBounds[i].Bottom);
 
                         childRenderTarget.DrawBitmap(Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+                        Debug.WriteLine($"QuadTreeNode: Zoom: {Zoom}");
                         childRenderTarget.EndDraw();
 
                         //Debug.WriteLine($"destChildBounds[i]: {destChildBounds[i].Width} {destChildBounds[i].Height}");
