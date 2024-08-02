@@ -137,6 +137,7 @@ namespace Direct2DDXFViewer
             {
                 Debug.WriteLine($"CreateOversizedQuadTrees: {zoom}");
                 quadTrees = CreateOversizedQuadTrees(_renderTarget, zoom, size, _extentsMatrix, _resCache.MaxBitmapSize);
+                QuadTrees.TryAdd(Math.Round((double)zoom, 3), quadTrees);
                 return (quadTrees, QuadTreeGetterType.New);
             }
 
@@ -147,7 +148,7 @@ namespace Direct2DDXFViewer
 
         private QuadTree CreateQuadTree(RenderTarget renderTarget, float zoom, Size2F size, Matrix extentsMatrix)
         {
-            Debug.WriteLine($"zoom: {zoom}");
+            //Debug.WriteLine($"CreateQuadTree zoom: {zoom}");
 
             Size2F dpi = new(96.0f * zoom, 96.0f * zoom);
             BitmapRenderTarget bitmapRenderTarget = new(renderTarget, CompatibleRenderTargetOptions.None, size)
