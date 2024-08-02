@@ -50,6 +50,7 @@ namespace Direct2DDXFViewer
         private bool _bitmapLoaded = false;
         private Rect[] _bounds;
         private bool _disposed = false;
+        private bool _isLoading = false;
 
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\SmallDxf.dxf";
@@ -220,10 +221,7 @@ namespace Direct2DDXFViewer
         {
             if (!_isRendering)
             {
-                Stopwatch timer = new();
-
                 _isRendering = true;
-
                 GetBrushes(target);
 
                 if (!_dxfLoaded)
@@ -236,24 +234,14 @@ namespace Direct2DDXFViewer
 
                 if (!_bitmapLoaded)
                 {
-                    timer.Restart();
                     InitializeBitmapCaches(target);
                     InitializeQuadTreeCache(target);
                     _bitmapLoaded = true;
                 }
 
                 UpdateCurrentView();
-                //var viewport = new RawRectangleF((float)_currentView.Left, (float)_currentView.Top,
-                //    (float)_currentView.Right, (float)_currentView.Bottom);
 
-                //target.PushAxisAlignedClip(viewport,
-                //    AntialiasMode.PerPrimitive);
-
-                timer.Restart();
                 RenderBitmaps(target);
-
-
-                //target.PopAxisAlignedClip();
 
                 _isRendering = false;
             }
@@ -377,10 +365,14 @@ namespace Direct2DDXFViewer
         }
         private void RenderQuadTrees(RenderTarget target, List<QuadTree> quadTrees)
         {
-            Debug.WriteLineIf(quadTrees.Count > 1, $"QuadTrees: {quadTrees.Count}");
+            //Debug.WriteLineIf(quadTrees.Count > 1, $"\n");
 
+            //int count = 0;
             foreach (var quadtree in quadTrees)
             {
+                //count++;
+                //Debug.WriteLineIf(quadTrees.Count > 1, $"quadTree {count}");
+
                 List<QuadTreeNode> quadTreeNodes = quadtree.GetQuadTreeView(_currentView);
 
                 for (int i = 0; i < quadTreeNodes.Count; i++)
@@ -390,6 +382,9 @@ namespace Direct2DDXFViewer
 
                     RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
                     RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
+
+                    //Debug.WriteLineIf(quadTrees.Count > 1, $"destRect: {bounds}");
+                    //Debug.WriteLineIf(quadTrees.Count > 1, $"sourceRect: {quadTreeNodes[i].Bounds}");
 
                     target.DrawBitmap(quadtree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.NearestNeighbor, sourceRect);
                 }

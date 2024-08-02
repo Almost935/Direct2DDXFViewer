@@ -25,6 +25,7 @@ namespace Direct2DDXFViewer
         #region Properties
         public Bitmap OverallBitmap { get; set; }
         public Rect TreeBounds { get; set; }
+        public Rect DestRect { get; set; }
         public QuadTreeNode Root { get; private set; }
         public float Zoom { get; private set; }
         public int Levels { get; private set; }
@@ -33,7 +34,7 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTree(RenderTarget renderTarget, Bitmap overallBitmap, float zoom, float maxBitmapSize, Size2F dpi)
+        public QuadTree(RenderTarget renderTarget, Bitmap overallBitmap, float zoom, float maxBitmapSize, Size2F dpi, Rect treeBounds, Rect destRect)
         {
             OverallBitmap = overallBitmap;
             _renderTarget = renderTarget;
@@ -42,10 +43,12 @@ namespace Direct2DDXFViewer
             Dpi = dpi;
             GetLevels(_maxBitmapSize, OverallBitmap.Size);
 
-            TreeBounds = new Rect(0, 0, OverallBitmap.Size.Width, OverallBitmap.Size.Height);
-            Rect destRect = new(0, 0, renderTarget.Size.Width, renderTarget.Size.Height);
+            //TreeBounds = new Rect(0, 0, OverallBitmap.Size.Width, OverallBitmap.Size.Height);
+            //DestRect = new(0, 0, renderTarget.Size.Width, renderTarget.Size.Height);
+            TreeBounds = treeBounds;
+            DestRect = destRect;
 
-            Root = new QuadTreeNode(TreeBounds, destRect, OverallBitmap, Zoom, Dpi, _maxBitmapSize);
+            Root = new QuadTreeNode(TreeBounds, DestRect, OverallBitmap, Zoom, Dpi, _maxBitmapSize);
             Root.Subdivide(_renderTarget, Levels);
         }
         #endregion
