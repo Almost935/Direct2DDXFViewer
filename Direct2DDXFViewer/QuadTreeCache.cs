@@ -207,7 +207,7 @@ namespace Direct2DDXFViewer
                         bitmapRenderTarget.BeginDraw();
                         bitmapRenderTarget.Clear(new RawColor4(0, 1, 0, 0.25f));
 
-                        RawMatrix3x2 transform = new((float)extentsMatrix.M11, (float)extentsMatrix.M12, (float)extentsMatrix.M21, (float)extentsMatrix.M22, (float)extentsMatrix.OffsetX, (float)extentsMatrix.OffsetY + (treeHeight * j));
+                        RawMatrix3x2 transform = new((float)extentsMatrix.M11, (float)extentsMatrix.M12, (float)extentsMatrix.M21, (float)extentsMatrix.M22, (float)extentsMatrix.OffsetX, (float)extentsMatrix.OffsetY);
                         bitmapRenderTarget.Transform = transform;
 
                         //Debug.WriteLine($"\nCreateOversizedQuadTrees transform: M11: {transform.M11} M22: {transform.M22} M31: {transform.M31} M32: {transform.M32}");
