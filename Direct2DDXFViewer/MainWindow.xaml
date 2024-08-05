@@ -11,7 +11,8 @@
         Width="1000"
         Left="0"
         Top="0"
-        Loaded="mainWindow_Loaded">
+        Loaded="mainWindow_Loaded"
+        RenderOptions.BitmapScalingMode="HighQuality">
 
     <Border Margin="20"
             BorderBrush="#FF5E5E5E"

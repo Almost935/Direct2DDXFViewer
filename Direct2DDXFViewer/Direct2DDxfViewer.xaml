@@ -4,8 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Direct2DDXFViewer"
-             mc:Ignorable="d">
+             mc:Ignorable="d"
+             RenderOptions.BitmapScalingMode="HighQuality">
     <Grid>
-        <local:Direct2DDxfControl x:Name="dxfControl" />
+        <local:Direct2DDxfControl x:Name="dxfControl"
+                                  RenderOptions.BitmapScalingMode="HighQuality" />
     </Grid>
 </UserControl>
