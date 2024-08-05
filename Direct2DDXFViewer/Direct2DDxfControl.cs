@@ -371,49 +371,30 @@ namespace Direct2DDXFViewer
             int count = 0;
             foreach (var quadtree in quadTrees)
             {
-                if (quadTrees.Count > 1)
-                {
-                    Rect bounds = quadtree.Root.DestRect;
 
-                    //Debug.WriteLine($"MULTIPLE QUADTREES");
-                    //Debug.WriteLine($"quadtree.Root.DestRect: {quadtree.Root.DestRect.Left} {quadtree.Root.DestRect.Top} {quadtree.Root.DestRect.Right} {quadtree.Root.DestRect.Bottom}");
+                count++;
+                //Debug.WriteLineIf(quadTrees.Count > 1, $"\nquadTree {count}" +
+                //$"\nquadtree.DestRect: {quadtree.DestRect}" +
+                //$"\nquadtree.TreeBounds: {quadtree.TreeBounds}");
+
+                List<QuadTreeNode> quadTreeNodes = quadtree.GetQuadTreeView(_currentView);
+
+                //Debug.WriteLineIf(quadTrees.Count > 1, $"quadTreeNodes.Count {quadTreeNodes.Count}");
+
+                for (int i = 0; i < quadTreeNodes.Count; i++)
+                {
+                    Rect bounds = quadTreeNodes[i].DestRect;
+
+                    //Debug.WriteLineIf(quadTrees.Count > 1, $"destRect: {bounds}");
+                    //Debug.WriteLineIf(quadTrees.Count > 1, $"sourceRect: {quadTreeNodes[i].Bounds}");
 
                     bounds.Transform(_transformMatrix);
 
-                    //Debug.WriteLine($"after transform: quadtree.DestRect: {quadtree.Root.DestRect.Left} {quadtree.Root.DestRect.Top} {quadtree.Root.DestRect.Right} {quadtree.Root.DestRect.Bottom}");
-
                     RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
-                    RawRectangleF sourceRect = new((float)quadtree.Root.Bounds.Left, (float)quadtree.Root.Bounds.Top, (float)quadtree.Root.Bounds.Right, (float)quadtree.Root.Bounds.Bottom);
+                    RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left + 10, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
 
-                    target.DrawBitmap(quadtree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.NearestNeighbor, sourceRect);
+                    target.DrawBitmap(quadtree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
                     target.DrawRectangle(destRect, blackBrush);
-                }
-                else
-                {
-                    count++;
-                    //Debug.WriteLineIf(quadTrees.Count > 1, $"\nquadTree {count}" +
-                        //$"\nquadtree.DestRect: {quadtree.DestRect}" +
-                        //$"\nquadtree.TreeBounds: {quadtree.TreeBounds}");
-
-                    List<QuadTreeNode> quadTreeNodes = quadtree.GetQuadTreeView(_currentView);
-
-                    //Debug.WriteLineIf(quadTrees.Count > 1, $"quadTreeNodes.Count {quadTreeNodes.Count}");
-
-                    for (int i = 0; i < quadTreeNodes.Count; i++)
-                    {
-                        Rect bounds = quadTreeNodes[i].DestRect;
-
-                        //Debug.WriteLineIf(quadTrees.Count > 1, $"destRect: {bounds}");
-                        //Debug.WriteLineIf(quadTrees.Count > 1, $"sourceRect: {quadTreeNodes[i].Bounds}");
-
-                        bounds.Transform(_transformMatrix);
-
-                        RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
-                        RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
-
-                        target.DrawBitmap(quadtree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.NearestNeighbor, sourceRect);
-                        target.DrawRectangle(destRect, blackBrush);
-                    }
                 }
             }
         }
