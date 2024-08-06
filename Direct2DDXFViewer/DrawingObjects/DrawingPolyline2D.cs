@@ -9,6 +9,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Direct2DDXFViewer.DrawingObjects
 {
@@ -47,6 +48,10 @@ namespace Direct2DDXFViewer.DrawingObjects
         public override void Draw(RenderTarget target, float thickness, Brush brush)
         {
             target.DrawGeometry(Geometry, brush, thickness, StrokeStyle);
+        }
+        public override bool DrawingObjectIsInView(Rect rect)
+        {
+            return true;
         }
         public override void UpdateGeometry()
         {

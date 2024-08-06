@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Direct2DDXFViewer.DrawingObjects
 {
@@ -58,7 +59,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public void Draw(RenderTarget renderTarget, float thickness)
+        public void Draw(RenderTarget renderTarget, float thickness, Rect view)
         {
             if (!IsVisible) { return; }
 

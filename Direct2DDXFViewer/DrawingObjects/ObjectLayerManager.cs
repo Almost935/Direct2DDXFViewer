@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Direct2DDXFViewer.DrawingObjects
 {
@@ -18,7 +19,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
-        public void Draw(RenderTarget renderTarget, float thickness)
+        public void Draw(RenderTarget renderTarget, float thickness, Rect view)
         {
             foreach (var layer in Layers.Values)
             {

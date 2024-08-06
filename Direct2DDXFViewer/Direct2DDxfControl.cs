@@ -243,7 +243,7 @@ namespace Direct2DDXFViewer
 
                 UpdateCurrentView();
 
-                RenderBitmaps(target);
+                RenderBitmaps(deviceContext);
 
                 _isRendering = false;
             }
@@ -356,17 +356,17 @@ namespace Direct2DDXFViewer
         {
             _quadTreeCache = new(target, resCache.Factory, LayerManager, Extents, ExtentsMatrix, resCache, _zoomFactor);
         }
-        private void RenderBitmaps(RenderTarget target)
+        private void RenderBitmaps(DeviceContext1 deviceContext)
         {
             if (_quadTreeCache is null) { return; }
 
-            target.Clear(new RawColor4(0, 0, 0, 0));
+            deviceContext.Clear(new RawColor4(0, 0, 0, 0));
            
-            RenderQuadTrees(target, _quadTreeCache.CurrentQuadTrees);
+            RenderQuadTrees(deviceContext, _quadTreeCache.CurrentQuadTrees);
         }
-        private void RenderQuadTrees(RenderTarget target, List<QuadTree> quadTrees)
+        private void RenderQuadTrees(DeviceContext1 deviceContext, List<QuadTree> quadTrees)
         {
-            Brush blackBrush = new SolidColorBrush(target, new RawColor4(0, 0, 0, 1.0f));
+            Brush blackBrush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1.0f));
 
             foreach (var quadtree in quadTrees)
             {
@@ -380,8 +380,8 @@ namespace Direct2DDXFViewer
                     RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
                     RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
 
-                    target.DrawBitmap(quadtree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
-                    target.DrawRectangle(destRect, blackBrush);
+                    deviceContext.DrawBitmap(quadtree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+                    deviceContext.DrawRectangle(destRect, blackBrush);
 
                 }
             }

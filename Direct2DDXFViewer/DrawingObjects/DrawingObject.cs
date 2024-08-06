@@ -10,6 +10,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 
 namespace Direct2DDXFViewer.DrawingObjects
@@ -78,6 +79,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         public abstract void UpdateGeometry();
 
         public abstract void Draw(RenderTarget target, float thickness, Brush brush);
+        public abstract bool DrawingObjectIsInView(Rect rect);
 
         public void UpdateBrush()
         {
