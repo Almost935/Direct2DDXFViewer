@@ -66,15 +66,6 @@ namespace Direct2DDXFViewer
                 Rect destRect3 = new(new Point(DestRect.Left, (DestRect.Top + destHalfHeight)), new Point((DestRect.Left + destHalfWidth), DestRect.Bottom));
                 Rect destRect4 = new(new Point((DestRect.Left + destHalfWidth), (DestRect.Top + destHalfHeight)), new Point(DestRect.Right, DestRect.Bottom));
 
-
-                //Debug.WriteLine($"\ndestHalfWidth: {destHalfWidth} destHalfHeight: {destHalfHeight} " +
-                //    $"\nDestRect: {DestRect.Left} {DestRect.Top} {DestRect.Right} {DestRect.Bottom}" +
-                //    $"\ndestRect1: {destRect1.Left} {destRect1.Top} {destRect1.Right} {destRect1.Bottom}" +
-                //    $"\ndestRect2: {destRect2.Left} {destRect2.Top} {destRect2.Right} {destRect2.Bottom}" +
-                //    $"\ndestRect3: {destRect3.Left} {destRect3.Top} {destRect3.Right} {destRect3.Bottom}" +
-                //    $"\ndestRect4: {destRect4.Left} {destRect4.Top} {destRect4.Right} {destRect4.Bottom}" +
-                //    $"\nZoom: {Zoom}");
-
                 var childBounds = new[]
                 { rect1, rect2, rect3, rect4 };
                 var destChildBounds = new[]
@@ -93,8 +84,6 @@ namespace Direct2DDXFViewer
 
                         childRenderTarget.DrawBitmap(Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
                         childRenderTarget.EndDraw();
-
-                        //Debug.WriteLine($"destChildBounds[i]: {destChildBounds[i].Width} {destChildBounds[i].Height}");
 
                         ChildNodes.Add(new QuadTreeNode(childBounds[i], destChildBounds[i], childRenderTarget.Bitmap, Zoom, Dpi, _maxBitmapSize));
                     }

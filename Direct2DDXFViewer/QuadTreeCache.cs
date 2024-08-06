@@ -160,8 +160,6 @@ namespace Direct2DDXFViewer
             RawMatrix3x2 transform = new RawMatrix3x2((float)extentsMatrix.M11, (float)extentsMatrix.M12, (float)extentsMatrix.M21, (float)extentsMatrix.M22, (float)extentsMatrix.OffsetX, (float)extentsMatrix.OffsetY);
             bitmapRenderTarget.Transform = transform;
 
-            //Debug.WriteLine($"\nCreateQuadTree transform: M11: {transform.M11} M22: {transform.M22} M31: {transform.M31} M32: {transform.M32}");
-
             float thickness = 1.0f / (bitmapRenderTarget.Transform.M11 * zoom);
             _layerManager.Draw(bitmapRenderTarget, thickness);
             bitmapRenderTarget.EndDraw();
@@ -170,20 +168,12 @@ namespace Direct2DDXFViewer
                 new Rect(0, 0, bitmapRenderTarget.Bitmap.Size.Width, bitmapRenderTarget.Bitmap.Size.Height),
                 new Rect(0, 0, renderTarget.Size.Width, renderTarget.Size.Height));
 
-            //Debug.WriteLine($"\nCreateQuadTree");
-            //Debug.WriteLine($"quadTree.Zoom: {quadTree.Zoom}");
-            //Debug.WriteLine($"quadTree.DestRect: {quadTree.DestRect}");
-            //Debug.WriteLine($"quadTree.TreeBounds: {quadTree.TreeBounds}");
-
             return quadTree;
         }
 
         private List<QuadTree> CreateOversizedQuadTrees(RenderTarget renderTarget, float zoom, Size2F fullSize, Matrix extentsMatrix, int maxBitmapRenderTargetSize)
         {
-            Debug.WriteLine($"\n\n");
-
             List<QuadTree> quadTrees = new();
-
             Size2F dpi = new(96.0f * zoom, 96.0f * zoom);
 
             if (fullSize.Width > fullSize.Height)
@@ -201,36 +191,35 @@ namespace Direct2DDXFViewer
                     {
                         Size2F size = new(treeWidth, treeHeight);
 
-                        BitmapRenderTarget bitmapRenderTarget = new(renderTarget, CompatibleRenderTargetOptions.None, size)
+                        try
                         {
-                            DotsPerInch = dpi,
-                            AntialiasMode = AntialiasMode.PerPrimitive
-                        };
-                        bitmapRenderTarget.BeginDraw();
-                        bitmapRenderTarget.Clear(new RawColor4(0, 1, 0, 0.25f));
+                            BitmapRenderTarget bitmapRenderTarget = new(renderTarget, CompatibleRenderTargetOptions.None, size)
+                            {
+                                DotsPerInch = dpi,
+                                AntialiasMode = AntialiasMode.PerPrimitive
+                            };
+                            bitmapRenderTarget.BeginDraw();
+                            bitmapRenderTarget.Clear(new RawColor4(0, 1, 0, 0.25f));
 
-                        //RawMatrix3x2 transform = new((float)extentsMatrix.M11, (float)extentsMatrix.M12, (float)extentsMatrix.M21, (float)extentsMatrix.M22, (float)extentsMatrix.OffsetX - (treeWidth * i), (float)extentsMatrix.OffsetY - (treeHeight * j));
-                        RawMatrix3x2 transform = new((float)extentsMatrix.M11, (float)extentsMatrix.M12, (float)extentsMatrix.M21, (float)extentsMatrix.M22, (float)extentsMatrix.OffsetX, (float)extentsMatrix.OffsetY);
-                        bitmapRenderTarget.Transform = transform;
+                            RawMatrix3x2 transform = new((float)extentsMatrix.M11, (float)extentsMatrix.M12, (float)extentsMatrix.M21, (float)extentsMatrix.M22, (float)extentsMatrix.OffsetX - (destWidth * i), (float)extentsMatrix.OffsetY + (destHeight * j));
 
-                        //Debug.WriteLine($"\nCreateOversizedQuadTrees transform: M11: {transform.M11} M22: {transform.M22} M31: {transform.M31} M32: {transform.M32}");
+                            bitmapRenderTarget.Transform = transform;
 
-                        float thickness = 1.0f / (bitmapRenderTarget.Transform.M11 * zoom);
-                        _layerManager.Draw(bitmapRenderTarget, thickness);
-                        bitmapRenderTarget.EndDraw();
+                            float thickness = 1.0f / (bitmapRenderTarget.Transform.M11 * zoom);
+                            _layerManager.Draw(bitmapRenderTarget, thickness);
+                            bitmapRenderTarget.EndDraw();
 
-                        Rect destRect = new(renderTarget.Size.Width * ((float)i / numTilesWidth), renderTarget.Size.Height * ((float)j / numTilesHeight), destWidth, destHeight);
+                            Rect destRect = new(renderTarget.Size.Width * ((float)i / numTilesWidth), renderTarget.Size.Height * ((float)j / numTilesHeight), destWidth, destHeight);
 
-                        Debug.WriteLine($"destRect: {destRect.Left} {destRect.Top} {destRect.Right} {destRect.Bottom}");
-                        Debug.WriteLine($"destRect Width and Height: {destRect.Width} {destRect.Height}");
+                            Rect treeRect = new(fullSize.Width * ((float)i / numTilesWidth), fullSize.Height * ((float)j / numTilesHeight), treeWidth, treeHeight);
+                            QuadTree quadTree = new(_renderTarget, bitmapRenderTarget.Bitmap, zoom, _maxBitmapSize, dpi, treeRect, destRect);
 
-                        Rect treeRect = new(fullSize.Width * ((float)i / numTilesWidth), fullSize.Height * ((float)j / numTilesHeight), treeWidth, treeHeight);
-                        QuadTree quadTree = new(_renderTarget, bitmapRenderTarget.Bitmap, zoom, _maxBitmapSize, dpi, treeRect, destRect);
+                            quadTrees.Add(quadTree);
+                        }
+                        catch (SharpDXException ex) when (ex.ResultCode == ResultCode.RecreateTarget)
+                        {
 
-                        Debug.WriteLine($"treeRect: {treeRect.Left} {treeRect.Top} {treeRect.Right} {treeRect.Bottom}");
-                        Debug.WriteLine($"treeRect Width and Height: {treeRect.Width} {treeRect.Height}");
-
-                        quadTrees.Add(quadTree);
+                        }
                     }
                 }
             }

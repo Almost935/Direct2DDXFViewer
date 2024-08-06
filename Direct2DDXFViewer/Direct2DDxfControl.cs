@@ -17,6 +17,9 @@ using System.Windows.Media;
 using Direct2DDXFViewer.DrawingObjects;
 using netDxf.Entities;
 using Direct2DDXFViewer.BitmapHelpers;
+using System.Drawing;
+using System.Xml.Linq;
+using System.IO;
 
 using Point = System.Windows.Point;
 using Brush = SharpDX.Direct2D1.Brush;
@@ -29,8 +32,7 @@ using PixelFormat = SharpDX.Direct2D1.PixelFormat;
 using AlphaMode = SharpDX.Direct2D1.AlphaMode;
 using Factory1 = SharpDX.Direct2D1.Factory1;
 using BitmapCache = Direct2DDXFViewer.BitmapHelpers.BitmapCache;
-using System.Drawing;
-using System.Xml.Linq;
+using Bitmap = SharpDX.Direct2D1.Bitmap;
 
 namespace Direct2DDXFViewer
 {
@@ -359,46 +361,32 @@ namespace Direct2DDXFViewer
             if (_quadTreeCache is null) { return; }
 
             target.Clear(new RawColor4(0, 0, 0, 0));
-            //target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22,
-            //        (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
+           
             RenderQuadTrees(target, _quadTreeCache.CurrentQuadTrees);
         }
         private void RenderQuadTrees(RenderTarget target, List<QuadTree> quadTrees)
         {
-            //Debug.WriteLineIf(quadTrees.Count > 1, $"\n");
             Brush blackBrush = new SolidColorBrush(target, new RawColor4(0, 0, 0, 1.0f));
 
-            int count = 0;
             foreach (var quadtree in quadTrees)
             {
-
-                count++;
-                //Debug.WriteLineIf(quadTrees.Count > 1, $"\nquadTree {count}" +
-                //$"\nquadtree.DestRect: {quadtree.DestRect}" +
-                //$"\nquadtree.TreeBounds: {quadtree.TreeBounds}");
-
                 List<QuadTreeNode> quadTreeNodes = quadtree.GetQuadTreeView(_currentView);
-
-                //Debug.WriteLineIf(quadTrees.Count > 1, $"quadTreeNodes.Count {quadTreeNodes.Count}");
 
                 for (int i = 0; i < quadTreeNodes.Count; i++)
                 {
                     Rect bounds = quadTreeNodes[i].DestRect;
-
-                    //Debug.WriteLineIf(quadTrees.Count > 1, $"destRect: {bounds}");
-                    //Debug.WriteLineIf(quadTrees.Count > 1, $"sourceRect: {quadTreeNodes[i].Bounds}");
-
                     bounds.Transform(_transformMatrix);
 
                     RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
-                    RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left + 10, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
+                    RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
 
                     target.DrawBitmap(quadtree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
                     target.DrawRectangle(destRect, blackBrush);
+
                 }
             }
+            blackBrush.Dispose();
         }
-
         private void RenderInteractiveObjects(RenderTarget target)
         {
             if (_bitmapCache is not null)
