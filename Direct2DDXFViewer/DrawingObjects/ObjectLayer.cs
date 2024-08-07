@@ -59,7 +59,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public void Draw(RenderTarget renderTarget, float thickness, Rect view)
+        public void Draw(RenderTarget renderTarget, float thickness)
         {
             if (!IsVisible) { return; }
 

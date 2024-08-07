@@ -47,13 +47,13 @@ namespace Direct2DDXFViewer
         private Point _lastTranslatePos = new();
         private bool _dxfLoaded = false;
         private Rect _currentView;
+        private Rect _currentDxfView;
         private BitmapCache _bitmapCache;
         private QuadTreeCache _quadTreeCache;
         private bool _bitmapLoaded = false;
-        private Rect[] _bounds;
         private bool _disposed = false;
         private bool _isLoading = false;
-
+        
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\SmallDxf.dxf";
         private Point _pointerCoords = new();
@@ -168,13 +168,6 @@ namespace Direct2DDXFViewer
                 LayerManager = DxfHelpers.GetLayers(DxfDoc);
                 DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, target);
             }
-
-            _bounds = new[] {
-                new Rect(0, 0, (ActualWidth / 2), (ActualHeight / 2)),
-                new Rect((ActualWidth / 2), 0, (ActualWidth / 2), (ActualHeight / 2)),
-                new Rect(0, (ActualHeight / 2), (ActualWidth / 2), (ActualHeight / 2)),
-                new((ActualWidth / 2), (ActualHeight / 2), (ActualWidth / 2), (ActualHeight / 2))
-                };
         }
 
         public Matrix GetInitialMatrix()
@@ -211,12 +204,12 @@ namespace Direct2DDXFViewer
             double centerX = 0.5 * (Extents.Left + Extents.Right);
             double centerY = 0.5 * (Extents.Top + Extents.Bottom);
             Rect rect = new(centerX - 0.5 * ActualWidth, centerY - 0.5 * ActualHeight, ActualWidth, ActualHeight);
-            Matrix matrix = new();
-            matrix.ScaleAt(1 / ExtentsMatrix.M11, 1 / ExtentsMatrix.M11, centerX, centerY);
-            rect.Transform(matrix);
-            InitialView = rect;
+            //Matrix matrix = new();
+            //matrix.ScaleAt(1 / ExtentsMatrix.M11, 1 / ExtentsMatrix.M11, centerX, centerY);
+            //rect.Transform(matrix);
+            //InitialView = rect;
 
-            _currentView = new(0, 0, this.ActualWidth, this.ActualHeight);
+            //_currentView = new(0, 0, this.ActualWidth, this.ActualHeight);
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
@@ -525,15 +518,7 @@ namespace Direct2DDXFViewer
                 matrix.Invert();
                 _currentView.Transform(matrix);
 
-                //var rawMatrix = resCache.RenderTarget.Transform;
-                //Matrix matrix = new(rawMatrix.M11, rawMatrix.M12, rawMatrix.M21, rawMatrix.M22, rawMatrix.M31, rawMatrix.M32);
-                //matrix.Invert();
-                //_currentView.Transform(matrix);
-
-                //Matrix testMatrix = new(_overallMatrix.M11, _overallMatrix.M12, _overallMatrix.M21, _overallMatrix.M22, _overallMatrix.OffsetX, _overallMatrix.OffsetY);
-                //testMatrix.Invert();
-                //Rect testCurrentView = new(0, 0, resCache.RenderTarget.Size.Width, resCache.RenderTarget.Size.Height);
-                //testCurrentView.Transform(testMatrix);
+                
             }
         }
         private void GetBrushes(RenderTarget target)

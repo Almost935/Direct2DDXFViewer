@@ -19,7 +19,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
-        public void Draw(RenderTarget renderTarget, float thickness, Rect view)
+        public void Draw(RenderTarget renderTarget, float thickness)
         {
             foreach (var layer in Layers.Values)
             {

@@ -31,10 +31,11 @@ namespace Direct2DDXFViewer
         private Matrix _extentsMatrix;
         private ResourceCache _resCache;
         private readonly float _zoomFactor;
-        private int _initialLoadFactor = 5;
-        private int _updatedCurrentQuadTreeLoadFactor = 1;
+        private int _initialLoadFactor = 15;
+        private int _updatedCurrentQuadTreeLoadFactor = 2;
         private int _asyncInitialLoadFactor = 9;
         private bool _disposed = false;
+        private bool _backgroundThreadActive = false;
 
         private const float _maxBitmapSize = 10000;
         #endregion
@@ -99,6 +100,8 @@ namespace Direct2DDXFViewer
 
         public void UpdateCurrentQuadTree(float zoom)
         {
+            while (_backgroundThreadActive) { Task.Delay(100); }
+
             if (zoom == 1.0f)
             {
                 CurrentQuadTrees = InitialQuadTrees;
@@ -161,7 +164,7 @@ namespace Direct2DDXFViewer
             bitmapRenderTarget.Transform = transform;
 
             float thickness = 1.0f / (bitmapRenderTarget.Transform.M11 * zoom);
-            _layerManager.Draw(bitmapRenderTarget, thickness, );
+            _layerManager.Draw(bitmapRenderTarget, thickness);
             bitmapRenderTarget.EndDraw();
 
             QuadTree quadTree = new(renderTarget, bitmapRenderTarget.Bitmap, zoom, _maxBitmapSize, dpi,
@@ -238,21 +241,25 @@ namespace Direct2DDXFViewer
         /// <returns></returns>
         private async Task GetAdjacentZoomQuadTreesAsync(List<QuadTree> currentQuadTrees)
         {
-            //if (currentQuadTrees.Count == 0) { return; }
+            if (currentQuadTrees.Count == 0) { return; }
 
-            //float zoom = currentQuadTrees.First().Zoom;
-            //for (int i = 1; i <= _updatedCurrentQuadTreeLoadFactor; i++)
-            //{
-            //    zoom *= _zoomFactor;
-            //    await Task.Run(() => GetQuadTree(zoom));
-            //}
+            _backgroundThreadActive = true;
 
-            //zoom = currentQuadTrees.First().Zoom;
-            //for (int i = 1; i <= _updatedCurrentQuadTreeLoadFactor; i++)
-            //{
-            //    zoom *= (1 / _zoomFactor);
-            //    await Task.Run(() => GetQuadTree(zoom));
-            //}
+            float zoom = currentQuadTrees.First().Zoom;
+            for (int i = 1; i <= _updatedCurrentQuadTreeLoadFactor; i++)
+            {
+                zoom *= _zoomFactor;
+                await Task.Run(() => GetQuadTree(zoom));
+            }
+
+            zoom = currentQuadTrees.First().Zoom;
+            for (int i = 1; i <= _updatedCurrentQuadTreeLoadFactor; i++)
+            {
+                zoom *= (1 / _zoomFactor);
+                await Task.Run(() => GetQuadTree(zoom));
+            }
+
+            _backgroundThreadActive = false;
         }
 
         private async Task GetInitialZoomQuadTreesAsync()
@@ -271,53 +278,8 @@ namespace Direct2DDXFViewer
                 await Task.Run(() => GetQuadTree(zoom2));
                 zoom2 *= (1 / _zoomFactor);
             }
+            
         }
-
-        /// <summary>
-        /// Calculates and sets the maximum values for zoom and size based on the render target's dimensions and the maximum bitmap size.
-        /// </summary>
-        //public QuadTree GetMaxSizeQuadTree(float zoom)
-        //{
-        //    //MaxZoomBitmap?.Dispose();
-
-        //    Size2F maxSize;
-        //    float maxZoom;
-        //    Size2F maxDpi;
-        //    RawRectangleF maxRect;
-
-        //    if (_renderTarget.Size.Width > _renderTarget.Size.Height)
-        //    {
-        //        maxSize = new(_resCache.MaxBitmapSize, _resCache.MaxBitmapSize * (_renderTarget.Size.Height / _renderTarget.Size.Width));
-        //        maxZoom = maxSize.Height / _renderTarget.Size.Height;
-        //        maxDpi = new(96.0f * maxZoom, 96.0f * maxZoom);
-        //        maxRect = new(0, 0, _renderTarget.Size.Width * maxZoom, _renderTarget.Size.Height * maxZoom);
-        //    }
-        //    else
-        //    {
-        //        maxSize = new(_resCache.MaxBitmapSize, _resCache.MaxBitmapSize * (_renderTarget.Size.Width / _renderTarget.Size.Height));
-        //        maxZoom = maxSize.Width / _renderTarget.Size.Width;
-        //        maxDpi = new(96.0f * maxZoom, 96.0f * maxZoom);
-        //        maxRect = new(0, 0, _renderTarget.Size.Width * maxZoom, _renderTarget.Size.Height * maxZoom);
-        //    }
-
-        //    BitmapRenderTarget bitmapRenderTarget = new(_renderTarget, CompatibleRenderTargetOptions.None, maxSize)
-        //    {
-        //        DotsPerInch = maxDpi,
-        //        AntialiasMode = AntialiasMode.PerPrimitive
-        //    };
-        //    bitmapRenderTarget.Transform = new RawMatrix3x2((float)_extentsMatrix.M11, (float)_extentsMatrix.M12, (float)_extentsMatrix.M21, (float)_extentsMatrix.M22, (float)_extentsMatrix.OffsetX, (float)_extentsMatrix.OffsetY);
-
-        //    float thickness = 1.0f / (bitmapRenderTarget.Transform.M11 * zoom);
-
-        //    bitmapRenderTarget.BeginDraw();
-        //    bitmapRenderTarget.Clear(new RawColor4(0, 1, 0, 0.25f));
-        //    _layerManager.Draw(bitmapRenderTarget, thickness);
-        //    bitmapRenderTarget.EndDraw();
-
-        //    QuadTree maxSizeQuadTree = new(_renderTarget, bitmapRenderTarget.Bitmap, maxZoom, _resCache, _maxBitmapSize, maxDpi);
-
-        //    return maxSizeQuadTree;
-        //}
 
         public void Dispose()
         {
