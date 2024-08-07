@@ -256,13 +256,13 @@ namespace Direct2DControl
                 return;
             }
             
-            d2DRenderTarget.BeginDraw();
+            //d2DRenderTarget.BeginDraw();
             Render(d2DRenderTarget, d2DDeviceContext);
-            d2DRenderTarget.EndDraw();
+            //d2DRenderTarget.EndDraw();
 
-            CalcFps();
+            //CalcFps();
 
-            device.ImmediateContext.Flush();
+            //device.ImmediateContext.Flush();
         }
 
         private void CalcFps()

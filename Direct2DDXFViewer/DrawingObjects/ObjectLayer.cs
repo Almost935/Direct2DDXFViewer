@@ -59,13 +59,28 @@ namespace Direct2DDXFViewer.DrawingObjects
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public void Draw(RenderTarget renderTarget, float thickness)
+        public void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Rect view)
         {
             if (!IsVisible) { return; }
 
             foreach (var drawingObject in DrawingObjects)
             {
-                drawingObject.Draw(renderTarget, thickness, drawingObject.Brush);
+                if (drawingObject.IsInView)
+                {
+                    drawingObject.DrawToDeviceContext(deviceContext, thickness, drawingObject.Brush);
+                }
+            }
+        }
+        public void DrawToRenderTarget(RenderTarget renderTarget, float thickness, Rect view)
+        {
+            if (!IsVisible) { return; }
+
+            foreach (var drawingObject in DrawingObjects)
+            {
+                if (drawingObject.IsInView)
+                {
+                    drawingObject.DrawToRenderTarget(renderTarget, thickness, drawingObject.Brush);
+                }
             }
         }
 

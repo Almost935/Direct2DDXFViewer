@@ -186,7 +186,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     {
                         foreach (var o in layer.DrawingObjects)
                         {
-                            o.Draw(bitmapRenderTarget, strokeThickness, o.Brush);
+                            o.DrawToRenderTarget(bitmapRenderTarget, strokeThickness, o.Brush);
                         }
                     }
                 }
@@ -207,18 +207,18 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
             foreach (var o in HighlightedObjects)
             {
-                o.Draw(bitmapRenderTarget, highlightedStrokeThickness, ResCache.HighlightedBrush);
+                o.DrawToRenderTarget(bitmapRenderTarget, highlightedStrokeThickness, ResCache.HighlightedBrush);
             }
 
             if (SnappedObject is not null)
             {
                 if (SnappedObject.IsHighlighted)
                 {
-                    SnappedObject.Draw(bitmapRenderTarget, outerHighlightedStrokeThickness, ResCache.HighlightedOuterEdgeBrush);
+                    SnappedObject.DrawToRenderTarget(bitmapRenderTarget, outerHighlightedStrokeThickness, ResCache.HighlightedOuterEdgeBrush);
                 }
                 else
                 {
-                    SnappedObject.Draw(bitmapRenderTarget, outerSnappedStrokeThickness, SnappedObject.OuterEdgeBrush);
+                    SnappedObject.DrawToRenderTarget(bitmapRenderTarget, outerSnappedStrokeThickness, SnappedObject.OuterEdgeBrush);
                 }
             }
 

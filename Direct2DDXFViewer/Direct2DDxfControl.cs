@@ -52,8 +52,7 @@ namespace Direct2DDXFViewer
         private QuadTreeCache _quadTreeCache;
         private bool _bitmapLoaded = false;
         private bool _disposed = false;
-        private bool _isLoading = false;
-        
+
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\SmallDxf.dxf";
         private Point _pointerCoords = new();
@@ -145,8 +144,9 @@ namespace Direct2DDXFViewer
         {
             UpdateDxfCoordsAsync();
             UpdateCurrentView();
+            RenderAsync(resCache.DeviceContext);
+            RunGetVisibleObjectsAsync();
             //RunHitTestAsync();
-            //RunGetVisibleObjectsAsync();
 
             //Window window = Application.Current.MainWindow;
             //window.KeyUp += Window_KeyUp;
@@ -203,7 +203,7 @@ namespace Direct2DDXFViewer
         {
             double centerX = 0.5 * (Extents.Left + Extents.Right);
             double centerY = 0.5 * (Extents.Top + Extents.Bottom);
-            Rect rect = new(centerX - 0.5 * ActualWidth, centerY - 0.5 * ActualHeight, ActualWidth, ActualHeight);
+            _currentDxfView = new(centerX - 0.5 * ActualWidth, centerY - 0.5 * ActualHeight, ActualWidth, ActualHeight);
             //Matrix matrix = new();
             //matrix.ScaleAt(1 / ExtentsMatrix.M11, 1 / ExtentsMatrix.M11, centerX, centerY);
             //rect.Transform(matrix);
@@ -214,31 +214,93 @@ namespace Direct2DDXFViewer
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
         {
-            if (!_isRendering)
+
+            GetBrushes(target);
+
+            if (!_dxfLoaded)
+            {
+                LoadDxf(resCache.Factory, target);
+                ExtentsMatrix = GetInitialMatrix();
+                _overallMatrix = ExtentsMatrix;
+                GetInitialView();
+            }
+
+            //if (!_bitmapLoaded)
+            //{
+            //    InitializeBitmapCaches(target);
+            //    InitializeQuadTreeCache(target);
+            //    _bitmapLoaded = true;
+            //}
+
+            UpdateCurrentView();
+
+            if (!_isRendering && deviceContext is not null)
             {
                 _isRendering = true;
-                GetBrushes(target);
+                RenderAsync(deviceContext);
+            }
 
-                if (!_dxfLoaded)
+            //RenderBitmaps(deviceContext);
+        }
+        private async void RenderAsync(DeviceContext1 deviceContext)
+        {
+            while (_isRendering)
+            {
+                if (LayerManager is not null & deviceContext is not null)
                 {
-                    LoadDxf(resCache.Factory, target);
-                    ExtentsMatrix = GetInitialMatrix();
-                    _overallMatrix = ExtentsMatrix;
-                    GetInitialView();
+                    deviceContext.BeginDraw();
+                    deviceContext.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
+                    deviceContext.Clear(new RawColor4(1, 1, 1, 1));
+                    _layerManager.DrawToDeviceContext(deviceContext, 1, _currentView);
+                    deviceContext.EndDraw();
+                    //deviceContext.Flush();
                 }
+                
+                await Task.Delay(100);
+            }
+        }
+        private void RenderBitmaps(DeviceContext1 deviceContext)
+        {
+            if (_quadTreeCache is null) { return; }
 
-                if (!_bitmapLoaded)
+            deviceContext.Clear(new RawColor4(0, 0, 0, 0));
+
+            RenderQuadTrees(deviceContext, _quadTreeCache.CurrentQuadTrees);
+        }
+        private void RenderQuadTrees(DeviceContext1 deviceContext, List<QuadTree> quadTrees)
+        {
+            Brush blackBrush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1.0f));
+
+            foreach (var quadtree in quadTrees)
+            {
+                List<QuadTreeNode> quadTreeNodes = quadtree.GetQuadTreeView(_currentView);
+
+                for (int i = 0; i < quadTreeNodes.Count; i++)
                 {
-                    InitializeBitmapCaches(target);
-                    InitializeQuadTreeCache(target);
-                    _bitmapLoaded = true;
+                    Rect bounds = quadTreeNodes[i].DestRect;
+                    bounds.Transform(_transformMatrix);
+
+                    RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
+                    RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
+
+                    deviceContext.DrawBitmap(quadtree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+                    deviceContext.DrawRectangle(destRect, blackBrush);
+
                 }
+            }
+            blackBrush.Dispose();
+        }
+        private void RenderInteractiveObjects(RenderTarget target)
+        {
+            if (_bitmapCache is not null)
+            {
+                target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
 
-                UpdateCurrentView();
+                RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
 
-                RenderBitmaps(deviceContext);
+                _bitmapCache.UpdateInteractiveObjects(SnappedObject, HighlightedObjects);
 
-                _isRendering = false;
+                target.DrawBitmap(_bitmapCache.InteractiveZoomBitmap.BitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, _bitmapCache.InteractiveZoomBitmap.Rect);
             }
         }
 
@@ -349,50 +411,6 @@ namespace Direct2DDXFViewer
         {
             _quadTreeCache = new(target, resCache.Factory, LayerManager, Extents, ExtentsMatrix, resCache, _zoomFactor);
         }
-        private void RenderBitmaps(DeviceContext1 deviceContext)
-        {
-            if (_quadTreeCache is null) { return; }
-
-            deviceContext.Clear(new RawColor4(0, 0, 0, 0));
-           
-            RenderQuadTrees(deviceContext, _quadTreeCache.CurrentQuadTrees);
-        }
-        private void RenderQuadTrees(DeviceContext1 deviceContext, List<QuadTree> quadTrees)
-        {
-            Brush blackBrush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1.0f));
-
-            foreach (var quadtree in quadTrees)
-            {
-                List<QuadTreeNode> quadTreeNodes = quadtree.GetQuadTreeView(_currentView);
-
-                for (int i = 0; i < quadTreeNodes.Count; i++)
-                {
-                    Rect bounds = quadTreeNodes[i].DestRect;
-                    bounds.Transform(_transformMatrix);
-
-                    RawRectangleF destRect = new((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
-                    RawRectangleF sourceRect = new((float)quadTreeNodes[i].Bounds.Left, (float)quadTreeNodes[i].Bounds.Top, (float)quadTreeNodes[i].Bounds.Right, (float)quadTreeNodes[i].Bounds.Bottom);
-
-                    deviceContext.DrawBitmap(quadtree.OverallBitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
-                    deviceContext.DrawRectangle(destRect, blackBrush);
-
-                }
-            }
-            blackBrush.Dispose();
-        }
-        private void RenderInteractiveObjects(RenderTarget target)
-        {
-            if (_bitmapCache is not null)
-            {
-                target.Transform = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-
-                RawRectangleF destRect = new(0, 0, (float)ActualWidth, (float)ActualHeight);
-
-                _bitmapCache.UpdateInteractiveObjects(SnappedObject, HighlightedObjects);
-
-                target.DrawBitmap(_bitmapCache.InteractiveZoomBitmap.BitmapRenderTarget.Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, _bitmapCache.InteractiveZoomBitmap.Rect);
-            }
-        }
         private async void RunHitTestAsync()
         {
             while (true)
@@ -457,34 +475,27 @@ namespace Direct2DDXFViewer
         {
             while (true)
             {
-                await Task.Delay(2000);
-                await Task.Run(() => GetVisibleObjects());
-            }
-        }
-        private void GetVisibleObjects()
-        {
-            var coordMatrix = _overallMatrix;
-            coordMatrix.Invert();
-
-            Point topLeft = coordMatrix.Transform(new Point(0, 0));
-            Point bottomRight = coordMatrix.Transform(new Point(ActualWidth, ActualHeight));
-            Double width = Math.Abs(bottomRight.X - topLeft.X);
-            Double height = Math.Abs(bottomRight.Y - topLeft.Y);
-            Rect rect = new(topLeft.X, topLeft.Y, width, height);
-
-            foreach (var layer in LayerManager.Layers.Values)
-            {
-                if (layer.IsVisible)
+                if (LayerManager is not null)
                 {
-
+                    foreach (var layer in LayerManager.Layers.Values)
+                    {
+                        if (layer is not null)
+                        {
+                            foreach (var obj in layer.DrawingObjects)
+                            {
+                                obj.IsInView = obj.DrawingObjectIsInRect(_currentDxfView);
+                            }
+                        }
+                    }
                 }
+                await Task.Delay(2000);
             }
         }
         private async void UpdateDxfCoordsAsync()
         {
             while (true)
             {
-                await Task.Delay(75);
+                await Task.Delay(100);
                 await Task.Run(() => UpdateDxfPointerCoords());
             }
         }
@@ -501,7 +512,7 @@ namespace Direct2DDXFViewer
                 _overallMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
                 _transformMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
 
-                _quadTreeCache.UpdateCurrentQuadTree((float)_transformMatrix.M11);
+                //_quadTreeCache.UpdateCurrentQuadTree((float)_transformMatrix.M11);
             }
         }
         private void UpdateTranslate(Vector translate)
@@ -513,12 +524,9 @@ namespace Direct2DDXFViewer
         {
             if (resCache.RenderTarget is not null)
             {
-                _currentView = new(0, 0, resCache.RenderTarget.Size.Width, resCache.RenderTarget.Size.Height);
                 var matrix = _transformMatrix;
                 matrix.Invert();
-                _currentView.Transform(matrix);
-
-                
+                _currentDxfView.Transform(matrix);
             }
         }
         private void GetBrushes(RenderTarget target)

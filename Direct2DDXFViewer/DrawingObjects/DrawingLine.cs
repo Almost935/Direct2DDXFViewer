@@ -1,4 +1,6 @@
-﻿using netDxf.Entities;
+﻿using Direct2DDXFViewer.Helpers;
+using netDxf;
+using netDxf.Entities;
 using netDxf.Units;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
@@ -10,6 +12,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+
+using Point = System.Windows.Point;
 
 namespace Direct2DDXFViewer.DrawingObjects
 {
@@ -69,13 +73,17 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
-        public override void Draw(RenderTarget target, float thickness, Brush brush)
+        public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush)
+        {
+            deviceContext.DrawLine(StartPoint, EndPoint, brush, thickness, StrokeStyle);
+        }
+        public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush)
         {
             target.DrawLine(StartPoint, EndPoint, brush, thickness, StrokeStyle);
         }
-        public override bool DrawingObjectIsInView(Rect rect)
+        public override bool DrawingObjectIsInRect(Rect rect)
         {
-            return true;
+            return MathHelpers.IsLineInRect(rect, new Point(StartPoint.X, StartPoint.Y), new Point(EndPoint.X, EndPoint.Y));
         }
         public override void UpdateGeometry()
         {

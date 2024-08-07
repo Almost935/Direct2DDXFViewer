@@ -164,7 +164,7 @@ namespace Direct2DDXFViewer
             bitmapRenderTarget.Transform = transform;
 
             float thickness = 1.0f / (bitmapRenderTarget.Transform.M11 * zoom);
-            _layerManager.Draw(bitmapRenderTarget, thickness);
+            _layerManager.DrawToRenderTarget(bitmapRenderTarget, thickness, Rect.Empty);
             bitmapRenderTarget.EndDraw();
 
             QuadTree quadTree = new(renderTarget, bitmapRenderTarget.Bitmap, zoom, _maxBitmapSize, dpi,
@@ -209,7 +209,7 @@ namespace Direct2DDXFViewer
                             bitmapRenderTarget.Transform = transform;
 
                             float thickness = 1.0f / (bitmapRenderTarget.Transform.M11 * zoom);
-                            _layerManager.Draw(bitmapRenderTarget, thickness);
+                            _layerManager.DrawToRenderTarget(bitmapRenderTarget, thickness, Rect.Empty);
                             bitmapRenderTarget.EndDraw();
 
                             Rect destRect = new(renderTarget.Size.Width * ((float)i / numTilesWidth), renderTarget.Size.Height * ((float)j / numTilesHeight), destWidth, destHeight);

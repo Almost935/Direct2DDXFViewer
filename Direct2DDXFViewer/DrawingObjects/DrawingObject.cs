@@ -65,6 +65,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         public Brush OuterEdgeBrush { get; set; }
         public StrokeStyle1 StrokeStyle { get; set; }
         public ResourceCache ResCache { get; set; }
+        public bool IsInView { get; set; } = false;
         #endregion
 
         #region Constructor
@@ -78,8 +79,9 @@ namespace Direct2DDXFViewer.DrawingObjects
         #region Methods
         public abstract void UpdateGeometry();
 
-        public abstract void Draw(RenderTarget target, float thickness, Brush brush);
-        public abstract bool DrawingObjectIsInView(Rect rect);
+        public abstract void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush);
+        public abstract void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush);
+        public abstract bool DrawingObjectIsInRect(Rect rect);
 
         public void UpdateBrush()
         {

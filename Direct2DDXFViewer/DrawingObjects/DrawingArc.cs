@@ -44,13 +44,17 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
-        public override void Draw(RenderTarget target, float thickness, Brush brush)
+        public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush)
+        {
+            deviceContext.DrawGeometry(Geometry, brush, thickness, StrokeStyle);
+        }
+        public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush)
         {
             target.DrawGeometry(Geometry, brush, thickness, StrokeStyle);
         }
-        public override bool DrawingObjectIsInView(Rect rect)
+        public override bool DrawingObjectIsInRect(Rect rect)
         {
-            return true;
+            return false;
         }
         public override void UpdateGeometry()
         {
