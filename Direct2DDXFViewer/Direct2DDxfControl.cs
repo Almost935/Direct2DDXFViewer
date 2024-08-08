@@ -52,6 +52,7 @@ namespace Direct2DDXFViewer
         private QuadTreeCache _quadTreeCache;
         private bool _bitmapLoaded = false;
         private bool _disposed = false;
+        private List<DrawingObject> _visibleDrawingObjects = new();
 
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\SmallDxf.dxf";
@@ -60,7 +61,6 @@ namespace Direct2DDXFViewer
         private Rect _extents = new();
         private ObjectLayerManager _layerManager;
         private DrawingObject _snappedObject;
-        private List<DrawingObject> _visibleObjects = new();
 
         private enum SnapMode { Point, Object };
         private SnapMode _snapMode = SnapMode.Point;
@@ -232,10 +232,6 @@ namespace Direct2DDXFViewer
             {
                 _isRendering = true;
                 RenderAsync(deviceContext, target);
-
-                //_isRendering = true;
-                //RenderGeometry(deviceContext, target);
-                //_isRendering = false;
             }
 
             //RenderBitmaps(deviceContext);
@@ -249,9 +245,15 @@ namespace Direct2DDXFViewer
                     UpdateCurrentView();
 
                     deviceContext.BeginDraw();
-                    deviceContext.Clear(new RawColor4(1, 1, 0, 1));
+                    deviceContext.Clear(new RawColor4(1, 1, 1, 1));
                     deviceContext.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
-                    _layerManager.DrawToDeviceContext(deviceContext, 1);
+                    //_layerManager.DrawToDeviceContext(deviceContext, 1);
+
+                    foreach (var drawingObject in _visibleDrawingObjects)
+                    {
+                        drawingObject.DrawToDeviceContext(deviceContext, 1, drawingObject.Brush);
+                    }
+
                     deviceContext.EndDraw();
                     resCache.Device.ImmediateContext.Flush();
                 }
@@ -485,7 +487,7 @@ namespace Direct2DDXFViewer
             {
                 if (LayerManager is not null)
                 {
-                    Debug.WriteLine($"RunGetVisibleObjectsAsync");
+                    int count = 0;
                     foreach (var layer in LayerManager.Layers.Values)
                     {
                         if (layer is not null)
@@ -495,9 +497,16 @@ namespace Direct2DDXFViewer
                                 Rect view = _currentDxfView;
                                 view.Inflate(_currentDxfView.Width * 0.25, _currentDxfView.Height * 0.25);
                                 obj.IsInView = obj.DrawingObjectIsInRect(_currentDxfView);
+
+                                if (obj.IsInView)
+                                {
+                                    _visibleDrawingObjects.Add(obj);
+                                    count++;
+                                }
                             }
                         }
                     }
+                    Debug.WriteLine($"count: {count}");
                 }
                 await Task.Delay(2000);
             }
