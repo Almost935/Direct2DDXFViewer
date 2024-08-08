@@ -13,12 +13,17 @@ namespace Direct2DControl
 
         private Dictionary<string, Func<RenderTarget, object>> generators = new Dictionary<string, Func<RenderTarget, object>>();
         private Dictionary<string, object> resources = new Dictionary<string, object>();
+        private SharpDX.Direct3D11.Device device = null;
         private RenderTarget renderTarget = null;
         private DeviceContext1 deviceContext = null;
         private bool _disposed = false;
 
         // - property --------------------------------------------------------------------
-
+        public SharpDX.Direct3D11.Device Device
+        {
+            get { return device; }
+            set { device = value; UpdateResources(); }
+        }
         public RenderTarget RenderTarget
         {
             get { return renderTarget; }

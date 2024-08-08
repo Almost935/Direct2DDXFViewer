@@ -19,11 +19,11 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
-        public void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Rect view)
+        public void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness)
         {
             foreach (var layer in Layers.Values)
             {
-                layer.DrawToDeviceContext(deviceContext, thickness, view);
+                layer.DrawToDeviceContext(deviceContext, thickness);
             }
         }
         public void DrawToRenderTarget(RenderTarget renderTarget, float thickness, Rect view)

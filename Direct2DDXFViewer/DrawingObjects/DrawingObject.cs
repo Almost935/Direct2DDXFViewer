@@ -65,7 +65,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         public Brush OuterEdgeBrush { get; set; }
         public StrokeStyle1 StrokeStyle { get; set; }
         public ResourceCache ResCache { get; set; }
-        public bool IsInView { get; set; } = false;
+        public bool IsInView { get; set; } = true;
         #endregion
 
         #region Constructor
@@ -146,7 +146,7 @@ namespace Direct2DDXFViewer.DrawingObjects
                 MiterLimit = 10.0f,
                 DashStyle = DashStyle.Solid,
                 DashOffset = 0.0f,
-                TransformType = StrokeTransformType.Normal
+                TransformType = StrokeTransformType.Hairline
             };
             StrokeStyle = new(Factory, ssp);
         }

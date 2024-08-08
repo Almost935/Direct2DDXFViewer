@@ -159,6 +159,7 @@ namespace Direct2DControl
         private void StartD3D()
         {
             device = new SharpDX.Direct3D11.Device(DriverType.Hardware, DeviceCreationFlags.BgraSupport);
+            resCache.Device = device;
             d3DSurface = new Dx11ImageSource();
             d3DSurface.IsFrontBufferAvailableChanged += OnIsFrontBufferAvailableChanged;
 
@@ -255,7 +256,7 @@ namespace Direct2DControl
             {
                 return;
             }
-            
+
             //d2DRenderTarget.BeginDraw();
             Render(d2DRenderTarget, d2DDeviceContext);
             //d2DRenderTarget.EndDraw();

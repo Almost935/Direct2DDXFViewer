@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -59,7 +60,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Rect view)
+        public void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness)
         {
             if (!IsVisible) { return; }
 
@@ -67,7 +68,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 if (drawingObject.IsInView)
                 {
-                    drawingObject.DrawToDeviceContext(deviceContext, thickness, drawingObject.Brush);
+                    drawingObject.DrawToDeviceContext(deviceContext, 1, drawingObject.Brush);
                 }
             }
         }
