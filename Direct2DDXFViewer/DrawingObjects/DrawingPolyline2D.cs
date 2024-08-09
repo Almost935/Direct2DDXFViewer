@@ -55,7 +55,8 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public override bool DrawingObjectIsInRect(Rect rect)
         {
-            return Bounds.IntersectsWith(rect) || Bounds.Contains(rect);
+            return true;
+            //return Bounds.IntersectsWith(rect) || Bounds.Contains(rect);
         }
         public override void UpdateGeometry()
         {
@@ -98,7 +99,7 @@ namespace Direct2DDXFViewer.DrawingObjects
                             Size = new((float)arc.Radius, (float)arc.Radius),
                             SweepDirection = SharpDX.Direct2D1.SweepDirection.CounterClockwise,
                             RotationAngle = (float)sweep
-                        };
+                        }; 
                         arcSegment.ArcSize = isLargeArc ? ArcSize.Large : ArcSize.Small;
 
                         sink.AddArc(arcSegment);
@@ -111,15 +112,17 @@ namespace Direct2DDXFViewer.DrawingObjects
 
                 var bounds = Geometry.GetBounds();
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
+                Debug.WriteLine($"Bounds: {Bounds}");
+                
+                // Simplify the geometry
+                var simplifiedGeometry = new PathGeometry(Factory);
+                using (var simplifiedSink = simplifiedGeometry.Open())
+                {
+                    pathGeometry.Simplify(GeometrySimplificationOption.CubicsAndLines, simplifiedSink);
+                    simplifiedSink.Close();
+                }
 
-                //// Simplify the geometry
-                //var simplifiedGeometry = new PathGeometry(Factory);
-                //using (var simplifiedSink = simplifiedGeometry.Open())
-                //{
-                //    pathGeometry.Simplify(GeometrySimplificationOption.CubicsAndLines, simplifiedSink);
-                //    simplifiedSink.Close();
-                //}
-                //Geometry = simplifiedGeometry;
+                Debug.WriteLine($"simplifiedGeometry.GetBounds(: {simplifiedGeometry.GetBounds()}");
             }
         }
         #endregion

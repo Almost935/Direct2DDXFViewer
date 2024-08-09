@@ -31,11 +31,12 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingPolyline3D(Polyline3D dxfPolyline3D, Factory1 factory, RenderTarget renderTarget)
+        public DrawingPolyline3D(Polyline3D dxfPolyline3D, Factory1 factory, DeviceContext1 deviceContext)
         {
             DxfPolyline3D = dxfPolyline3D;
             Entity = dxfPolyline3D;
             Factory = factory;
+            DeviceContext = deviceContext;
 
             GetStrokeStyle();
             UpdateBrush();

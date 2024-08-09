@@ -32,11 +32,12 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingArc(Arc dxfArc, Factory1 factory, RenderTarget renderTarget)
+        public DrawingArc(Arc dxfArc, Factory1 factory, DeviceContext1 deviceContext)
         {
             DxfArc = dxfArc;
             Entity = dxfArc;
             Factory = factory;
+            DeviceContext = deviceContext;
 
             GetStrokeStyle();
             UpdateBrush();

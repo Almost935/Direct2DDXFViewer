@@ -32,11 +32,12 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingCircle(Circle dxfCircle, Factory1 factory, RenderTarget renderTarget)
+        public DrawingCircle(Circle dxfCircle, Factory1 factory, DeviceContext1 deviceContext)
         {
             DxfCircle = dxfCircle;
             Entity = dxfCircle;
             Factory = factory;
+            DeviceContext = deviceContext;
 
             GetStrokeStyle();
             UpdateBrush();

@@ -119,14 +119,13 @@ namespace Direct2DControl
 
         private void OnRendering(object sender, EventArgs e)
         {
-            if (!renderTimer.IsRunning ||
-                !RenderTargetIsDirty)
+            if (!renderTimer.IsRunning)
             {
                 return;
             }
             PrepareAndCallRender();
             d3DSurface.InvalidateD3DImage();
-            RenderTargetIsDirty = false;
+            //RenderTargetIsDirty = false;
             lastRenderTime = renderTimer.ElapsedMilliseconds;
         }
 
@@ -219,13 +218,14 @@ namespace Direct2DControl
             d2DRenderTarget = new(d2DFactory, surface, rtp);
             resCache.RenderTarget = d2DRenderTarget;
             d2DDeviceContext = d2DRenderTarget.QueryInterface<DeviceContext1>();
+            d2DDeviceContext.AntialiasMode = AntialiasMode.PerPrimitive;
             resCache.DeviceContext = d2DDeviceContext;
             
             d3DSurface.SetRenderTarget(renderTarget);
 
             device.ImmediateContext.Rasterizer.SetViewport(0, 0, width, height, 0.0f, 1.0f);
 
-            RenderTargetIsDirty = true;
+            //RenderTargetIsDirty = true;
         }
 
         private void StartRendering()

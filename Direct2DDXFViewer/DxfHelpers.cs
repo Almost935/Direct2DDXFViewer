@@ -29,6 +29,7 @@ using Layer = SharpDX.Direct2D1.Layer;
 using GeometryGroup = SharpDX.Direct2D1.GeometryGroup;
 using Direct2DDXFViewer.DrawingObjects;
 using netDxf.Units;
+using System.Diagnostics;
 
 namespace Direct2DDXFViewer
 {
@@ -73,12 +74,12 @@ namespace Direct2DDXFViewer
         public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory1 factory,
             DeviceContext1 deviceContext)
         {
-            foreach (var e in dxfDocument.Entities.Lines)
+            foreach (var line in dxfDocument.Entities.Lines)
             {
-                DrawingLine drawingLine = new(e, factory, deviceContext);
+                DrawingLine drawingLine = new(line, factory, deviceContext);
                 drawingLine.UpdateGeometry();
 
-                if (layerManager.Layers.TryGetValue(e.Layer.Name, out ObjectLayer layer))
+                if (layerManager.Layers.TryGetValue(line.Layer.Name, out ObjectLayer layer))
                 {
                     layer.DrawingObjects.Add(drawingLine);
                 }
@@ -86,9 +87,81 @@ namespace Direct2DDXFViewer
                 {
                     ObjectLayer objectLayer = new()
                     {
-                        Name = e.Layer.Name
+                        Name = line.Layer.Name
                     };
                     objectLayer.DrawingObjects.Add(drawingLine);
+                }
+            }
+            foreach (var arc in dxfDocument.Entities.Arcs)
+            {
+                DrawingArc drawingArc = new(arc, factory, deviceContext);
+                drawingArc.UpdateGeometry();
+
+                if (layerManager.Layers.TryGetValue(arc.Layer.Name, out ObjectLayer layer))
+                {
+                    layer.DrawingObjects.Add(drawingArc);
+                }
+                else
+                {
+                    ObjectLayer objectLayer = new()
+                    {
+                        Name = arc.Layer.Name
+                    };
+                    objectLayer.DrawingObjects.Add(drawingArc);
+                }
+            }
+            foreach (var polyline2D in dxfDocument.Entities.Polylines2D)
+            {
+                DrawingPolyline2D drawingPolyline2D = new(polyline2D, factory, deviceContext);
+                drawingPolyline2D.UpdateGeometry();
+
+                if (layerManager.Layers.TryGetValue(polyline2D.Layer.Name, out ObjectLayer layer))
+                {
+                    layer.DrawingObjects.Add(drawingPolyline2D);
+                }
+                else
+                {
+                    ObjectLayer objectLayer = new()
+                    {
+                        Name = polyline2D.Layer.Name
+                    };
+                    objectLayer.DrawingObjects.Add(drawingPolyline2D);
+                }
+            }
+            foreach (var polyline3D in dxfDocument.Entities.Polylines3D)
+            {
+                DrawingPolyline3D drawingPolyline3D = new(polyline3D, factory, deviceContext);
+                drawingPolyline3D.UpdateGeometry();
+
+                if (layerManager.Layers.TryGetValue(polyline3D.Layer.Name, out ObjectLayer layer))
+                {
+                    layer.DrawingObjects.Add(drawingPolyline3D);
+                }
+                else
+                {
+                    ObjectLayer objectLayer = new()
+                    {
+                        Name = polyline3D.Layer.Name
+                    };
+                    objectLayer.DrawingObjects.Add(drawingPolyline3D);
+                }
+            }
+            foreach (var circle in dxfDocument.Entities.Circles)
+            {
+                DrawingCircle drawingCircle = new(circle, factory, deviceContext);
+                drawingCircle.UpdateGeometry();
+
+                if (layerManager.Layers.TryGetValue(circle.Layer.Name, out ObjectLayer layer))
+                {
+                    layer.DrawingObjects.Add(drawingCircle);
+                }
+                else
+                {
+                    ObjectLayer objectLayer = new()
+                    {
+                        Name = circle.Layer.Name
+                    };
+                    objectLayer.DrawingObjects.Add(drawingCircle);
                 }
             }
         }
