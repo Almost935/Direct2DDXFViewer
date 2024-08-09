@@ -54,7 +54,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public override bool DrawingObjectIsInRect(Rect rect)
         {
-            return false;
+            return Bounds.IntersectsWith(rect) || Bounds.Contains(rect);
         }
         public override void UpdateGeometry()
         {
@@ -62,6 +62,9 @@ namespace Direct2DDXFViewer.DrawingObjects
             EllipseGeometry ellipseGeometry = new(Factory, ellipse);
 
             Geometry = ellipseGeometry;
+
+            var bounds = Geometry.GetBounds();
+            Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
         }
         #endregion
     }

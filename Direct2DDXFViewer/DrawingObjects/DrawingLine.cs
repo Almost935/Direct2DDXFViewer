@@ -7,6 +7,7 @@ using SharpDX.Mathematics.Interop;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -58,16 +59,18 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingLine(Line dxfLine, Factory1 factory, RenderTarget renderTarget)
+        public DrawingLine(Line dxfLine, Factory1 factory, DeviceContext1 deviceContext)
         {
             DxfLine = dxfLine;
             Entity = dxfLine;
-            Factory = factory; 
-            Target = renderTarget;
-            StartPoint = new((float)dxfLine.StartPoint.X, (float)dxfLine.StartPoint.Y); 
+            Factory = factory;
+            DeviceContext = deviceContext;
+
+            StartPoint = new((float)dxfLine.StartPoint.X, (float)dxfLine.StartPoint.Y);
             EndPoint = new((float)dxfLine.EndPoint.X, (float)dxfLine.EndPoint.Y);
 
             GetStrokeStyle();
+            GetThickness();
             UpdateBrush();
         }
         #endregion
@@ -83,7 +86,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public override bool DrawingObjectIsInRect(Rect rect)
         {
-            return MathHelpers.IsLineInRect(rect, new Point(StartPoint.X, StartPoint.Y), new Point(EndPoint.X, EndPoint.Y));
+            return Bounds.IntersectsWith(rect) || Bounds.Contains(rect);
         }
         public override void UpdateGeometry()
         {
@@ -94,8 +97,10 @@ namespace Direct2DDXFViewer.DrawingObjects
                 sink.AddLine(new RawVector2((float)DxfLine.EndPoint.X, (float)DxfLine.EndPoint.Y));
                 sink.EndFigure(FigureEnd.Open);
                 sink.Close();
-                
+
                 Geometry = pathGeometry;
+                var bounds = Geometry.GetBounds();
+                Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
             }
         }
         #endregion

@@ -68,7 +68,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 if (drawingObject.IsInView)
                 {
-                    drawingObject.DrawToDeviceContext(deviceContext, 1, drawingObject.Brush);
+                    drawingObject.DrawToDeviceContext(deviceContext, thickness, drawingObject.Brush);
                 }
             }
         }

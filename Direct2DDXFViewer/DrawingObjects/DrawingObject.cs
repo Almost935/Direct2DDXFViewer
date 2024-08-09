@@ -56,14 +56,13 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public EntityObject Entity { get; set; }
         public Geometry Geometry { get; set; }
-        public RectangleGeometry Bounds { get; set; }
-        public Geometry SimplifiedGeometry { get; set; }
-        public RenderTarget Target { get; set; }
+        public Rect Bounds { get; set; }
         public DeviceContext1 DeviceContext { get; set; }
         public Factory1 Factory { get; set; }
         public Brush Brush { get; set; }
         public Brush OuterEdgeBrush { get; set; }
         public StrokeStyle1 StrokeStyle { get; set; }
+        public float Thickness { get; set; } = 0.25f;
         public ResourceCache ResCache { get; set; }
         public bool IsInView { get; set; } = true;
         #endregion
@@ -85,7 +84,7 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public void UpdateBrush()
         {
-            if (Entity is null || Target is null)
+            if (Entity is null || DeviceContext is null)
             {
                 return;
             }
@@ -100,15 +99,15 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 if (Entity.Layer.Color.R == 255 && Entity.Layer.Color.G == 255 && Entity.Layer.Color.B == 255)
                 {
-                    Brush = new SolidColorBrush(Target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
-                    OuterEdgeBrush = new SolidColorBrush(Target, new RawColor4(0.0f, 0.0f, 0.0f, 1));
+                    Brush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                    OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1));
                     OuterEdgeBrush.Opacity = _outerEdgeOpacity;
                 }
                 else
                 {
-                    Brush = new SolidColorBrush(Target,
+                    Brush = new SolidColorBrush(DeviceContext,
                         new RawColor4((float)(Entity.Layer.Color.R / 255), (float)(Entity.Layer.Color.G / 255), (float)(Entity.Layer.Color.B / 255), 1.0f));
-                    OuterEdgeBrush = new SolidColorBrush(Target,
+                    OuterEdgeBrush = new SolidColorBrush(DeviceContext,
                         new RawColor4((float)(Entity.Layer.Color.R / 255), (float)(Entity.Layer.Color.G / 255), (float)(Entity.Layer.Color.B / 255), 1));
                     OuterEdgeBrush.Opacity = _outerEdgeOpacity;
                 }
@@ -117,14 +116,14 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 if (Entity.Color.R == 255 && Entity.Color.G == 255 && Entity.Color.B == 255)
                 {
-                    Brush = new SolidColorBrush(Target, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
-                    OuterEdgeBrush = new SolidColorBrush(Target, new RawColor4(0.0f, 0.0f, 0.0f, 1));
+                    Brush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                    OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1));
                     OuterEdgeBrush.Opacity = _outerEdgeOpacity;
                 }
                 else
                 {
-                    Brush = new SolidColorBrush(Target, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1.0f));
-                    OuterEdgeBrush = new SolidColorBrush(Target, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1f));
+                    Brush = new SolidColorBrush(DeviceContext, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1.0f));
+                    OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1f));
                     OuterEdgeBrush.Opacity = _outerEdgeOpacity;
                 }
             }
@@ -146,18 +145,27 @@ namespace Direct2DDXFViewer.DrawingObjects
                 MiterLimit = 10.0f,
                 DashStyle = DashStyle.Solid,
                 DashOffset = 0.0f,
-                TransformType = StrokeTransformType.Hairline
+                TransformType = StrokeTransformType.Normal
             };
             StrokeStyle = new(Factory, ssp);
+        }
+        public void GetThickness()
+        {
+            if (Entity is null)
+            {
+                return;
+            }
+
+            var lineweight = Entity.Lineweight;
         }
         public void UpdateFactory(Factory1 factory)
         {
             Factory = factory;
             GetStrokeStyle();
         }
-        public void UpdateTarget(RenderTarget target)
+        public void UpdateDeviceContext(DeviceContext1 deviceContext)
         {
-            Target = target;
+            DeviceContext = deviceContext;
             UpdateBrush();
         }
 
@@ -183,8 +191,6 @@ namespace Direct2DDXFViewer.DrawingObjects
                 OuterEdgeBrush?.Dispose();
                 StrokeStyle?.Dispose();
                 Geometry?.Dispose();
-                Bounds?.Dispose();
-                SimplifiedGeometry?.Dispose();
             }
 
             // Free unmanaged resources if any

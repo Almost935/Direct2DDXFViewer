@@ -41,7 +41,7 @@ namespace Direct2DDXFViewer
         #region Fields
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
-        private readonly float _zoomFactor = 1.3f;
+        private readonly float _zoomFactor = 1.25f;
         private bool _isPanning = false;
         private bool _isRendering = false;
         private Point _lastTranslatePos = new();
@@ -156,7 +156,7 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Methods
-        public void LoadDxf(Factory1 factory, RenderTarget target)
+        public void LoadDxf(Factory1 factory, DeviceContext1 deviceContext)
         {
             DxfDoc = DxfDocument.Load(FilePath);
             if (DxfDoc is not null)
@@ -164,7 +164,7 @@ namespace Direct2DDXFViewer
                 _dxfLoaded = true;
                 Extents = DxfHelpers.GetExtentsFromHeader(DxfDoc);
                 LayerManager = DxfHelpers.GetLayers(DxfDoc);
-                DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, target);
+                DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, deviceContext);
             }
         }
 
@@ -208,17 +208,18 @@ namespace Direct2DDXFViewer
             _currentDxfView = InitialView;
         }
 
-        public override void Render(RenderTarget target, DeviceContext1 deviceContext)
+        public override async void Render(RenderTarget target, DeviceContext1 deviceContext)
         {
-
             GetBrushes(target);
 
             if (!_dxfLoaded)
             {
-                LoadDxf(resCache.Factory, target);
+                LoadDxf(resCache.Factory, deviceContext);
                 ExtentsMatrix = GetInitialMatrix();
                 _overallMatrix = ExtentsMatrix;
                 GetInitialView();
+                GetVisibleObjects();
+                _isRendering = false;
             }
 
             //if (!_bitmapLoaded)
@@ -228,30 +229,32 @@ namespace Direct2DDXFViewer
             //    _bitmapLoaded = true;
             //}
 
-            if (!_isRendering && deviceContext is not null && target is not null)
+
+            if (!_isRendering && deviceContext is not null)
             {
+                deviceContext.AntialiasMode = AntialiasMode.PerPrimitive;
                 _isRendering = true;
-                RenderAsync(deviceContext, target);
+                RenderAsync(deviceContext);
             }
 
             //RenderBitmaps(deviceContext);
         }
-        private async void RenderAsync(DeviceContext1 deviceContext, RenderTarget renderTarget)
+        private async void RenderAsync(DeviceContext1 deviceContext)
         {
             while (_isRendering)
             {
                 if (LayerManager is not null & deviceContext is not null)
                 {
-                    UpdateCurrentView();
+                    //UpdateCurrentView();
 
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 1));
                     deviceContext.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
-                    //_layerManager.DrawToDeviceContext(deviceContext, 1);
 
                     foreach (var drawingObject in _visibleDrawingObjects)
                     {
-                        drawingObject.DrawToDeviceContext(deviceContext, 1, drawingObject.Brush);
+                        float thickness = (float)(drawingObject.Thickness / _transformMatrix.M11);
+                        drawingObject.DrawToDeviceContext(deviceContext, thickness, drawingObject.Brush);
                     }
 
                     deviceContext.EndDraw();
@@ -318,7 +321,7 @@ namespace Direct2DDXFViewer
         {
             base.OnRenderSizeChanged(sizeInfo);
 
-            UpdateTargetAndFactory(resCache.RenderTarget, resCache.Factory);
+            UpdateDeviceContextAndFactory(resCache.DeviceContext, resCache.Factory);
 
             ExtentsMatrix = GetInitialMatrix();
             _overallMatrix = ExtentsMatrix;
@@ -481,33 +484,58 @@ namespace Direct2DDXFViewer
         {
 
         }
-        private async void RunGetVisibleObjectsAsync()
+        private void GetVisibleObjects()
         {
-            while (true)
+            if (LayerManager is not null)
             {
-                if (LayerManager is not null)
+                int count = 0;
+                foreach (var layer in LayerManager.Layers.Values)
                 {
-                    int count = 0;
-                    foreach (var layer in LayerManager.Layers.Values)
+                    if (layer is not null)
                     {
-                        if (layer is not null)
+                        foreach (var obj in layer.DrawingObjects)
                         {
-                            foreach (var obj in layer.DrawingObjects)
-                            {
-                                Rect view = _currentDxfView;
-                                view.Inflate(_currentDxfView.Width * 0.25, _currentDxfView.Height * 0.25);
-                                obj.IsInView = obj.DrawingObjectIsInRect(_currentDxfView);
+                            Rect view = _currentDxfView;
+                            view.Inflate(_currentDxfView.Width * 0.25, _currentDxfView.Height * 0.25);
+                            obj.IsInView = obj.DrawingObjectIsInRect(_currentDxfView);
 
-                                if (obj.IsInView)
-                                {
-                                    _visibleDrawingObjects.Add(obj);
-                                    count++;
-                                }
+                            if (obj.IsInView)
+                            {
+                                _visibleDrawingObjects.Add(obj);
+                                count++;
                             }
                         }
                     }
-                    Debug.WriteLine($"count: {count}");
                 }
+            }
+        }
+        private async Task RunGetVisibleObjectsAsync()
+        {
+            while (true)
+            {
+                //if (LayerManager is not null)
+                //{
+                //    int count = 0;
+                //    foreach (var layer in LayerManager.Layers.Values)
+                //    {
+                //        if (layer is not null)
+                //        {
+                //            foreach (var obj in layer.DrawingObjects)
+                //            {
+                //                Rect view = _currentDxfView;
+                //                view.Inflate(_currentDxfView.Width * 0.25, _currentDxfView.Height * 0.25);
+                //                obj.IsInView = obj.DrawingObjectIsInRect(_currentDxfView);
+
+                //                if (obj.IsInView)
+                //                {
+                //                    _visibleDrawingObjects.Add(obj);
+                //                    count++;
+                //                }
+                //            }
+                //        }
+                //    }
+                //}
+                GetVisibleObjects();
                 await Task.Delay(2000);
             }
         }
@@ -557,7 +585,7 @@ namespace Direct2DDXFViewer
             resCache.HighlightedOuterEdgeBrush ??= new SolidColorBrush(target, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f))
             { Opacity = 0.2f };
         }
-        private void UpdateTargetAndFactory(RenderTarget target, Factory1 factory)
+        private void UpdateDeviceContextAndFactory(DeviceContext1 deviceContext, Factory1 factory)
         {
             if (LayerManager is null) { return; }
 
@@ -566,7 +594,7 @@ namespace Direct2DDXFViewer
                 foreach (var o in layer.DrawingObjects)
                 {
                     o.UpdateFactory(factory);
-                    o.UpdateTarget(target);
+                    o.UpdateDeviceContext(deviceContext);
                     o.UpdateGeometry();
                 }
             }

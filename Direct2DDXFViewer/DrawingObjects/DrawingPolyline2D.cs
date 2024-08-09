@@ -32,12 +32,12 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingPolyline2D(Polyline2D dxfPolyline2D, Factory1 factory, RenderTarget renderTarget)
+        public DrawingPolyline2D(Polyline2D dxfPolyline2D, Factory1 factory, DeviceContext1 deviceContext)
         {
             DxfPolyline2D = dxfPolyline2D;
             Entity = dxfPolyline2D;
             Factory = factory;
-            Target = renderTarget;
+            DeviceContext = deviceContext;
 
             GetStrokeStyle();
             UpdateBrush();
@@ -55,7 +55,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public override bool DrawingObjectIsInRect(Rect rect)
         {
-            return false;
+            return Bounds.IntersectsWith(rect) || Bounds.Contains(rect);
         }
         public override void UpdateGeometry()
         {
@@ -108,6 +108,9 @@ namespace Direct2DDXFViewer.DrawingObjects
                 sink.Close();
 
                 Geometry = pathGeometry;
+
+                var bounds = Geometry.GetBounds();
+                Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
 
                 //// Simplify the geometry
                 //var simplifiedGeometry = new PathGeometry(Factory);
