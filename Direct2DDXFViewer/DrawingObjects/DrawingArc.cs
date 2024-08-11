@@ -1,4 +1,5 @@
-﻿using netDxf.Entities;
+﻿using Direct2DControl;
+using netDxf.Entities;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
 using System;
@@ -32,12 +33,13 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingArc(Arc dxfArc, Factory1 factory, DeviceContext1 deviceContext)
+        public DrawingArc(Arc dxfArc, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
         {
             DxfArc = dxfArc;
             Entity = dxfArc;
             Factory = factory;
             DeviceContext = deviceContext;
+            ResCache = resCache;
 
             GetStrokeStyle();
             UpdateBrush();

@@ -10,7 +10,6 @@ namespace Direct2DControl
     public class ResourceCache : IDisposable
     {
         // - field -----------------------------------------------------------------------
-
         private Dictionary<string, Func<RenderTarget, object>> generators = new Dictionary<string, Func<RenderTarget, object>>();
         private Dictionary<string, object> resources = new Dictionary<string, object>();
 
@@ -18,7 +17,6 @@ namespace Direct2DControl
         private RenderTarget renderTarget = null;
         private DeviceContext1 deviceContext = null;
         private bool _disposed = false;
-
         // - property --------------------------------------------------------------------
         public SharpDX.Direct3D11.Device Device
         {
@@ -46,7 +44,9 @@ namespace Direct2DControl
         public Brush HighlightedBrush { get; set; }
         public Brush HighlightedOuterEdgeBrush { get; set; }
         public Dictionary<(byte r, byte g, byte b, byte a), Brush> Brushes { get; set; } = new();
-        public Dictionary<int, StrokeStyle1> StrokeStyles { get; set; } = new();
+
+        public enum LineType { Solid, Dash };
+        public Dictionary<LineType, StrokeStyle1> StrokeStyles { get; set; } = new();
 
         public object this[string key]
         {

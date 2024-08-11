@@ -1,4 +1,5 @@
-﻿using Direct2DDXFViewer.Helpers;
+﻿using Direct2DControl;
+using Direct2DDXFViewer.Helpers;
 using netDxf;
 using netDxf.Entities;
 using netDxf.Units;
@@ -39,12 +40,13 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingLine(Line dxfLine, Factory1 factory, DeviceContext1 deviceContext)
+        public DrawingLine(Line dxfLine, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
         {
             DxfLine = dxfLine;
             Entity = dxfLine;
             Factory = factory;
             DeviceContext = deviceContext;
+            ResCache = resCache;
 
             StartPoint = new((float)dxfLine.StartPoint.X, (float)dxfLine.StartPoint.Y);
             EndPoint = new((float)dxfLine.EndPoint.X, (float)dxfLine.EndPoint.Y);

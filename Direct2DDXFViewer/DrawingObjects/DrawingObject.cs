@@ -163,6 +163,28 @@ namespace Direct2DDXFViewer.DrawingObjects
             //    TransformType = StrokeTransformType.Hairline
             //};
             //StrokeStyle = new(Factory, ssp);
+
+            bool strokeStyleExists = ResCache.StrokeStyles.TryGetValue(ResourceCache.LineType.Solid, value: out StrokeStyle1 strokeStyle);
+            if (!strokeStyleExists)
+            {
+                StrokeStyleProperties1 ssp = new()
+                {
+                    StartCap = CapStyle.Round,
+                    EndCap = CapStyle.Round,
+                    DashCap = CapStyle.Flat,
+                    LineJoin = LineJoin.Round,
+                    MiterLimit = 10.0f,
+                    DashStyle = DashStyle.Solid,
+                    DashOffset = 0.0f,
+                    TransformType = StrokeTransformType.Hairline
+                };
+                StrokeStyle = new(Factory, ssp);
+                ResCache.StrokeStyles.Add(ResourceCache.LineType.Solid, StrokeStyle);
+            }
+            else
+            {
+                StrokeStyle = strokeStyle;
+            }
         }
         public void GetThickness()
         {

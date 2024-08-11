@@ -1,4 +1,5 @@
-﻿using netDxf.Entities;
+﻿using Direct2DControl;
+using netDxf.Entities;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
 using System;
@@ -32,12 +33,13 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingCircle(Circle dxfCircle, Factory1 factory, DeviceContext1 deviceContext)
+        public DrawingCircle(Circle dxfCircle, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
         {
             DxfCircle = dxfCircle;
             Entity = dxfCircle;
             Factory = factory;
             DeviceContext = deviceContext;
+            ResCache = resCache;
 
             GetStrokeStyle();
             UpdateBrush();

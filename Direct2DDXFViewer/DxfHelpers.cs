@@ -30,6 +30,7 @@ using GeometryGroup = SharpDX.Direct2D1.GeometryGroup;
 using Direct2DDXFViewer.DrawingObjects;
 using netDxf.Units;
 using System.Diagnostics;
+using Direct2DControl;
 
 namespace Direct2DDXFViewer
 {
@@ -72,12 +73,12 @@ namespace Direct2DDXFViewer
             return layerManager;
         }
         public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory1 factory,
-            DeviceContext1 deviceContext)
+            DeviceContext1 deviceContext, ResourceCache resCache)
         {
             Debug.WriteLine($"\ndxfDocument.Entities.Lines.Count(): {dxfDocument.Entities.Lines.Count()}");
             foreach (var line in dxfDocument.Entities.Lines)
             {
-                DrawingLine drawingLine = new(line, factory, deviceContext);
+                DrawingLine drawingLine = new(line, factory, deviceContext, resCache);
                 drawingLine.UpdateGeometry();
 
                 if (layerManager.Layers.TryGetValue(line.Layer.Name, out ObjectLayer layer))
@@ -95,7 +96,7 @@ namespace Direct2DDXFViewer
             }
             foreach (var arc in dxfDocument.Entities.Arcs)
             {
-                DrawingArc drawingArc = new(arc, factory, deviceContext);
+                DrawingArc drawingArc = new(arc, factory, deviceContext, resCache);
                 drawingArc.UpdateGeometry();
 
                 if (layerManager.Layers.TryGetValue(arc.Layer.Name, out ObjectLayer layer))
@@ -113,7 +114,7 @@ namespace Direct2DDXFViewer
             }
             foreach (var polyline2D in dxfDocument.Entities.Polylines2D)
             {
-                DrawingPolyline2D drawingPolyline2D = new(polyline2D, factory, deviceContext);
+                DrawingPolyline2D drawingPolyline2D = new(polyline2D, factory, deviceContext, resCache);
                 drawingPolyline2D.UpdateGeometry();
 
                 if (layerManager.Layers.TryGetValue(polyline2D.Layer.Name, out ObjectLayer layer))
@@ -131,7 +132,7 @@ namespace Direct2DDXFViewer
             }
             foreach (var polyline3D in dxfDocument.Entities.Polylines3D)
             {
-                DrawingPolyline3D drawingPolyline3D = new(polyline3D, factory, deviceContext);
+                DrawingPolyline3D drawingPolyline3D = new(polyline3D, factory, deviceContext, resCache);
                 drawingPolyline3D.UpdateGeometry();
 
                 if (layerManager.Layers.TryGetValue(polyline3D.Layer.Name, out ObjectLayer layer))
@@ -149,7 +150,7 @@ namespace Direct2DDXFViewer
             }
             foreach (var circle in dxfDocument.Entities.Circles)
             {
-                DrawingCircle drawingCircle = new(circle, factory, deviceContext);
+                DrawingCircle drawingCircle = new(circle, factory, deviceContext, resCache);
                 drawingCircle.UpdateGeometry();
 
                 if (layerManager.Layers.TryGetValue(circle.Layer.Name, out ObjectLayer layer))

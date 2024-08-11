@@ -1,4 +1,5 @@
-﻿using netDxf.Entities;
+﻿using Direct2DControl;
+using netDxf.Entities;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
 using System;
@@ -35,12 +36,13 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingPolyline2D(Polyline2D dxfPolyline2D, Factory1 factory, DeviceContext1 deviceContext)
+        public DrawingPolyline2D(Polyline2D dxfPolyline2D, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
         {
             DxfPolyline2D = dxfPolyline2D;
             Entity = dxfPolyline2D;
             Factory = factory;
             DeviceContext = deviceContext;
+            ResCache = resCache;
 
             GetStrokeStyle();
             UpdateBrush();
@@ -81,11 +83,11 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 if (e is Line line)
                 {
-                    DrawingSegments.Add(new DrawingLine(line, Factory, DeviceContext));
+                    DrawingSegments.Add(new DrawingLine(line, Factory, DeviceContext, ResCache));
                 }
                 if (e is Arc arc)
                 {
-                    DrawingSegments.Add(new DrawingArc(arc, Factory, DeviceContext));
+                    DrawingSegments.Add(new DrawingArc(arc, Factory, DeviceContext, ResCache));
                 }
             }
 

@@ -32,6 +32,7 @@ using AlphaMode = SharpDX.Direct2D1.AlphaMode;
 using Factory1 = SharpDX.Direct2D1.Factory1;
 using Bitmap = SharpDX.Direct2D1.Bitmap;
 using System.Net.NetworkInformation;
+using Direct2DControl;
 
 namespace Direct2DDXFViewer
 {
@@ -157,7 +158,7 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Methods
-        public void LoadDxf(Factory1 factory, DeviceContext1 deviceContext)
+        public void LoadDxf(Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
         {
             DxfDoc = DxfDocument.Load(FilePath);
             if (DxfDoc is not null)
@@ -165,7 +166,7 @@ namespace Direct2DDXFViewer
                 _dxfLoaded = true;
                 Extents = DxfHelpers.GetExtentsFromHeader(DxfDoc);
                 LayerManager = DxfHelpers.GetLayers(DxfDoc);
-                DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, deviceContext);
+                DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, deviceContext, resCache);
 
                 _offscreenRenderTarget = new(deviceContext, CompatibleRenderTargetOptions.None, new PixelFormat(Format.Unknown, AlphaMode.Premultiplied));
             }
@@ -250,7 +251,7 @@ namespace Direct2DDXFViewer
 
             if (!_dxfLoaded)
             {
-                LoadDxf(resCache.Factory, deviceContext);
+                LoadDxf(resCache.Factory, deviceContext, resCache);
                 ExtentsMatrix = GetInitialMatrix();
                 _overallMatrix = ExtentsMatrix;
                 GetInitialView();
