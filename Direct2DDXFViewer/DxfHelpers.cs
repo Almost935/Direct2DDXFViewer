@@ -74,6 +74,7 @@ namespace Direct2DDXFViewer
         public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory1 factory,
             DeviceContext1 deviceContext)
         {
+            Debug.WriteLine($"\ndxfDocument.Entities.Lines.Count(): {dxfDocument.Entities.Lines.Count()}");
             foreach (var line in dxfDocument.Entities.Lines)
             {
                 DrawingLine drawingLine = new(line, factory, deviceContext);
@@ -164,6 +165,8 @@ namespace Direct2DDXFViewer
                     objectLayer.DrawingObjects.Add(drawingCircle);
                 }
             }
+
+            Debug.WriteLine($"\nDone Loading Drawing Objects.\n");
         }
 
 

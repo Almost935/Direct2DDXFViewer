@@ -17,6 +17,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="BitmapHelpers\InteractiveBitmap.cs" />
+    <Compile Remove="BitmapHelpers\ZoomBitmap.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="bin\Debug\net8.0-windows\DXF\SmallDxf.dxf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

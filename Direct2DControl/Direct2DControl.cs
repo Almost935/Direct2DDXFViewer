@@ -41,7 +41,6 @@ namespace Direct2DControl
         /// <summary>
         /// Decides whether or not the image needs to be refreshed.
         /// </summary>
-        public bool RenderTargetIsDirty { get; set; } = true;
 
         public static bool IsInDesignMode
         {
@@ -125,7 +124,6 @@ namespace Direct2DControl
             }
             PrepareAndCallRender();
             d3DSurface.InvalidateD3DImage();
-            //RenderTargetIsDirty = false;
             lastRenderTime = renderTimer.ElapsedMilliseconds;
         }
 
@@ -224,8 +222,6 @@ namespace Direct2DControl
             d3DSurface.SetRenderTarget(renderTarget);
 
             device.ImmediateContext.Rasterizer.SetViewport(0, 0, width, height, 0.0f, 1.0f);
-
-            //RenderTargetIsDirty = true;
         }
 
         private void StartRendering()

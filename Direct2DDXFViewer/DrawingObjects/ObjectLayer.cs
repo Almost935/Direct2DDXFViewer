@@ -72,7 +72,7 @@ namespace Direct2DDXFViewer.DrawingObjects
                 }
             }
         }
-        public void DrawToRenderTarget(RenderTarget renderTarget, float thickness, Rect view)
+        public void DrawToRenderTarget(RenderTarget renderTarget, float thickness)
         {
             if (!IsVisible) { return; }
 

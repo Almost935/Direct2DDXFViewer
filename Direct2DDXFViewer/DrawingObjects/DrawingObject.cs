@@ -94,60 +94,75 @@ namespace Direct2DDXFViewer.DrawingObjects
                 Brush.Dispose();
                 Brush = null;
             }
-
+            byte r, g, b, a;
             if (Entity.Color.IsByLayer)
             {
                 if (Entity.Layer.Color.R == 255 && Entity.Layer.Color.G == 255 && Entity.Layer.Color.B == 255)
                 {
-                    Brush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
-                    OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1));
-                    OuterEdgeBrush.Opacity = _outerEdgeOpacity;
+                    r = g = b = 0; a = 255;
+                    //Brush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                    //OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1));
+                    //OuterEdgeBrush.Opacity = _outerEdgeOpacity;
                 }
                 else
                 {
-                    Brush = new SolidColorBrush(DeviceContext,
-                        new RawColor4((float)(Entity.Layer.Color.R / 255), (float)(Entity.Layer.Color.G / 255), (float)(Entity.Layer.Color.B / 255), 1.0f));
-                    OuterEdgeBrush = new SolidColorBrush(DeviceContext,
-                        new RawColor4((float)(Entity.Layer.Color.R / 255), (float)(Entity.Layer.Color.G / 255), (float)(Entity.Layer.Color.B / 255), 1));
-                    OuterEdgeBrush.Opacity = _outerEdgeOpacity;
+                    r = Entity.Layer.Color.R; g = Entity.Layer.Color.G; b = Entity.Layer.Color.B; a = 255;
+                    //Brush = new SolidColorBrush(DeviceContext,
+                    //    new RawColor4((float)(Entity.Layer.Color.R / 255), (float)(Entity.Layer.Color.G / 255), (float)(Entity.Layer.Color.B / 255), 1.0f));
+                    //OuterEdgeBrush = new SolidColorBrush(DeviceContext,
+                    //    new RawColor4((float)(Entity.Layer.Color.R / 255), (float)(Entity.Layer.Color.G / 255), (float)(Entity.Layer.Color.B / 255), 1));
+                    //OuterEdgeBrush.Opacity = _outerEdgeOpacity;
                 }
             }
             else
             {
                 if (Entity.Color.R == 255 && Entity.Color.G == 255 && Entity.Color.B == 255)
                 {
-                    Brush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
-                    OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1));
-                    OuterEdgeBrush.Opacity = _outerEdgeOpacity;
+                    r = g = b = 0; a = 255;
+                    //Brush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
+                    //OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1));
+                    //OuterEdgeBrush.Opacity = _outerEdgeOpacity;
                 }
                 else
                 {
-                    Brush = new SolidColorBrush(DeviceContext, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1.0f));
-                    OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1f));
-                    OuterEdgeBrush.Opacity = _outerEdgeOpacity;
+                    r = Entity.Color.R; g = Entity.Color.G; b = Entity.Color.B; a = 255;
+                    //Brush = new SolidColorBrush(DeviceContext, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1.0f));
+                    //OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1f));
+                    //OuterEdgeBrush.Opacity = _outerEdgeOpacity;
                 }
+            }
+
+            bool brushExisted = ResCache.Brushes.TryGetValue((r, g, b, a), value: out Brush brush);
+            if (!brushExisted)
+            {
+                Brush = new SolidColorBrush(DeviceContext, new RawColor4((float)r / 255, (float)g / 255, (float)b / 255, 1.0f));
+                ResCache.Brushes.Add((r, g, b, a), Brush);
+            }
+            else
+            {
+                Brush = brush;
             }
         }
 
         public void GetStrokeStyle()
         {
-            if (StrokeStyle is not null)
-            {
-                StrokeStyle.Dispose();
-                StrokeStyle = null;
-            }
-            StrokeStyleProperties1 ssp = new()
-            {
-                StartCap = CapStyle.Round,
-                EndCap = CapStyle.Round,
-                DashCap = CapStyle.Flat,
-                LineJoin = LineJoin.Round,
-                MiterLimit = 10.0f,
-                DashStyle = DashStyle.Solid,
-                DashOffset = 0.0f,
-                TransformType = StrokeTransformType.Hairline
-            };
-            StrokeStyle = new(Factory, ssp);
+            //if (StrokeStyle is not null)
+            //{
+            //    StrokeStyle.Dispose();
+            //    StrokeStyle = null;
+            //}
+            //StrokeStyleProperties1 ssp = new()
+            //{
+            //    StartCap = CapStyle.Round,
+            //    EndCap = CapStyle.Round,
+            //    DashCap = CapStyle.Flat,
+            //    LineJoin = LineJoin.Round,
+            //    MiterLimit = 10.0f,
+            //    DashStyle = DashStyle.Solid,
+            //    DashOffset = 0.0f,
+            //    TransformType = StrokeTransformType.Hairline
+            //};
+            //StrokeStyle = new(Factory, ssp);
         }
         public void GetThickness()
         {

@@ -26,11 +26,11 @@ namespace Direct2DDXFViewer.DrawingObjects
                 layer.DrawToDeviceContext(deviceContext, thickness);
             }
         }
-        public void DrawToRenderTarget(RenderTarget renderTarget, float thickness, Rect view)
+        public void DrawToRenderTarget(RenderTarget renderTarget, float thickness)
         {
             foreach (var layer in Layers.Values)
             {
-                layer.DrawToRenderTarget(renderTarget, thickness, view);
+                layer.DrawToRenderTarget(renderTarget, thickness);
             }
         }
 

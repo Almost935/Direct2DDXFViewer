@@ -13,7 +13,7 @@ using System.Windows;
 
 namespace Direct2DDXFViewer.DrawingObjects
 {
-    public class DrawingArc : DrawingObject
+    public class DrawingArc : DrawingSegment
     {
         #region Fields
         private Arc _dxfArc;
@@ -60,10 +60,10 @@ namespace Direct2DDXFViewer.DrawingObjects
         public override void UpdateGeometry()
         {
             // Start by getting start and end points using NetDxf ToPolyline2D method
-            RawVector2 start = new(
+            StartPoint = new(
                 (float)DxfArc.ToPolyline2D(2).Vertexes.First().Position.X,
                 (float)DxfArc.ToPolyline2D(2).Vertexes.First().Position.Y);
-            RawVector2 end = new(
+            EndPoint = new(
                 (float)DxfArc.ToPolyline2D(2).Vertexes.Last().Position.X,
                 (float)DxfArc.ToPolyline2D(2).Vertexes.Last().Position.Y);
 
@@ -83,13 +83,13 @@ namespace Direct2DDXFViewer.DrawingObjects
 
             using (var sink = pathGeometry.Open())
             {
-                sink.BeginFigure(start, FigureBegin.Filled);
+                sink.BeginFigure(StartPoint, FigureBegin.Filled);
 
                 ArcSegment arcSegment = new()
                 {
-                    Point = end,
+                    Point = EndPoint,
                     Size = new((float)DxfArc.Radius, (float)DxfArc.Radius),
-                    SweepDirection = SharpDX.Direct2D1.SweepDirection.CounterClockwise,
+                    SweepDirection = SweepDirection.CounterClockwise,
                     RotationAngle = (float)sweep,
                     ArcSize = isLargeArc ? ArcSize.Large : ArcSize.Small
                 };

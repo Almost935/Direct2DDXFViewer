@@ -18,12 +18,10 @@ using Point = System.Windows.Point;
 
 namespace Direct2DDXFViewer.DrawingObjects
 {
-    public class DrawingLine : DrawingObject
+    public class DrawingLine : DrawingSegment
     {
         #region Fields
         private Line _dxfLine;
-        private RawVector2 _startPoint;
-        private RawVector2 _endPoint;
         #endregion
 
         #region Properties
@@ -34,24 +32,6 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 _dxfLine = value;
                 OnPropertyChanged(nameof(DxfLine));
-            }
-        }
-        public RawVector2 StartPoint
-        {
-            get { return _startPoint; }
-            set
-            {
-                _startPoint = value;
-                OnPropertyChanged(nameof(StartPoint));
-            }
-        }
-        public RawVector2 EndPoint
-        {
-            get { return _endPoint; }
-            set
-            {
-                _endPoint = value;
-                OnPropertyChanged(nameof(EndPoint));
             }
         }
 

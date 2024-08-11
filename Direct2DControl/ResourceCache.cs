@@ -13,6 +13,7 @@ namespace Direct2DControl
 
         private Dictionary<string, Func<RenderTarget, object>> generators = new Dictionary<string, Func<RenderTarget, object>>();
         private Dictionary<string, object> resources = new Dictionary<string, object>();
+
         private SharpDX.Direct3D11.Device device = null;
         private RenderTarget renderTarget = null;
         private DeviceContext1 deviceContext = null;
@@ -44,6 +45,8 @@ namespace Direct2DControl
         public int MaxBitmapSize { get; set; }
         public Brush HighlightedBrush { get; set; }
         public Brush HighlightedOuterEdgeBrush { get; set; }
+        public Dictionary<(byte r, byte g, byte b, byte a), Brush> Brushes { get; set; } = new();
+        public Dictionary<int, StrokeStyle1> StrokeStyles { get; set; } = new();
 
         public object this[string key]
         {
