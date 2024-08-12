@@ -174,8 +174,30 @@ namespace Direct2DControl
                     Clear();
                     Disposer.SafeDispose(ref renderTarget);
                     Disposer.SafeDispose(ref deviceContext);
-                    HighlightedBrush.Dispose();
-                    HighlightedOuterEdgeBrush.Dispose();
+
+                    if (HighlightedBrush != null)
+                    {
+                        HighlightedBrush.Dispose();
+                        HighlightedBrush = null;
+                    }
+
+                    if (HighlightedOuterEdgeBrush != null)
+                    {
+                        HighlightedOuterEdgeBrush.Dispose();
+                        HighlightedOuterEdgeBrush = null;
+                    }
+
+                    foreach (var brush in Brushes.Values)
+                    {
+                        brush.Dispose();
+                    }
+                    Brushes.Clear();
+
+                    foreach (var strokeStyle in StrokeStyles.Values)
+                    {
+                        strokeStyle.Dispose();
+                    }
+                    StrokeStyles.Clear();
                 }
 
                 // Free unmanaged resources (if any)

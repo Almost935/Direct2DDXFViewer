@@ -33,14 +33,16 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingArc(Arc dxfArc, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
+        public DrawingArc(Arc dxfArc, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache, ObjectLayer layer)
         {
             DxfArc = dxfArc;
             Entity = dxfArc;
             Factory = factory;
             DeviceContext = deviceContext;
             ResCache = resCache;
+            Layer = layer;
 
+            UpdateGeometry();
             GetStrokeStyle();
             UpdateBrush();
         }
@@ -68,7 +70,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             EndPoint = new(
                 (float)DxfArc.ToPolyline2D(2).Vertexes.Last().Position.X,
                 (float)DxfArc.ToPolyline2D(2).Vertexes.Last().Position.Y);
-
+            
             // Get sweep and find out if large arc 
             double sweep;
             if (DxfArc.EndAngle < DxfArc.StartAngle)
@@ -82,19 +84,19 @@ namespace Direct2DDXFViewer.DrawingObjects
             bool isLargeArc = sweep >= 180;
 
             PathGeometry pathGeometry = new(Factory);
-
             using (var sink = pathGeometry.Open())
             {
                 sink.BeginFigure(StartPoint, FigureBegin.Filled);
-
+                
                 ArcSegment arcSegment = new()
                 {
                     Point = EndPoint,
                     Size = new((float)DxfArc.Radius, (float)DxfArc.Radius),
-                    SweepDirection = SweepDirection.CounterClockwise,
+                    SweepDirection = SweepDirection.Clockwise,
                     RotationAngle = (float)sweep,
                     ArcSize = isLargeArc ? ArcSize.Large : ArcSize.Small
                 };
+
                 sink.AddArc(arcSegment);
                 sink.EndFigure(FigureEnd.Open);
                 sink.Close();

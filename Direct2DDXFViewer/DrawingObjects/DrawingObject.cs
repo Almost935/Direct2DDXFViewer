@@ -65,6 +65,8 @@ namespace Direct2DDXFViewer.DrawingObjects
         public float Thickness { get; set; } = 0.25f;
         public ResourceCache ResCache { get; set; }
         public bool IsInView { get; set; } = true;
+        public bool IsPartOfBlock { get; set; } = false;
+        public DrawingBlock Block { get; set; }
         #endregion
 
         #region Constructor

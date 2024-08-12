@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+
 using Ellipse = SharpDX.Direct2D1.Ellipse;
 
 namespace Direct2DDXFViewer.DrawingObjects
@@ -33,14 +34,16 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructor
-        public DrawingCircle(Circle dxfCircle, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
+        public DrawingCircle(Circle dxfCircle, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache, ObjectLayer layer)
         {
             DxfCircle = dxfCircle;
             Entity = dxfCircle;
             Factory = factory;
             DeviceContext = deviceContext;
             ResCache = resCache;
+            Layer = layer;
 
+            UpdateGeometry();
             GetStrokeStyle();
             UpdateBrush();
         }

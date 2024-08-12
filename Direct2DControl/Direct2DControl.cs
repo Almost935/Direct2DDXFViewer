@@ -216,7 +216,6 @@ namespace Direct2DControl
             d2DRenderTarget = new(d2DFactory, surface, rtp);
             resCache.RenderTarget = d2DRenderTarget;
             d2DDeviceContext = d2DRenderTarget.QueryInterface<DeviceContext1>();
-            d2DDeviceContext.AntialiasMode = AntialiasMode.PerPrimitive;
             resCache.DeviceContext = d2DDeviceContext;
             
             d3DSurface.SetRenderTarget(renderTarget);

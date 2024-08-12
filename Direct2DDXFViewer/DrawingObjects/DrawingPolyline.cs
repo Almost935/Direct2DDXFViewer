@@ -24,28 +24,37 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
-        public override bool DrawingObjectIsInRect(Rect rect)
-        {
-            // Implement logic to determine if the polyline is within the given rectangle
-            throw new NotImplementedException();
-        }
-
         public override void UpdateGeometry()
         {
             // Implement logic to update the geometry of the polyline
             throw new NotImplementedException();
         }
 
-        public override void DrawToDeviceContext(DeviceContext1 deviceContext, float strokeWidth, Brush brush)
+        public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush)
         {
-            // Implement logic to draw the polyline to the device context
-            throw new NotImplementedException();
+            foreach (var segment in DrawingSegments)
+            {
+                segment.DrawToRenderTarget(deviceContext, thickness, brush);
+            }
+        }
+        public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush)
+        {
+            foreach (var segment in DrawingSegments)
+            {
+                segment.DrawToRenderTarget(target, thickness, brush);
+            }
         }
 
-        public override void DrawToRenderTarget(RenderTarget renderTarget, float strokeWidth, Brush brush)
+        public override bool DrawingObjectIsInRect(Rect rect)
         {
-            // Implement logic to draw the polyline to the render target
-            throw new NotImplementedException();
+            foreach (var segment in DrawingSegments)
+            {
+                if (segment.DrawingObjectIsInRect(rect))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
         #endregion
     }

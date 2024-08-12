@@ -75,101 +75,87 @@ namespace Direct2DDXFViewer
         public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory1 factory,
             DeviceContext1 deviceContext, ResourceCache resCache)
         {
-            Debug.WriteLine($"\ndxfDocument.Entities.Lines.Count(): {dxfDocument.Entities.Lines.Count()}");
             foreach (var line in dxfDocument.Entities.Lines)
             {
-                DrawingLine drawingLine = new(line, factory, deviceContext, resCache);
-                drawingLine.UpdateGeometry();
-
-                if (layerManager.Layers.TryGetValue(line.Layer.Name, out ObjectLayer layer))
-                {
-                    layer.DrawingObjects.Add(drawingLine);
-                }
-                else
-                {
-                    ObjectLayer objectLayer = new()
-                    {
-                        Name = line.Layer.Name
-                    };
-                    objectLayer.DrawingObjects.Add(drawingLine);
-                }
+                ObjectLayer layer = layerManager.GetLayer(line.Layer.Name);
+                DrawingLine drawingLine = new(line, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingLine);
             }
             foreach (var arc in dxfDocument.Entities.Arcs)
             {
-                DrawingArc drawingArc = new(arc, factory, deviceContext, resCache);
-                drawingArc.UpdateGeometry();
-
-                if (layerManager.Layers.TryGetValue(arc.Layer.Name, out ObjectLayer layer))
-                {
-                    layer.DrawingObjects.Add(drawingArc);
-                }
-                else
-                {
-                    ObjectLayer objectLayer = new()
-                    {
-                        Name = arc.Layer.Name
-                    };
-                    objectLayer.DrawingObjects.Add(drawingArc);
-                }
+                ObjectLayer layer = layerManager.GetLayer(arc.Layer.Name);
+                DrawingArc drawingArc = new(arc, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingArc);
             }
             foreach (var polyline2D in dxfDocument.Entities.Polylines2D)
             {
-                DrawingPolyline2D drawingPolyline2D = new(polyline2D, factory, deviceContext, resCache);
-                drawingPolyline2D.UpdateGeometry();
-
-                if (layerManager.Layers.TryGetValue(polyline2D.Layer.Name, out ObjectLayer layer))
-                {
-                    layer.DrawingObjects.Add(drawingPolyline2D);
-                }
-                else
-                {
-                    ObjectLayer objectLayer = new()
-                    {
-                        Name = polyline2D.Layer.Name
-                    };
-                    objectLayer.DrawingObjects.Add(drawingPolyline2D);
-                }
+                ObjectLayer layer = layerManager.GetLayer(polyline2D.Layer.Name);
+                DrawingPolyline2D drawingPolyline2D = new(polyline2D, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingPolyline2D);
             }
             foreach (var polyline3D in dxfDocument.Entities.Polylines3D)
             {
-                DrawingPolyline3D drawingPolyline3D = new(polyline3D, factory, deviceContext, resCache);
-                drawingPolyline3D.UpdateGeometry();
-
-                if (layerManager.Layers.TryGetValue(polyline3D.Layer.Name, out ObjectLayer layer))
-                {
-                    layer.DrawingObjects.Add(drawingPolyline3D);
-                }
-                else
-                {
-                    ObjectLayer objectLayer = new()
-                    {
-                        Name = polyline3D.Layer.Name
-                    };
-                    objectLayer.DrawingObjects.Add(drawingPolyline3D);
-                }
+                ObjectLayer layer = layerManager.GetLayer(polyline3D.Layer.Name);
+                DrawingPolyline3D drawingPolyline3D = new(polyline3D, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingPolyline3D);
             }
             foreach (var circle in dxfDocument.Entities.Circles)
             {
-                DrawingCircle drawingCircle = new(circle, factory, deviceContext, resCache);
-                drawingCircle.UpdateGeometry();
-
-                if (layerManager.Layers.TryGetValue(circle.Layer.Name, out ObjectLayer layer))
-                {
-                    layer.DrawingObjects.Add(drawingCircle);
-                }
-                else
-                {
-                    ObjectLayer objectLayer = new()
-                    {
-                        Name = circle.Layer.Name
-                    };
-                    objectLayer.DrawingObjects.Add(drawingCircle);
-                }
+                ObjectLayer layer = layerManager.GetLayer(circle.Layer.Name);
+                DrawingCircle drawingCircle = new(circle, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingCircle);
             }
+            foreach (var block in dxfDocument.Entities.Inserts)
+            {
+               ObjectLayer layer = layerManager.GetLayer(block.Layer.Name);
+                DrawingBlock drawingBlock = new(block, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingBlock);
+            }
+            foreach (var ellipse in dxfDocument.Entities.Ellipses)
+            {
+                ObjectLayer layer = layerManager.GetLayer(ellipse.Layer.Name);
+                DrawingEllipse drawingEllipse = new(ellipse, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingEllipse);
+            }
+        }
+        public static DrawingObject GetDrawingObject(EntityObject entity, ObjectLayer layer, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
+        {
+            switch (entity) 
+            {                 
+                case Line line:
+                    return new DrawingLine(line, factory, deviceContext, resCache, layer);
 
-            Debug.WriteLine($"\nDone Loading Drawing Objects.\n");
+                case Arc arc:
+                    return new DrawingArc(arc, factory, deviceContext, resCache, layer);
+
+                case Polyline2D polyline2D:
+                    return new DrawingPolyline2D(polyline2D, factory, deviceContext, resCache, layer);
+
+                case Polyline3D polyline3D:
+                    return new DrawingPolyline3D(polyline3D, factory, deviceContext, resCache, layer);
+
+                case Circle circle:
+                    return new DrawingCircle(circle, factory, deviceContext, resCache, layer);
+
+                default:
+                    return null;
+            }
         }
 
+        public static DrawingSegment GetDrawingSegment(EntityObject entity, ObjectLayer layer, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
+        {
+            switch (entity)
+            {
+                case Line line:
+                    return new DrawingLine(line, factory, deviceContext, resCache, layer);
+
+                case Arc arc:
+                    return new DrawingArc(arc, factory, deviceContext, resCache, layer);
+
+                default:
+                    return null;
+            }
+        }
 
         public static RawColor4 GetEntityColor(EntityObject entity)
         {

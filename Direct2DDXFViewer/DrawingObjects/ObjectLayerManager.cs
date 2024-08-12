@@ -1,4 +1,5 @@
-﻿using SharpDX.Direct2D1;
+﻿using netDxf.Units;
+using SharpDX.Direct2D1;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +20,16 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
+        public ObjectLayer GetLayer(string layerName)
+        {
+            if (Layers.TryGetValue(layerName, out ObjectLayer layer)) { return layer; }
+            else
+            {
+                ObjectLayer objectLayer = new() { Name = layerName };
+                Layers.Add(layerName, objectLayer);
+                return objectLayer;
+            }
+        }
         public void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness)
         {
             foreach (var layer in Layers.Values)

@@ -25,8 +25,18 @@
     <None Include="bin\Debug\net8.0-windows\DXF\SmallDxf.dxf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="bin\Debug\net8.0-windows\DXF\LargeDxf.dxf" />
-    <None Include="bin\Debug\net8.0-windows\DXF\MediumDxf.dxf" />
+    <None Include="bin\Debug\net8.0-windows\DXF\LargeDxf.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="bin\Debug\net8.0-windows\DXF\MediumDxf.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="bin\Debug\net8.0-windows\DXF\TestDxf.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="bin\Debug\net8.0-windows\DXF\TestSmallDxf.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

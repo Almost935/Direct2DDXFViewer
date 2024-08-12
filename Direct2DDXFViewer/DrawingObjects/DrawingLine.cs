@@ -35,22 +35,22 @@ namespace Direct2DDXFViewer.DrawingObjects
                 OnPropertyChanged(nameof(DxfLine));
             }
         }
-
-        public float CurrentScale { get; set; } = 1;
         #endregion
 
         #region Constructor
-        public DrawingLine(Line dxfLine, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
+        public DrawingLine(Line dxfLine, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache, ObjectLayer layer)
         {
             DxfLine = dxfLine;
             Entity = dxfLine;
             Factory = factory;
             DeviceContext = deviceContext;
             ResCache = resCache;
+            Layer = layer;
 
             StartPoint = new((float)dxfLine.StartPoint.X, (float)dxfLine.StartPoint.Y);
             EndPoint = new((float)dxfLine.EndPoint.X, (float)dxfLine.EndPoint.Y);
 
+            UpdateGeometry();
             GetStrokeStyle();
             GetThickness();
             UpdateBrush();
