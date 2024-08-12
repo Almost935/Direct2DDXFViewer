@@ -25,6 +25,7 @@ namespace Direct2DControl
         private RenderTarget d2DRenderTarget;
         private DeviceContext1 d2DDeviceContext;
         private SharpDX.Direct2D1.Factory1 d2DFactory;
+        private SharpDX.DirectWrite.Factory dWriteFactory;
 
         private readonly Stopwatch renderTimer = new();
 
@@ -211,7 +212,9 @@ namespace Direct2DControl
             resCache.MaxBitmapSize = GetMaxSize(renderTarget.Device.FeatureLevel);
             var surface = renderTarget.QueryInterface<Surface>();
             d2DFactory = new SharpDX.Direct2D1.Factory1(FactoryType.MultiThreaded, DebugLevel.Information);
+            var factory = new SharpDX.DirectWrite.Factory1(SharpDX.DirectWrite.FactoryType.Shared);
             resCache.Factory = d2DFactory;
+            resCache.FactoryWrite = factory;
             var rtp = new RenderTargetProperties(new PixelFormat(Format.Unknown, SharpDX.Direct2D1.AlphaMode.Premultiplied));
             d2DRenderTarget = new(d2DFactory, surface, rtp);
             resCache.RenderTarget = d2DRenderTarget;

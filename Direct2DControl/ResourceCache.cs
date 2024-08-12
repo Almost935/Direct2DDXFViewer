@@ -1,9 +1,11 @@
 ﻿using SharpDX.Direct2D1;
+using SharpDX.DirectWrite;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Factory1 = SharpDX.Direct2D1.Factory1;
 
 namespace Direct2DControl
 {
@@ -16,6 +18,8 @@ namespace Direct2DControl
         private SharpDX.Direct3D11.Device device = null;
         private RenderTarget renderTarget = null;
         private DeviceContext1 deviceContext = null;
+        private Factory1 factory = null;
+        private SharpDX.DirectWrite.Factory1 factoryWrite = null;
         private bool _disposed = false;
         // - property --------------------------------------------------------------------
         public SharpDX.Direct3D11.Device Device
@@ -33,13 +37,22 @@ namespace Direct2DControl
             get { return deviceContext; }
             set { deviceContext = value; UpdateResources(); }
         }
+        public Factory1 Factory
+        {
+            get { return factory; }
+            set { factory = value; UpdateResources(); }
+        }
+        public SharpDX.DirectWrite.Factory1 FactoryWrite
+        {
+            get { return factoryWrite; }
+            set { factoryWrite = value; UpdateResources(); }
+        }
 
         public int Count
         {
             get { return resources.Count; }
         }
 
-        public Factory1 Factory { get; set; }
         public int MaxBitmapSize { get; set; }
         public Brush HighlightedBrush { get; set; }
         public Brush HighlightedOuterEdgeBrush { get; set; }
@@ -47,6 +60,8 @@ namespace Direct2DControl
 
         public enum LineType { Solid, Dash };
         public Dictionary<LineType, StrokeStyle1> StrokeStyles { get; set; } = new();
+
+        public Dictionary<string, TextFormat1> TextFormats { get; set; } = new();
 
         public object this[string key]
         {
@@ -174,6 +189,9 @@ namespace Direct2DControl
                     Clear();
                     Disposer.SafeDispose(ref renderTarget);
                     Disposer.SafeDispose(ref deviceContext);
+                    Disposer.SafeDispose(ref device);
+                    Disposer.SafeDispose(ref factory);
+                    Disposer.SafeDispose(ref factoryWrite);
 
                     if (HighlightedBrush != null)
                     {
@@ -198,6 +216,12 @@ namespace Direct2DControl
                         strokeStyle.Dispose();
                     }
                     StrokeStyles.Clear();
+
+                    foreach (var textFormat in TextFormats.Values)
+                    {
+                        textFormat.Dispose();
+                    }
+                    TextFormats.Clear();
                 }
 
                 // Free unmanaged resources (if any)

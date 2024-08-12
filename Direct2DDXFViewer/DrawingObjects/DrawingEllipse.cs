@@ -80,107 +80,111 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             if (DxfEllipse.IsFullEllipse)
             {
-                // Extract properties from the netDxf Ellipse
-                var center = DxfEllipse.Center;
-                double majorAxis = DxfEllipse.MajorAxis;
-                double minorAxis = DxfEllipse.MinorAxis;
-                double rotation = DxfEllipse.Rotation; // Rotation in degrees
-
-                // Convert center coordinates and axes to SharpDX format
-                var centerPoint = new RawVector2((float)center.X, (float)center.Y);
-                var width = (float)(majorAxis);
-                var height = (float)(minorAxis);
-
-                Matrix matrix = new();
-                matrix.RotateAt((float)rotation, centerPoint.X, centerPoint.Y);
-
-                // Create the SharpDX Ellipse
-                Ellipse ellipse = new(centerPoint, width / 2, height / 2);
-
-                // Create EllipseGeometry
-                var ellipseGeometry = new EllipseGeometry(Factory, ellipse);
-
-                // Apply rotation if needed
-                if (rotation != 0)
-                {
-                    // Apply rotation transformation if required
-                    RawMatrix3x2 transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22, (float)matrix.OffsetX, (float)matrix.OffsetY);
-
-                    TransformedGeometry transformedGeometry = new(Factory, ellipseGeometry, transform);
-                    Geometry = transformedGeometry;
-                }
-                else
-                {
-                    Geometry = ellipseGeometry;
-                }
+                Geometry = GetEllipseGeometry();
 
                 var bounds = Geometry.GetBounds();
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
             }
             else
             {
-                // Start by getting start and end points using NetDxf ToPolyline2D method
-                RawVector2 startPoint = new(
-                    (float)DxfEllipse.ToPolyline2D(2).Vertexes.First().Position.X,
-                    (float)DxfEllipse.ToPolyline2D(2).Vertexes.First().Position.Y);
-                RawVector2 endPoint = new(
-                    (float)DxfEllipse.ToPolyline2D(2).Vertexes.Last().Position.X,
-                    (float)DxfEllipse.ToPolyline2D(2).Vertexes.Last().Position.Y);
-                var centerPoint = new RawVector2((float)DxfEllipse.Center.X, (float)DxfEllipse.Center.Y);
-                var radiusX = (float)(DxfEllipse.MajorAxis / 2);
-                var radiusY = (float)(DxfEllipse.MinorAxis / 2);
-                double rotation = DxfEllipse.Rotation; // Rotation in degrees
+                Geometry = GetArcGeometry();
 
-                // Get sweep and find out if large arc 
-                double sweep;
-                if (DxfEllipse.EndAngle < DxfEllipse.StartAngle)
+                var bounds = Geometry.GetBounds();
+                Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
+            }
+        }
+        public Geometry GetArcGeometry()
+        {
+            // Start by getting start and end points using NetDxf ToPolyline2D method
+            RawVector2 startPoint = new(
+                (float)DxfEllipse.ToPolyline2D(2).Vertexes.First().Position.X,
+                (float)DxfEllipse.ToPolyline2D(2).Vertexes.First().Position.Y);
+            RawVector2 endPoint = new(
+                (float)DxfEllipse.ToPolyline2D(2).Vertexes.Last().Position.X,
+                (float)DxfEllipse.ToPolyline2D(2).Vertexes.Last().Position.Y);
+            var radiusX = (float)(DxfEllipse.MajorAxis / 2);
+            var radiusY = (float)(DxfEllipse.MinorAxis / 2);
+            float rotation = (float)DxfEllipse.Rotation; // Rotation in degrees
+
+            // Get sweep and find out if large arc 
+            double sweep;
+            if (DxfEllipse.EndAngle < DxfEllipse.StartAngle)
+            {
+                sweep = (360 + DxfEllipse.EndAngle) - DxfEllipse.StartAngle;
+            }
+            else
+            {
+                sweep = Math.Abs(DxfEllipse.EndAngle - DxfEllipse.StartAngle);
+            }
+            bool isLargeArc = sweep >= 180;
+
+            PathGeometry pathGeometry = new(Factory);
+            using (var sink = pathGeometry.Open())
+            {
+                sink.BeginFigure(startPoint, FigureBegin.Filled);
+
+                ArcSegment arcSegment = new()
                 {
-                    sweep = (360 + DxfEllipse.EndAngle) - DxfEllipse.StartAngle;
+                    Point = endPoint,
+                    Size = new(radiusX, radiusY),
+                    SweepDirection = SweepDirection.Clockwise,
+                    RotationAngle = rotation,
+                    ArcSize = isLargeArc ? ArcSize.Large : ArcSize.Small
+                };
+
+                sink.AddArc(arcSegment);
+                sink.EndFigure(FigureEnd.Open);
+                sink.Close();
+
+                // Apply rotation if needed
+                if (rotation != 0)
+                {
+                    Matrix matrix = new();
+                    //matrix.RotateAt((float)rotation, centerPoint.X, centerPoint.Y);
+
+                    // Apply rotation transformation if required
+                    RawMatrix3x2 transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22, (float)matrix.OffsetX, (float)matrix.OffsetY);
+
+                    return new TransformedGeometry(Factory, pathGeometry, transform);
                 }
                 else
                 {
-                    sweep = Math.Abs(DxfEllipse.EndAngle - DxfEllipse.StartAngle);
+                    return pathGeometry;
                 }
-                bool isLargeArc = sweep >= 180;
+            }
+        }
+        public Geometry GetEllipseGeometry()
+        {
+            // Extract properties from the netDxf Ellipse
+            var center = DxfEllipse.Center;
+            double majorAxis = DxfEllipse.MajorAxis;
+            double minorAxis = DxfEllipse.MinorAxis;
+            double rotation = DxfEllipse.Rotation; // Rotation in degrees
 
-                PathGeometry pathGeometry = new(Factory);
-                using (var sink = pathGeometry.Open())
-                {
-                    sink.BeginFigure(startPoint, FigureBegin.Filled);
+            // Convert center coordinates and axes to SharpDX format
+            var centerPoint = new RawVector2((float)center.X, (float)center.Y);
+            var width = (float)(majorAxis);
+            var height = (float)(minorAxis);
 
-                    ArcSegment arcSegment = new()
-                    {
-                        Point = endPoint,
-                        Size = new(radiusX, (float)radiusY),
-                        SweepDirection = SweepDirection.Clockwise,
-                        RotationAngle = (float)sweep,
-                        ArcSize = isLargeArc ? ArcSize.Large : ArcSize.Small
-                    };
+            Matrix matrix = new();
+            matrix.RotateAt((float)rotation, centerPoint.X, centerPoint.Y);
 
-                    sink.AddArc(arcSegment);
-                    sink.EndFigure(FigureEnd.Open);
-                    sink.Close();
+            // Create the SharpDX Ellipse
+            Ellipse ellipse = new(centerPoint, width / 2, height / 2);
 
-                    // Apply rotation if needed
-                    if (rotation != 0)
-                    {
-                        Matrix matrix = new();
-                        matrix.RotateAt((float)rotation, centerPoint.X, centerPoint.Y);
+            // Create EllipseGeometry
+            var ellipseGeometry = new EllipseGeometry(Factory, ellipse);
 
-                        // Apply rotation transformation if required
-                        RawMatrix3x2 transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22, (float)matrix.OffsetX, (float)matrix.OffsetY);
-
-                        TransformedGeometry transformedGeometry = new(Factory, pathGeometry, transform);
-                        Geometry = transformedGeometry;
-                    }
-                    else
-                    {
-                        Geometry = pathGeometry;
-                    }
-
-                    var bounds = Geometry.GetBounds();
-                    Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
-                }
+            // Apply rotation if needed
+            if (rotation != 0)
+            {
+                // Apply rotation transformation if required
+                RawMatrix3x2 transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22, (float)matrix.OffsetX, (float)matrix.OffsetY);
+                return new TransformedGeometry(Factory, ellipseGeometry, transform);
+            }
+            else
+            {
+                return ellipseGeometry;
             }
         }
         #endregion

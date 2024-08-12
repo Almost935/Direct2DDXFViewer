@@ -8,6 +8,7 @@
              RenderOptions.BitmapScalingMode="HighQuality">
     <Grid>
         <local:Direct2DDxfControl x:Name="dxfControl"
-                                  RenderOptions.BitmapScalingMode="HighQuality" />
+                                  RenderOptions.BitmapScalingMode="HighQuality" 
+                                  Cursor="Cross"/>
     </Grid>
 </UserControl>

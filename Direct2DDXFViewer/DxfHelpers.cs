@@ -117,6 +117,12 @@ namespace Direct2DDXFViewer
                 DrawingEllipse drawingEllipse = new(ellipse, factory, deviceContext, resCache, layer);
                 layer.DrawingObjects.Add(drawingEllipse);
             }
+            foreach (var mtext in dxfDocument.Entities.MTexts)
+            {
+               ObjectLayer layer = layerManager.GetLayer(mtext.Layer.Name);
+                DrawingMtext drawingMtext = new(mtext, factory, deviceContext, resCache, layer, resCache.FactoryWrite);
+                layer.DrawingObjects.Add(drawingMtext);
+            }
         }
         public static DrawingObject GetDrawingObject(EntityObject entity, ObjectLayer layer, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
         {

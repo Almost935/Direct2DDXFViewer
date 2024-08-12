@@ -70,7 +70,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             EndPoint = new(
                 (float)DxfArc.ToPolyline2D(2).Vertexes.Last().Position.X,
                 (float)DxfArc.ToPolyline2D(2).Vertexes.Last().Position.Y);
-            
+
             // Get sweep and find out if large arc 
             double sweep;
             if (DxfArc.EndAngle < DxfArc.StartAngle)
