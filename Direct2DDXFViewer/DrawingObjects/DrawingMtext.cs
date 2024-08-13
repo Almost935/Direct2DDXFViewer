@@ -12,10 +12,13 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
+using Brush = SharpDX.Direct2D1.Brush;
 using DeviceContext1 = SharpDX.Direct2D1.DeviceContext1;
 using Factory1 = SharpDX.DirectWrite.Factory1;
 using Point = System.Windows.Point;
@@ -29,6 +32,8 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         private Factory1 _factoryWrite;
         private TextFormat _textFormat;
+        private Matrix _transform;
+        private TextLayout _textLayout;
         #endregion
 
         #region Properties
@@ -54,21 +59,30 @@ namespace Direct2DDXFViewer.DrawingObjects
             Layer = layer;
             _factoryWrite = factoryWrite;
 
-            _textFormat = GetTextFormat();
             UpdateGeometry();
             GetStrokeStyle();
             UpdateBrush();
+
+            GetTransform();
+            GetTextFormat();
+            GetTextLayout();
         }
         #endregion
 
         #region Methods
         public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush)
         {
-            deviceContext.DrawText(DxfMtext.PlainText(), _textFormat, new RawRectangleF((float)Bounds.Left, (float)Bounds.Top, (float)Bounds.Right, (float)Bounds.Bottom), Brush);
+            deviceContext.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, (float)DxfMtext.Position.Y), _textLayout, Brush);
+            //deviceContext.DrawText(DxfMtext.PlainText(), _textFormat, new RawRectangleF((float)Bounds.Left, (float)Bounds.Top, (float)Bounds.Right, (float)Bounds.Bottom), Brush);
         }
         public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush)
         {
-            target.DrawText(DxfMtext.PlainText(), _textFormat, new RawRectangleF((float)Bounds.Left, (float)Bounds.Top, (float)Bounds.Right, (float)Bounds.Bottom), Brush);
+            var transform = target.Transform;
+            transform.M22 *= -1;
+            target.Transform = transform;
+            target.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, -(float)DxfMtext.Position.Y), _textLayout, Brush);
+            transform.M22 *= -1;
+            target.Transform = transform;
         }
         public override bool DrawingObjectIsInRect(Rect rect)
         {
@@ -78,9 +92,19 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             Bounds = new(DxfMtext.Position.X, DxfMtext.Position.Y, DxfMtext.RectangleWidth, DxfMtext.Height);
         }
-        public TextFormat GetTextFormat()
+        public void GetTextFormat()
         {
-            return new TextFormat(_factoryWrite, DxfMtext.Style.FontFamilyName, (float)(DxfMtext.Height * 0.125));
+            _textFormat = new(_factoryWrite, DxfMtext.Style.FontFamilyName, (float)(DxfMtext.Height));
+        }
+        public void GetTransform()
+        {
+            _transform = new();
+            _transform.ScaleAt(-1, -1, DxfMtext.Position.X, DxfMtext.Position.Y);
+        }
+        public void GetTextLayout()
+        {
+            RawMatrix3x2 transform = new((float)_transform.M11, (float)_transform.M12, (float)_transform.M21, (float)_transform.M22, (float)_transform.OffsetX, (float)_transform.OffsetY);
+            _textLayout = new(_factoryWrite, DxfMtext.PlainText(), _textFormat, (float)Bounds.Width, (float)Bounds.Height, 96, transform, true);
         }
         #endregion
     }

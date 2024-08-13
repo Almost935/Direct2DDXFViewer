@@ -242,7 +242,7 @@ namespace Direct2DDXFViewer
                     zoom *= _zoomFactor;
                     size = new Size2F(deviceContext.Size.Width * zoom, deviceContext.Size.Height * zoom);
                 }
-                _bitmapZoomRange = (1, zoom);
+                _bitmapZoomRange = (1, (float)Math.Round((double)zoom, 3));
             }
         }
 
@@ -296,34 +296,67 @@ namespace Direct2DDXFViewer
                     else { deviceContext.AntialiasMode = AntialiasMode.PerPrimitive; highNumObjs = false; }
 
                     deviceContext.BeginDraw();
-                    deviceContext.Clear(new RawColor4(1, 1, 1, 1));
 
-                    if (_transformMatrix.M11 <= _bitmapZoomRange.max &&  _transformMatrix.M11 >= _bitmapZoomRange.min)
+                    if (_transformMatrix.M11 <= _bitmapZoomRange.min)
                     {
-                        bool bitmapExists = _bitmapCache.TryGetValue((float)Math.Round(_transformMatrix.M11, 3), out Bitmap bitmap);
-                        if (bitmapExists)
+                        Debug.WriteLine($"_transformMatrix.M11 >= _bitmapZoomRange.min: {_transformMatrix.M11} <= {_bitmapZoomRange.min}");
+                        deviceContext.AntialiasMode = AntialiasMode.PerPrimitive;
+                        deviceContext.TextAntialiasMode = TextAntialiasMode.Aliased;
+                        
+                        Rect destRect = new(0, 0, deviceContext.Size.Width, deviceContext.Size.Height);
+                        RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
+                        Bitmap bitmap = _bitmapCache[_bitmapZoomRange.min];
+                        deviceContext.Clear(new RawColor4(1, 1, 1, 1));
+                        deviceContext.Transform = new RawMatrix3x2((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
+                        deviceContext.DrawBitmap(bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+                    }
+                    else
+                    {
+                        if (_transformMatrix.M11 <= _bitmapZoomRange.max && _transformMatrix.M11 >= _bitmapZoomRange.min)
                         {
-                            Rect destRect = new(0, 0, deviceContext.Size.Width, deviceContext.Size.Height);
-                            destRect.Transform(_transformMatrix);
+                            bool bitmapExists = _bitmapCache.TryGetValue((float)Math.Round(_transformMatrix.M11, 3), out Bitmap bitmap);
+                            if (bitmapExists)
+                            {
+                                Rect destRect = new(0, 0, deviceContext.Size.Width, deviceContext.Size.Height);
+                                destRect.Transform(_transformMatrix);
 
-                            RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
-                            
-                            if (highNumObjs) { deviceContext.DrawBitmap(bitmap, destRawRect, 1.0f, BitmapInterpolationMode.NearestNeighbor); }
-                            else { deviceContext.DrawBitmap(bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear); }
+                                RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
+
+                                if (highNumObjs)
+                                {
+                                    deviceContext.Clear(new RawColor4(1, 1, 1, 1));
+                                    deviceContext.DrawBitmap(bitmap, destRawRect, 1.0f, BitmapInterpolationMode.NearestNeighbor);
+                                }
+                                else
+                                {
+                                    deviceContext.Clear(new RawColor4(1, 1, 1, 1));
+                                    deviceContext.DrawBitmap(bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+                                }
+                            }
+                            else
+                            {
+                                RenderBitmap(_offscreenRenderTarget);
+                                deviceContext.Clear(new RawColor4(1, 1, 1, 1));
+                                deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
+                            }
                         }
                         else
                         {
                             RenderBitmap(_offscreenRenderTarget);
+                            deviceContext.Clear(new RawColor4(1, 1, 1, 1));
                             deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
-                        }
-                    }
-                    else
-                    {
-                        RenderBitmap(_offscreenRenderTarget);
-                        deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
 
-                        if (highNumObjs) { deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.NearestNeighbor); }
-                        else { deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear); }
+                            if (highNumObjs)
+                            {
+                                deviceContext.Clear(new RawColor4(1, 1, 1, 1));
+                                deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.NearestNeighbor);
+                            }
+                            else
+                            {
+                                deviceContext.Clear(new RawColor4(1, 1, 1, 1));
+                                deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
+                            }
+                        }
                     }
 
                     deviceContext.EndDraw();
