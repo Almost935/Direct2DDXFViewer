@@ -72,62 +72,70 @@ namespace Direct2DDXFViewer
 
             return layerManager;
         }
-        public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory1 factory,
+        public static void LoadEntityObject(EntityObject e, ObjectLayerManager layerManager, Factory1 factory,
             DeviceContext1 deviceContext, ResourceCache resCache)
         {
-            foreach (var line in dxfDocument.Entities.Lines)
+            if (e is Line line)
             {
                 ObjectLayer layer = layerManager.GetLayer(line.Layer.Name);
                 DrawingLine drawingLine = new(line, factory, deviceContext, resCache, layer);
                 layer.DrawingObjects.Add(drawingLine);
             }
-            foreach (var arc in dxfDocument.Entities.Arcs)
+            if (e is Arc arc)
             {
                 ObjectLayer layer = layerManager.GetLayer(arc.Layer.Name);
                 DrawingArc drawingArc = new(arc, factory, deviceContext, resCache, layer);
                 layer.DrawingObjects.Add(drawingArc);
             }
-            foreach (var polyline2D in dxfDocument.Entities.Polylines2D)
+            if (e is Polyline2D polyline2D)
             {
                 ObjectLayer layer = layerManager.GetLayer(polyline2D.Layer.Name);
                 DrawingPolyline2D drawingPolyline2D = new(polyline2D, factory, deviceContext, resCache, layer);
                 layer.DrawingObjects.Add(drawingPolyline2D);
             }
-            foreach (var polyline3D in dxfDocument.Entities.Polylines3D)
+            if (e is Polyline3D polyline3D)
             {
                 ObjectLayer layer = layerManager.GetLayer(polyline3D.Layer.Name);
                 DrawingPolyline3D drawingPolyline3D = new(polyline3D, factory, deviceContext, resCache, layer);
                 layer.DrawingObjects.Add(drawingPolyline3D);
             }
-            foreach (var circle in dxfDocument.Entities.Circles)
+            if (e is Circle circle)
             {
                 ObjectLayer layer = layerManager.GetLayer(circle.Layer.Name);
                 DrawingCircle drawingCircle = new(circle, factory, deviceContext, resCache, layer);
                 layer.DrawingObjects.Add(drawingCircle);
             }
-            foreach (var block in dxfDocument.Entities.Inserts)
+            if (e is Insert block)
             {
-               ObjectLayer layer = layerManager.GetLayer(block.Layer.Name);
+                ObjectLayer layer = layerManager.GetLayer(block.Layer.Name);
                 DrawingBlock drawingBlock = new(block, factory, deviceContext, resCache, layer);
                 layer.DrawingObjects.Add(drawingBlock);
             }
-            foreach (var ellipse in dxfDocument.Entities.Ellipses)
+            if (e is netDxf.Entities.Ellipse ellipse)
             {
                 ObjectLayer layer = layerManager.GetLayer(ellipse.Layer.Name);
                 DrawingEllipse drawingEllipse = new(ellipse, factory, deviceContext, resCache, layer);
                 layer.DrawingObjects.Add(drawingEllipse);
             }
-            foreach (var mtext in dxfDocument.Entities.MTexts)
+            if (e is MText mtext)
             {
-               ObjectLayer layer = layerManager.GetLayer(mtext.Layer.Name);
+                ObjectLayer layer = layerManager.GetLayer(mtext.Layer.Name);
                 DrawingMtext drawingMtext = new(mtext, factory, deviceContext, resCache, layer, resCache.FactoryWrite);
                 layer.DrawingObjects.Add(drawingMtext);
             }
         }
+        public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory1 factory,
+            DeviceContext1 deviceContext, ResourceCache resCache)
+        {
+            foreach (var e in dxfDocument.Entities.All)
+            {
+                LoadEntityObject(e, layerManager, factory, deviceContext, resCache);
+            }
+        }
         public static DrawingObject GetDrawingObject(EntityObject entity, ObjectLayer layer, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
         {
-            switch (entity) 
-            {                 
+            switch (entity)
+            {
                 case Line line:
                     return new DrawingLine(line, factory, deviceContext, resCache, layer);
 
