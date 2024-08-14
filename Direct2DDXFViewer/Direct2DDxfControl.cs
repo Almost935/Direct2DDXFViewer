@@ -264,7 +264,7 @@ namespace Direct2DDXFViewer
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
-        {
+        { 
             GetBrushes(target);
 
             if (!_dxfLoaded)

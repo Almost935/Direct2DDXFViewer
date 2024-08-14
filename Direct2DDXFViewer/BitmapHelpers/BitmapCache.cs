@@ -8,5 +8,15 @@ namespace Direct2DDXFViewer.BitmapHelpers
 {
     public class BitmapCache
     {
+        #region Fields
+        private Dictionary<float, DxfBitmap> _bitmaps = new();
+        #endregion
+
+        #region Properties
+        #endregion
+
+        #region Methods
+        public GetDxfBitmap
+        #endregion
     }
 }

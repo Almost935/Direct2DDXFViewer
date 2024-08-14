@@ -127,6 +127,120 @@ namespace Direct2DDXFViewer
         public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory1 factory,
             DeviceContext1 deviceContext, ResourceCache resCache)
         {
+            //Stopwatch stopwatch = new();
+            //int count = dxfDocument.Entities.Lines.Count();
+            //stopwatch.Restart();
+            //Debug.WriteLine($"\ndxfDocument.Entities.Lines.Count(): {count}");
+            //foreach (var line in dxfDocument.Entities.Lines)
+            //{
+            //    LoadEntityObject(line, layerManager, factory, deviceContext, resCache);
+            //}
+            //stopwatch.Stop();
+            //Debug.WriteLine($"DrawingLines: {stopwatch.ElapsedMilliseconds} ms");
+            //if (count > 0)
+            //{
+            //    Debug.WriteLine($"Time per Line: {stopwatch.ElapsedMilliseconds / count}\n");
+            //}
+
+            //count = dxfDocument.Entities.Arcs.Count();
+            //stopwatch.Restart();
+            //Debug.WriteLine($"\ndxfDocument.Entities.Arcs.Count(): {count}");
+            //foreach (var arc in dxfDocument.Entities.Arcs)
+            //{
+            //    LoadEntityObject(arc, layerManager, factory, deviceContext, resCache);
+            //}
+            //stopwatch.Stop();
+            //Debug.WriteLine($"DrawingArc: {stopwatch.ElapsedMilliseconds} ms");
+            //if (count > 0)
+            //{ 
+            //    Debug.WriteLine($"Time per Arc: {stopwatch.ElapsedMilliseconds / count}\n"); 
+            //}
+
+            //count = dxfDocument.Entities.Polylines2D.Count();
+            //stopwatch.Restart();
+            //Debug.WriteLine($"\ndxfDocument.Entities.Polylines2D.Count(): {count}");
+            //foreach (var polyline2D in dxfDocument.Entities.Polylines2D)
+            //{
+            //    LoadEntityObject(polyline2D, layerManager, factory, deviceContext, resCache);
+            //}
+            //stopwatch.Stop();
+            //Debug.WriteLine($"Polylines2D: {stopwatch.ElapsedMilliseconds} ms");
+            //if (count > 0)
+            //{
+            //    Debug.WriteLine($"Time per Polyline2D: {stopwatch.ElapsedMilliseconds / count}\n");
+            //}
+
+            //count = dxfDocument.Entities.Polylines3D.Count();
+            //stopwatch.Restart();
+            //Debug.WriteLine($"\ndxfDocument.Entities.Polylines3D.Count(): {count}");
+            //foreach (var polyline3D in dxfDocument.Entities.Polylines3D)
+            //{
+            //    LoadEntityObject(polyline3D, layerManager, factory, deviceContext, resCache);
+            //}
+            //stopwatch.Stop();
+            //Debug.WriteLine($"DrawingPolyline3D: {stopwatch.ElapsedMilliseconds} ms");
+            //if (count > 0)
+            //{
+            //   Debug.WriteLine($"Time per DrawingPolyline3D: {stopwatch.ElapsedMilliseconds / count}\n");
+            //}
+
+            //count = dxfDocument.Entities.Circles.Count();
+            //stopwatch.Restart();
+            //Debug.WriteLine($"\ndxfDocument.Entities.Circles.Count(): {count}");
+            //foreach (var circle in dxfDocument.Entities.Circles)
+            //{
+            //    LoadEntityObject(circle, layerManager, factory, deviceContext, resCache);
+            //}
+            //stopwatch.Stop();
+            //Debug.WriteLine($"DrawingCircle: {stopwatch.ElapsedMilliseconds} ms");
+            //if (count > 0)
+            //{
+            //    Debug.WriteLine($"Time per DrawingCircle: {stopwatch.ElapsedMilliseconds / count}\n");
+            //}
+
+            //count = dxfDocument.Entities.Inserts.Count();
+            //stopwatch.Restart();
+            //Debug.WriteLine($"\ndxfDocument.Entities.Inserts.Count(): {count}");
+            //foreach (var block in dxfDocument.Entities.Inserts)
+            //{
+            //    LoadEntityObject(block, layerManager, factory, deviceContext, resCache);
+            //}
+            //stopwatch.Stop();
+            //Debug.WriteLine($"DrawingBlock: {stopwatch.ElapsedMilliseconds} ms");
+            //if (count > 0)
+            //{
+            //    Debug.WriteLine($"Time per DrawingBlock: {stopwatch.ElapsedMilliseconds / count}\n");
+            //}
+
+            //count = dxfDocument.Entities.Ellipses.Count();
+            //stopwatch.Restart();
+            //Debug.WriteLine($"\ndxfDocument.Entities.Ellipses.Count(): {count}");
+            //foreach (var ellipse in dxfDocument.Entities.Ellipses)
+            //{
+            //    LoadEntityObject(ellipse, layerManager, factory, deviceContext, resCache);
+            //}
+            //stopwatch.Stop();
+            //Debug.WriteLine($"DrawingEllipse: {stopwatch.ElapsedMilliseconds} ms");
+            //if (count > 0)
+            //{
+            //    Debug.WriteLine($"Time per DrawingEllipse: {stopwatch.ElapsedMilliseconds / count}\n");
+            //}
+
+            //count = dxfDocument.Entities.MTexts.Count();
+            //stopwatch.Restart();
+            //Debug.WriteLine($"\ndxfDocument.Entities.MTexts.Count(): {count}");
+            //foreach (var mtext in dxfDocument.Entities.MTexts)
+            //{
+            //    LoadEntityObject(mtext, layerManager, factory, deviceContext, resCache);
+            //}
+            //stopwatch.Stop();
+            //Debug.WriteLine($"DrawingMtext: {stopwatch.ElapsedMilliseconds} ms");
+            //if (count > 0)
+            //{
+            //    Debug.WriteLine($"Time per DrawingMtext: {stopwatch.ElapsedMilliseconds / count}\n");
+            //}
+
+
             foreach (var e in dxfDocument.Entities.All)
             {
                 LoadEntityObject(e, layerManager, factory, deviceContext, resCache);

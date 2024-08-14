@@ -52,4 +52,8 @@
     <ProjectReference Include="..\Direct2DControl\Direct2DControl.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DrawingObjects\SerializableDrawingObjects\" />
+  </ItemGroup>
+
 </Project>

@@ -10,6 +10,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
     public class DxfBitmap
     {
         #region Fields
+        private string _folderpath;
+        private string _filepath;
         #endregion
 
         #region Properties
@@ -18,8 +20,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region Constructor
-        public DxfBitmap(float zoom)
+        public DxfBitmap(float zoom, string filepath, Bitmap bitmap)
         {
+            Zoom = zoom;
+            Bitmap = bitmap;
+            _filepath = filepath;
         }
         #endregion
 
