@@ -2,6 +2,7 @@
 using SharpDX;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
+using SharpDX.WIC;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -16,17 +17,22 @@ namespace Direct2DDXFViewer.BitmapHelpers
     public class BitmapCache : INotifyPropertyChanged
     {
         #region Fields
-        private Dictionary<float, DxfBitmap> _bitmaps = new();
-        private DeviceContext1 _deviceContext;
-        private ObjectLayerManager _layerManager;
+        private const int initializationFactor = 5;
+
+        private DxfBitmap[] _zoomedInLoadedBitmaps = new DxfBitmap[initializationFactor];
+        private DxfBitmap[] _zoomedOutLoadedBitmaps = new DxfBitmap[initializationFactor];
+        private Dictionary<float, DxfBitmap> _createdBitmaps = new();
+        private readonly DeviceContext1 _deviceContext;
+        private readonly Factory1 _factory;
+        private readonly ObjectLayerManager _layerManager;
         private float _currentZoom;
         private RawMatrix3x2 _extentsMatrix;
-        private float _zoomFactor;
-
-        private const int initializationFactor = 5;
+        private readonly float _zoomFactor;
+        private bool _isUpdatingBitmaps = false;
         #endregion
 
         #region Properties
+        public DxfBitmap CurrentBitmap { get; set; }
         public float CurrentZoom
         {
             get => _currentZoom;
@@ -42,9 +48,10 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region
-        public BitmapCache(DeviceContext1 deviceContext, ObjectLayerManager layerManager, RawMatrix3x2 extentsMatrix, float zoomFactor)
+        public BitmapCache(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, RawMatrix3x2 extentsMatrix, float zoomFactor)
         {
             _deviceContext = deviceContext;
+            _factory = factory;
             _layerManager = layerManager;
             _extentsMatrix = extentsMatrix;
             _zoomFactor = zoomFactor;
@@ -54,77 +61,90 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region Methods
-        public DxfBitmap GetDxfBitmap(float zoom)
-        {
-            _bitmaps.TryGetValue(zoom, out DxfBitmap bitmap);
-            return bitmap;
-        }
-
         public void InitializeBitmaps()
         {
-            if (_layerManager is not null && _deviceContext is not null)
+            Debug.WriteLine($"\n\nInitializeBitmaps {_zoomedInLoadedBitmaps.Length}");
+            CurrentBitmap = new(_deviceContext, _factory, _layerManager, _extentsMatrix, 1);
+            UpdateBitmaps(CurrentBitmap);
+            Debug.WriteLine($"InitializeBitmaps Completed");
+        }
+        public DxfBitmap GetBitmap(float zoom) 
+        {
+            zoom = (float)Math.Round(zoom, 3);
+
+            DxfBitmap bitmap = _zoomedInLoadedBitmaps.FirstOrDefault(x => x.Zoom == zoom);
+            bitmap ??= _zoomedOutLoadedBitmaps.FirstOrDefault(x => x.Zoom == zoom);
+
+            if (bitmap is null)
             {
-                // Initialize first view
-                _bitmaps.TryAdd((float)Math.Round((double)1, 3), new DxfBitmap(_deviceContext, 1, RenderBitmap(_deviceContext, 1)));
+                bool bitmapExists = _createdBitmaps.TryGetValue(zoom, out bitmap);
 
-                // Initialize zoomed in bitmaps
-                float zoom = 1;
-                for (int i = 1; i <= initializationFactor; i++)
+                if (!bitmapExists)
                 {
-                    zoom *= _zoomFactor;
-                    _bitmaps.TryAdd((float)Math.Round((double)zoom, 3), new DxfBitmap(_deviceContext, zoom, RenderBitmap(_deviceContext, zoom)));
-                }
-
-                // Initialize zoomed out bitmaps
-                zoom = 1;
-                for (int i = 1; i <= initializationFactor; i++)
-                {
-                    zoom *= (1 / _zoomFactor);
-                    _bitmaps.TryAdd((float)Math.Round((double)zoom, 3), new DxfBitmap(_deviceContext, zoom, RenderBitmap(_deviceContext, zoom)));
+                    bitmap = new DxfBitmap(_deviceContext, _factory, _layerManager, _extentsMatrix, zoom);
+                    _createdBitmaps.Add(zoom, bitmap);
                 }
             }
+
+            return bitmap;
         }
-
-        private void UpdateBitmapsDictionary(float intialZoom)
+        public DxfBitmap SetCurrentDxfBitmap(float zoom)
         {
-            if (_layerManager is not null && _deviceContext is not null)
+            DxfBitmap bitmap = GetBitmap(zoom);
+
+            return bitmap;
+        }
+        private async Task CallUpdateBitmapsAsync(DxfBitmap bitmap)
+        {
+            if (!_isUpdatingBitmaps)
             {
-                // Initialize first view
-                _bitmaps.TryAdd((float)Math.Round((double)1, 3), new DxfBitmap(_deviceContext, 1, RenderBitmap(_deviceContext, 1)));
-
-                // Initialize zoomed in bitmaps
-                float zoom = 1;
-                for (int i = 1; i <= initializationFactor; i++)
-                {
-                    zoom *= _zoomFactor;
-
-                    _bitmaps.TryAdd((float)Math.Round((double)zoom, 3), new DxfBitmap(_deviceContext, zoom, RenderBitmap(_deviceContext, zoom)));
-                }
-
-                // Initialize zoomed out bitmaps
-                zoom = 1;
-                for (int i = 1; i <= initializationFactor; i++)
-                {
-                    zoom *= (1 / _zoomFactor);
-                    _bitmaps.TryAdd((float)Math.Round((double)zoom, 3), new DxfBitmap(_deviceContext, zoom, RenderBitmap(_deviceContext, zoom)));
-                }
+                await Task.Run(() => UpdateBitmaps(bitmap));
             }
         }
-
-        private Bitmap RenderBitmap(DeviceContext1 deviceContext, float zoom)
-        {
-            Size2F size = new(deviceContext.Size.Width * zoom, deviceContext.Size.Height * zoom);
-            BitmapRenderTarget bitmapRenderTarget = new(deviceContext, CompatibleRenderTargetOptions.None, size)
+        private void UpdateBitmaps(DxfBitmap newCurrentBitmap)
+        { 
+            if (CurrentBitmap == newCurrentBitmap)
             {
-                DotsPerInch = new Size2F(96.0f * zoom, 96.0f * zoom),
-                AntialiasMode = AntialiasMode.Aliased
-            };
+                Debug.WriteLine($"CurrentBitmap == newCurrentBitmap");
+                return;
+            }
 
-            bitmapRenderTarget.BeginDraw();
-            bitmapRenderTarget.Transform = _extentsMatrix;
-            _layerManager.DrawToRenderTarget(bitmapRenderTarget, 1);
-            bitmapRenderTarget.EndDraw();
-            return bitmapRenderTarget.Bitmap;
+            _isUpdatingBitmaps = true;
+
+            DxfBitmap[] newZoomedInLoadedBitmaps = new DxfBitmap[initializationFactor];
+            DxfBitmap[] newZoomedOutLoadedBitmaps = new DxfBitmap[initializationFactor];
+
+            // Iterate through next initializationFactor amount of zoomed in bitmaps
+            for (int i = 0; i < initializationFactor; i++)
+            {
+                float zoom = (float)Math.Round(newCurrentBitmap.Zoom * Math.Pow(_zoomFactor, (i + 1)), 3);
+                DxfBitmap bitmap = GetBitmap(zoom);
+
+                newZoomedInLoadedBitmaps[i] = bitmap;
+            }
+            // Iterate through next initializationFactor amount of zoomed out bitmaps
+            for (int i = 0; i < initializationFactor; i++)
+            {
+                float zoom = (float)Math.Round(newCurrentBitmap.Zoom * (1 / Math.Pow(_zoomFactor, (i + 1))), 3);
+                DxfBitmap bitmap = GetBitmap(zoom);
+
+                newZoomedInLoadedBitmaps[i] = bitmap;
+            }
+
+            // Iterate through current bitmaps and dispose of those that are no longer needed
+            foreach (var bitmap in _zoomedInLoadedBitmaps)
+            {
+                if (bitmap is not null && !newZoomedInLoadedBitmaps.Contains(bitmap) && !newZoomedOutLoadedBitmaps.Contains(bitmap) && bitmap != newCurrentBitmap)
+                {
+                    bitmap.Dispose();
+                }
+            }
+
+            CurrentBitmap = newCurrentBitmap;
+            _zoomedInLoadedBitmaps = newZoomedInLoadedBitmaps;
+            _zoomedOutLoadedBitmaps = newZoomedOutLoadedBitmaps;
+
+            _isUpdatingBitmaps = false;
         }
 
         protected void OnPropertyChanged(string propertyName)
