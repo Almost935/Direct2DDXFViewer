@@ -280,8 +280,13 @@ namespace Direct2DDXFViewer
                     //else { deviceContext.AntialiasMode = AntialiasMode.PerPrimitive; highNumObjs = false; }
 
                     deviceContext.BeginDraw();
+                    deviceContext.Clear(new RawColor4(1, 1, 1, 1));
 
-                    deviceContext.DrawBitmap(_bitmapCache.CurrentBitmap.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
+                    Rect destRect = new(0, 0, deviceContext.Size.Width, deviceContext.Size.Height);
+                    destRect.Transform(_transformMatrix);
+                    RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
+
+                    deviceContext.DrawBitmap(_bitmapCache.CurrentBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
 
                     //if (_transformMatrix.M11 <= _bitmapZoomRange.max && _transformMatrix.M11 >= _bitmapZoomRange.min)
                     //{

@@ -27,7 +27,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Properties
         public float Zoom { get; set; }
         public Bitmap Bitmap { get; set; }
-        public bool BitmapLoaded => Bitmap != null;
         public bool BitmapSaved = false;
         #endregion
 
@@ -48,6 +47,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Methods
         private void LoadBitmapFromFile()
         {
+            Debug.WriteLine($"Loading bitmap from file: _filepath: {_filepath}");
             if (BitmapSaved)
             {
                 ImagingFactory imagingFactory = new();
@@ -95,9 +95,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private void RenderBitmap()
         {
             _imagingFactory = new();
-            Size2F size = new(_deviceContext.Size.Width * Zoom, _deviceContext.Size.Height * Zoom);
             _wicBitmap = new SharpDX.WIC.Bitmap(_imagingFactory, (int)(_deviceContext.Size.Width * Zoom), (int)(_deviceContext.Size.Height * Zoom), SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
-
             _wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())
             {
                 DotsPerInch = new Size2F(96.0f * Zoom, 96.0f * Zoom),
@@ -113,7 +111,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         public Bitmap GetBitmap()
         {
-            if (Bitmap is null)
+            Debug.WriteLine($"GetBitmap: Zoom: {Zoom} Bitmap.IsDisposed: {Bitmap.IsDisposed}");
+            if (Bitmap.IsDisposed)
             {
                 LoadBitmapFromFile();
             }
@@ -123,9 +122,12 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         public void Dispose()
         {
+            Debug.WriteLine($"DISPOSE: {Zoom}");
             if (!BitmapSaved) { SaveBitmapToTemporaryFile(); }
 
-            Bitmap?.Dispose();
+            Bitmap.Dispose();
+
+            Debug.WriteLine($"Bitmap.IsDisposed: {Bitmap.IsDisposed}");
         }
     }
     #endregion

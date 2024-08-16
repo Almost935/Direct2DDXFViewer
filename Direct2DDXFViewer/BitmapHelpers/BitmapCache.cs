@@ -17,10 +17,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
     public class BitmapCache : INotifyPropertyChanged
     {
         #region Fields
-        private const int initializationFactor = 5;
+        private const int _initializationFactor = 5;
 
-        private DxfBitmap[] _zoomedInLoadedBitmaps = new DxfBitmap[initializationFactor];
-        private DxfBitmap[] _zoomedOutLoadedBitmaps = new DxfBitmap[initializationFactor];
+        private DxfBitmap[] _zoomedInLoadedBitmaps = new DxfBitmap[_initializationFactor];
+        private DxfBitmap[] _zoomedOutLoadedBitmaps = new DxfBitmap[_initializationFactor];
+        private bool _bitmapsInitialized = false;
         private Dictionary<float, DxfBitmap> _createdBitmaps = new();
         private readonly DeviceContext1 _deviceContext;
         private readonly Factory1 _factory;
@@ -64,11 +65,40 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public void InitializeBitmaps()
         {
             CurrentBitmap = new(_deviceContext, _factory, _layerManager, _extentsMatrix, 1);
-            UpdateBitmaps(CurrentBitmap);
+            
+            // Iterate through next initializationFactor amount of zoomed in bitmaps
+            for (int i = 0; i < _initializationFactor; i++)
+            {
+                float zoom = (float)Math.Round(CurrentBitmap.Zoom * Math.Pow(_zoomFactor, (i + 1)), 3);
+                DxfBitmap bitmap = GetBitmap(zoom);
+                _zoomedInLoadedBitmaps[i] = bitmap;
+            }
+            // Iterate through next initializationFactor amount of zoomed out bitmaps
+            for (int i = 0; i < _initializationFactor; i++)
+            {
+                float zoom = (float)Math.Round(CurrentBitmap.Zoom * (1 / Math.Pow(_zoomFactor, (i + 1))), 3);
+                DxfBitmap bitmap = GetBitmap(zoom);
+                _zoomedOutLoadedBitmaps[i] = bitmap;
+            }
+
+            _bitmapsInitialized = true;
         }
         public DxfBitmap GetBitmap(float zoom) 
         {
             zoom = (float)Math.Round(zoom, 3);
+
+            if (!_bitmapsInitialized)
+            {
+                bool bitmapExists = _createdBitmaps.TryGetValue(zoom, out DxfBitmap newBitmap);
+
+                if (!bitmapExists)
+                {
+                    newBitmap = new DxfBitmap(_deviceContext, _factory, _layerManager, _extentsMatrix, zoom);
+                    _createdBitmaps.Add(zoom, newBitmap);
+                }
+
+                return newBitmap;
+            }
 
             DxfBitmap bitmap = _zoomedInLoadedBitmaps.FirstOrDefault(x => x.Zoom == zoom);
             bitmap ??= _zoomedOutLoadedBitmaps.FirstOrDefault(x => x.Zoom == zoom);
@@ -76,76 +106,85 @@ namespace Direct2DDXFViewer.BitmapHelpers
             if (bitmap is null)
             {
                 bool bitmapExists = _createdBitmaps.TryGetValue(zoom, out bitmap);
-
                 if (!bitmapExists)
                 {
                     bitmap = new DxfBitmap(_deviceContext, _factory, _layerManager, _extentsMatrix, zoom);
                     _createdBitmaps.Add(zoom, bitmap);
                 }
+                else
+                {
+                    if (bitmap.Bitmap.IsDisposed)
+                    {
+                        bitmap.GetBitmap();
+                    }
+                }
             }
 
             return bitmap;
         }
-        public DxfBitmap SetCurrentDxfBitmap(float zoom)
+        public void SetCurrentDxfBitmap(float zoom)
         {
-            DxfBitmap bitmap = GetBitmap(zoom);
-
-            return bitmap;
+            CurrentBitmap = GetBitmap(zoom);
+            CallUpdateBitmapsAsync(CurrentBitmap);
         }
         private async Task CallUpdateBitmapsAsync(DxfBitmap bitmap)
         {
             if (!_isUpdatingBitmaps)
             {
-                await Task.Run(() => UpdateBitmaps(bitmap));
+                await Task.Run(() => UpdateBitmaps());
             }
         }
-        private void UpdateBitmaps(DxfBitmap newCurrentBitmap)
+        private void UpdateBitmaps()
         { 
-            if (CurrentBitmap == newCurrentBitmap)
-            {
-                return;
-            }
-
             _isUpdatingBitmaps = true;
 
-            DxfBitmap[] newZoomedInLoadedBitmaps = new DxfBitmap[initializationFactor];
-            DxfBitmap[] newZoomedOutLoadedBitmaps = new DxfBitmap[initializationFactor];
+            DxfBitmap[] newZoomedInLoadedBitmaps = new DxfBitmap[_initializationFactor];
+            DxfBitmap[] newZoomedOutLoadedBitmaps = new DxfBitmap[_initializationFactor];
 
             // Iterate through next initializationFactor amount of zoomed in bitmaps
-            for (int i = 0; i < initializationFactor; i++)
+            for (int i = 0; i < _initializationFactor; i++)
             {
-                float zoom = (float)Math.Round(newCurrentBitmap.Zoom * Math.Pow(_zoomFactor, (i + 1)), 3);
-
-                Debug.WriteLine($"Zoom: {zoom}");
-
+                float zoom = (float)Math.Round(CurrentBitmap.Zoom * Math.Pow(_zoomFactor, (i + 1)), 3);
                 DxfBitmap bitmap = GetBitmap(zoom);
-
                 newZoomedInLoadedBitmaps[i] = bitmap;
             }
             // Iterate through next initializationFactor amount of zoomed out bitmaps
-            for (int i = 0; i < initializationFactor; i++)
+            for (int i = 0; i < _initializationFactor; i++)
             {
-                float zoom = (float)Math.Round(newCurrentBitmap.Zoom * (1 / Math.Pow(_zoomFactor, (i + 1))), 3);
-
-                Debug.WriteLine($"Zoom: {zoom}");
-
+                float zoom = (float)Math.Round(CurrentBitmap.Zoom * (1 / Math.Pow(_zoomFactor, (i + 1))), 3);
                 DxfBitmap bitmap = GetBitmap(zoom);
-
-                newZoomedInLoadedBitmaps[i] = bitmap;
+                newZoomedOutLoadedBitmaps[i] = bitmap;
             }
 
             // Iterate through current bitmaps and dispose of those that are no longer needed
+            float upperLimit = CurrentBitmap.Zoom * (float)Math.Pow(_zoomFactor, _initializationFactor);
+            float lowerLimit = CurrentBitmap.Zoom * (1 / (float)Math.Pow(_zoomFactor, _initializationFactor));
+
             foreach (var bitmap in _zoomedInLoadedBitmaps)
             {
-                if (bitmap is not null && !newZoomedInLoadedBitmaps.Contains(bitmap) && !newZoomedOutLoadedBitmaps.Contains(bitmap) && bitmap != newCurrentBitmap)
+                if (bitmap is not null)
                 {
-                    bitmap.Dispose();
+                    if (bitmap.Zoom < lowerLimit || bitmap.Zoom > upperLimit) { bitmap.Dispose(); }
                 }
             }
-
-            CurrentBitmap = newCurrentBitmap;
+            foreach (var bitmap in _zoomedOutLoadedBitmaps)
+            {
+                if (bitmap is not null)
+                {
+                    if (bitmap.Zoom < lowerLimit || bitmap.Zoom > upperLimit) { bitmap.Dispose(); } 
+                }
+            }
             _zoomedInLoadedBitmaps = newZoomedInLoadedBitmaps;
             _zoomedOutLoadedBitmaps = newZoomedOutLoadedBitmaps;
+
+            //foreach (var bitmap in _zoomedOutLoadedBitmaps)
+            //{
+            //    Debug.WriteLine($"New _zoomedOutLoadedBitmaps: {bitmap.Zoom}");
+            //}
+            //foreach (var bitmap in _zoomedInLoadedBitmaps)
+            //{
+            //    Debug.WriteLine($"New _zoomedInLoadedBitmaps: {bitmap.Zoom}");
+            //}
 
             _isUpdatingBitmaps = false;
         }
