@@ -163,7 +163,6 @@ namespace Direct2DDXFViewer
         #region Methods
         public void LoadDxf(Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
         {
-            Debug.WriteLine($"LoadDxf");
             Stopwatch stopwatch = new();
             stopwatch.Start();  
 
@@ -179,7 +178,6 @@ namespace Direct2DDXFViewer
             }
 
             stopwatch.Stop();
-            Debug.WriteLine($"DXF loaded in {stopwatch.ElapsedMilliseconds} ms");
         }
 
         public Matrix GetInitialMatrix()
@@ -223,8 +221,6 @@ namespace Direct2DDXFViewer
         }
         public void InitializeBitmapCache(DeviceContext1 deviceContext, Factory1 factory)
         {
-            Debug.WriteLine("Initializing bitmap cache");
-
             Stopwatch stopwatch = new();
             stopwatch.Start();
 
@@ -232,7 +228,6 @@ namespace Direct2DDXFViewer
             _bitmapCache = new(deviceContext, factory, LayerManager, extentsMatrix, _zoomFactor);
 
             stopwatch.Stop();
-            Debug.WriteLine($"Bitmap cache initialized in {stopwatch.ElapsedMilliseconds} ms");
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)

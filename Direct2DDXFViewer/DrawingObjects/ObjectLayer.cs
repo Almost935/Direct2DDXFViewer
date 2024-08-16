@@ -1,4 +1,5 @@
-﻿using SharpDX.Direct2D1;
+﻿using netDxf.Tables;
+using SharpDX.Direct2D1;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -75,12 +76,12 @@ namespace Direct2DDXFViewer.DrawingObjects
         public void DrawToRenderTarget(RenderTarget renderTarget, float thickness)
         {
             if (!IsVisible) { return; }
-
+            Brush brush = new SolidColorBrush(renderTarget, new SharpDX.Mathematics.Interop.RawColor4(0, 0, 0, 1));
             foreach (var drawingObject in DrawingObjects)
             {
                 if (drawingObject.IsInView)
                 {
-                    drawingObject.DrawToRenderTarget(renderTarget, thickness, drawingObject.Brush);
+                    drawingObject.DrawToRenderTarget(renderTarget, thickness, brush);
                 }
             }
         }

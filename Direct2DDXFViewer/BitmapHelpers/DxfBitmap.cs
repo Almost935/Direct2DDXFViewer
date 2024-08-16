@@ -19,6 +19,9 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private ObjectLayerManager _layerManager;
         private RawMatrix3x2 _extentsMatrix;
         private string _filepath;
+        private SharpDX.WIC.Bitmap _wicBitmap;
+        private WicRenderTarget _wicRenderTarget;
+        private ImagingFactory _imagingFactory;
         #endregion
 
         #region Properties
@@ -65,43 +68,25 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         public void SaveBitmapToTemporaryFile()
         {
-            Debug.WriteLine($"66");
             if (!BitmapSaved)
             {
-                ImagingFactory imagingFactory = new();
-                Debug.WriteLine($"70");
-                // Create a WIC Bitmap
-                var wicBitmap = new SharpDX.WIC.Bitmap(imagingFactory, Bitmap.PixelSize.Width, Bitmap.PixelSize.Height,
-                                            SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
-                Debug.WriteLine($"74");
-                // Create a RenderTarget for the WIC Bitmap
-                using (var renderTarget = new WicRenderTarget(Bitmap.Factory, wicBitmap, new RenderTargetProperties()))
-                {
-                    // Copy the Direct2D Bitmap to the WIC Bitmap
-                    renderTarget.BeginDraw();
-                    renderTarget.DrawBitmap(Bitmap, 1.0f, SharpDX.Direct2D1.BitmapInterpolationMode.NearestNeighbor);
-                    renderTarget.EndDraw();
-                }
-                Debug.WriteLine($"83");
                 _filepath = Path.Combine(Path.GetTempPath(), $"{Zoom}.png");
-                Debug.WriteLine($"85");
                 // Select encoder based on file extension
                 BitmapEncoder encoder;
-                using (var stream = new WICStream(imagingFactory, _filepath, SharpDX.IO.NativeFileAccess.Write))
+                using (var stream = new WICStream(_imagingFactory, _filepath, SharpDX.IO.NativeFileAccess.Write))
                 {
-                    encoder = new PngBitmapEncoder(imagingFactory, stream);
+                    encoder = new PngBitmapEncoder(_imagingFactory, stream);
                     var frame = new BitmapFrameEncode(encoder);
                     frame.Initialize();
-                    frame.SetSize(wicBitmap.Size.Width, wicBitmap.Size.Height);
+                    frame.SetSize(_wicBitmap.Size.Width, _wicBitmap.Size.Height);
                     var guid = SharpDX.WIC.PixelFormat.Format32bppPBGRA;
                     frame.SetPixelFormat(ref guid);
-                    frame.WriteSource(wicBitmap);
+                    frame.WriteSource(_wicBitmap);
                     frame.Commit();
                     encoder.Commit();
                 }
-                Debug.WriteLine($"100");
-                wicBitmap.Dispose();
-                imagingFactory.Dispose();
+                _wicBitmap.Dispose();
+                _imagingFactory.Dispose();
 
                 BitmapSaved = true;
             }
@@ -109,21 +94,21 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         private void RenderBitmap()
         {
-            Debug.WriteLine($"108");
+            _imagingFactory = new();
             Size2F size = new(_deviceContext.Size.Width * Zoom, _deviceContext.Size.Height * Zoom);
-            BitmapRenderTarget bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, size)
+            _wicBitmap = new SharpDX.WIC.Bitmap(_imagingFactory, (int)(_deviceContext.Size.Width * Zoom), (int)(_deviceContext.Size.Height * Zoom), SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
+
+            _wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())
             {
                 DotsPerInch = new Size2F(96.0f * Zoom, 96.0f * Zoom),
-                AntialiasMode = AntialiasMode.Aliased
+                AntialiasMode = AntialiasMode.PerPrimitive
             };
+            _wicRenderTarget.BeginDraw();
+            _wicRenderTarget.Transform = _extentsMatrix;
+            _layerManager.DrawToRenderTarget(_wicRenderTarget, 1);
+            _wicRenderTarget.EndDraw();
 
-            bitmapRenderTarget.BeginDraw();
-            bitmapRenderTarget.Transform = _extentsMatrix;
-            _layerManager.DrawToRenderTarget(bitmapRenderTarget, 1);
-            bitmapRenderTarget.EndDraw();
-
-            Bitmap = bitmapRenderTarget.Bitmap;
-            Debug.WriteLine($"122");
+            Bitmap = Bitmap.FromWicBitmap(_deviceContext, _wicBitmap);
         }
 
         public Bitmap GetBitmap()

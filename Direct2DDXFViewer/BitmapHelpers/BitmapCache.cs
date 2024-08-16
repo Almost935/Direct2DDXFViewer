@@ -63,10 +63,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Methods
         public void InitializeBitmaps()
         {
-            Debug.WriteLine($"\n\nInitializeBitmaps {_zoomedInLoadedBitmaps.Length}");
             CurrentBitmap = new(_deviceContext, _factory, _layerManager, _extentsMatrix, 1);
             UpdateBitmaps(CurrentBitmap);
-            Debug.WriteLine($"InitializeBitmaps Completed");
         }
         public DxfBitmap GetBitmap(float zoom) 
         {
@@ -105,7 +103,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         { 
             if (CurrentBitmap == newCurrentBitmap)
             {
-                Debug.WriteLine($"CurrentBitmap == newCurrentBitmap");
                 return;
             }
 
@@ -118,6 +115,9 @@ namespace Direct2DDXFViewer.BitmapHelpers
             for (int i = 0; i < initializationFactor; i++)
             {
                 float zoom = (float)Math.Round(newCurrentBitmap.Zoom * Math.Pow(_zoomFactor, (i + 1)), 3);
+
+                Debug.WriteLine($"Zoom: {zoom}");
+
                 DxfBitmap bitmap = GetBitmap(zoom);
 
                 newZoomedInLoadedBitmaps[i] = bitmap;
@@ -126,6 +126,9 @@ namespace Direct2DDXFViewer.BitmapHelpers
             for (int i = 0; i < initializationFactor; i++)
             {
                 float zoom = (float)Math.Round(newCurrentBitmap.Zoom * (1 / Math.Pow(_zoomFactor, (i + 1))), 3);
+
+                Debug.WriteLine($"Zoom: {zoom}");
+
                 DxfBitmap bitmap = GetBitmap(zoom);
 
                 newZoomedInLoadedBitmaps[i] = bitmap;
