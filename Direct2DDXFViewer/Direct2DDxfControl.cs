@@ -61,7 +61,7 @@ namespace Direct2DDXFViewer
         private int _objectDetailLevelTransitionNum = 500;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\LargeDxf.dxf";
+        private string _filePath = @"DXF\SmallDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -270,74 +270,19 @@ namespace Direct2DDXFViewer
                     {
                         GetVisibleObjects();
                     }
-                    
-                    //// Determine render settings based on number of objects needing to be rendered
-                    //bool highNumObjs = true;
-                    //if (_visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum)
-                    //{
-                    //    deviceContext.AntialiasMode = AntialiasMode.Aliased;
-                    //}
-                    //else { deviceContext.AntialiasMode = AntialiasMode.PerPrimitive; highNumObjs = false; }
-
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 1));
-
                     Rect destRect = new(0, 0, deviceContext.Size.Width, deviceContext.Size.Height);
                     destRect.Transform(_transformMatrix);
                     RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
 
+                    //Debug.WriteLine($"\n_bitmapCache.CurrentBitmap.Bitmap.IsDisposed: {_bitmapCache.CurrentBitmap.Bitmap.IsDisposed}" +
+                    //    $"\n_bitmapCache.CurrentBitmap.Zoom: {_bitmapCache.CurrentBitmap.Zoom}");
+
+
+
                     deviceContext.DrawBitmap(_bitmapCache.CurrentBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-
-                    //if (_transformMatrix.M11 <= _bitmapZoomRange.max && _transformMatrix.M11 >= _bitmapZoomRange.min)
-                    //{
-                    //    bool bitmapExists = _bitmapCache.TryGetValue((float)Math.Round(_transformMatrix.M11, 3), out Bitmap bitmap);
-                        
-                    //    if (bitmapExists)
-                    //    {
-                    //        Rect destRect = new(0, 0, deviceContext.Size.Width, deviceContext.Size.Height);
-                    //        destRect.Transform(_transformMatrix);
-
-                    //        RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
-
-                    //        if (highNumObjs)
-                    //        {
-                    //            deviceContext.Clear(new RawColor4(1, 1, 1, 1));
-                    //            deviceContext.DrawBitmap(bitmap, destRawRect, 1.0f, BitmapInterpolationMode.NearestNeighbor);
-                    //        }
-                    //        else
-                    //        {
-                    //            deviceContext.Clear(new RawColor4(1, 1, 1, 1));
-                    //            deviceContext.DrawBitmap(bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-                    //        }
-                    //    }
-                    //    else
-                    //    {
-                    //        RenderVisibleObjectsToBitmap(_offscreenRenderTarget);
-                    //        deviceContext.Clear(new RawColor4(1, 1, 1, 1));
-                    //        deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
-                    //    }
-                    //}
-                    //else
-                    //{
-                    //    RenderVisibleObjectsToBitmap(_offscreenRenderTarget);
-                    //    deviceContext.Clear(new RawColor4(1, 1, 1, 1));
-                    //    deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
-
-                    //    if (highNumObjs)
-                    //    {
-                    //        deviceContext.Clear(new RawColor4(1, 1, 1, 1));
-                    //        deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.NearestNeighbor);
-                    //    }
-                    //    else
-                    //    {
-                    //        deviceContext.Clear(new RawColor4(1, 1, 1, 1));
-                    //        deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
-                    //    }
-                    //}
-
-
                     deviceContext.EndDraw();
-
                     resCache.Device.ImmediateContext.Flush();
 
                     stopwatch.Stop();
@@ -360,7 +305,7 @@ namespace Direct2DDXFViewer
 
             bitmapRenderTarget.BeginDraw();
             bitmapRenderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
-            _layerManager.DrawToRenderTarget(bitmapRenderTarget, 1);
+            _layerManager.DrawVisibleObjectsToRenderTarget(bitmapRenderTarget, 1);
             bitmapRenderTarget.EndDraw();
             return bitmapRenderTarget.Bitmap;
         }

@@ -18,11 +18,19 @@ namespace Direct2DDXFViewer.DrawingObjects
     public class DrawingBlock : DrawingObject
     {
         #region Fields
-        private Line _dxfLine;
+        private Insert _dxfBlock;
         #endregion
 
         #region Properties
-        public Insert DxfBlock { get; set; }
+        public Insert DxfBlock
+        {
+            get { return _dxfBlock; }
+            set
+            {
+                _dxfBlock = value;
+                OnPropertyChanged(nameof(DxfBlock));
+            }
+        }
         public ObservableCollection<DrawingObject> DrawingObjects { get; set; } = new();
 
         public float CurrentScale { get; set; } = 1;

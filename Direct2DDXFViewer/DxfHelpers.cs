@@ -81,48 +81,48 @@ namespace Direct2DDXFViewer
                 DrawingLine drawingLine = new(line, factory, deviceContext, resCache, layer);
                 layer.DrawingObjects.Add(drawingLine);
             }
-            //if (e is Arc arc)
-            //{
-            //    ObjectLayer layer = layerManager.GetLayer(arc.Layer.Name);
-            //    DrawingArc drawingArc = new(arc, factory, deviceContext, resCache, layer);
-            //    layer.DrawingObjects.Add(drawingArc);
-            //}
-            //if (e is Polyline2D polyline2D)
-            //{
-            //    ObjectLayer layer = layerManager.GetLayer(polyline2D.Layer.Name);
-            //    DrawingPolyline2D drawingPolyline2D = new(polyline2D, factory, deviceContext, resCache, layer);
-            //    layer.DrawingObjects.Add(drawingPolyline2D);
-            //}
-            //if (e is Polyline3D polyline3D)
-            //{
-            //    ObjectLayer layer = layerManager.GetLayer(polyline3D.Layer.Name);
-            //    DrawingPolyline3D drawingPolyline3D = new(polyline3D, factory, deviceContext, resCache, layer);
-            //    layer.DrawingObjects.Add(drawingPolyline3D);
-            //}
-            //if (e is Circle circle)
-            //{
-            //    ObjectLayer layer = layerManager.GetLayer(circle.Layer.Name);
-            //    DrawingCircle drawingCircle = new(circle, factory, deviceContext, resCache, layer);
-            //    layer.DrawingObjects.Add(drawingCircle);
-            //}
-            //if (e is Insert block)
-            //{
-            //    ObjectLayer layer = layerManager.GetLayer(block.Layer.Name);
-            //    DrawingBlock drawingBlock = new(block, factory, deviceContext, resCache, layer);
-            //    layer.DrawingObjects.Add(drawingBlock);
-            //}
-            //if (e is netDxf.Entities.Ellipse ellipse)
-            //{
-            //    ObjectLayer layer = layerManager.GetLayer(ellipse.Layer.Name);
-            //    DrawingEllipse drawingEllipse = new(ellipse, factory, deviceContext, resCache, layer);
-            //    layer.DrawingObjects.Add(drawingEllipse);
-            //}
-            //if (e is MText mtext)
-            //{
-            //    ObjectLayer layer = layerManager.GetLayer(mtext.Layer.Name);
-            //    DrawingMtext drawingMtext = new(mtext, factory, deviceContext, resCache, layer, resCache.FactoryWrite);
-            //    layer.DrawingObjects.Add(drawingMtext);
-            //}
+            if (e is Arc arc)
+            {
+                ObjectLayer layer = layerManager.GetLayer(arc.Layer.Name);
+                DrawingArc drawingArc = new(arc, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingArc);
+            }
+            if (e is Polyline2D polyline2D)
+            {
+                ObjectLayer layer = layerManager.GetLayer(polyline2D.Layer.Name);
+                DrawingPolyline2D drawingPolyline2D = new(polyline2D, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingPolyline2D);
+            }
+            if (e is Polyline3D polyline3D)
+            {
+                ObjectLayer layer = layerManager.GetLayer(polyline3D.Layer.Name);
+                DrawingPolyline3D drawingPolyline3D = new(polyline3D, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingPolyline3D);
+            }
+            if (e is Circle circle)
+            {
+                ObjectLayer layer = layerManager.GetLayer(circle.Layer.Name);
+                DrawingCircle drawingCircle = new(circle, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingCircle);
+            }
+            if (e is Insert block)
+            {
+                ObjectLayer layer = layerManager.GetLayer(block.Layer.Name);
+                DrawingBlock drawingBlock = new(block, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingBlock);
+            }
+            if (e is netDxf.Entities.Ellipse ellipse)
+            {
+                ObjectLayer layer = layerManager.GetLayer(ellipse.Layer.Name);
+                DrawingEllipse drawingEllipse = new(ellipse, factory, deviceContext, resCache, layer);
+                layer.DrawingObjects.Add(drawingEllipse);
+            }
+            if (e is MText mtext)
+            {
+                ObjectLayer layer = layerManager.GetLayer(mtext.Layer.Name);
+                DrawingMtext drawingMtext = new(mtext, factory, deviceContext, resCache, layer, resCache.FactoryWrite);
+                layer.DrawingObjects.Add(drawingMtext);
+            }
         }
         public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory1 factory,
             DeviceContext1 deviceContext, ResourceCache resCache)

@@ -61,7 +61,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness)
+        public void DrawVisibleObjectsToDeviceContext(DeviceContext1 deviceContext, float thickness)
         {
             if (!IsVisible) { return; }
 
@@ -73,16 +73,34 @@ namespace Direct2DDXFViewer.DrawingObjects
                 }
             }
         }
-        public void DrawToRenderTarget(RenderTarget renderTarget, float thickness)
+        public void DrawVisibleObjectsToRenderTarget(RenderTarget renderTarget, float thickness)
         {
             if (!IsVisible) { return; }
-            Brush brush = new SolidColorBrush(renderTarget, new SharpDX.Mathematics.Interop.RawColor4(0, 0, 0, 1));
             foreach (var drawingObject in DrawingObjects)
             {
                 if (drawingObject.IsInView)
                 {
-                    drawingObject.DrawToRenderTarget(renderTarget, thickness, brush);
+                    drawingObject.DrawToRenderTarget(renderTarget, thickness, drawingObject.Brush);
                 }
+            }
+        }
+
+        public void DrawObjectsToDeviceContext(DeviceContext1 deviceContext, float thickness)
+        {
+            if (!IsVisible) { return; }
+
+            foreach (var drawingObject in DrawingObjects)
+            {
+                drawingObject.DrawToDeviceContext(deviceContext, thickness, drawingObject.Brush);
+            }
+        }
+        public void DrawObjectsToRenderTarget(RenderTarget renderTarget, float thickness)
+        {
+            if (!IsVisible) { return; }
+
+            foreach (var drawingObject in DrawingObjects)
+            {
+                drawingObject.DrawToRenderTarget(renderTarget, thickness, new SolidColorBrush(renderTarget, new SharpDX.Mathematics.Interop.RawColor4(0, 0, 0, 1)));
             }
         }
 

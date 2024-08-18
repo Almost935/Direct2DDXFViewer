@@ -2,14 +2,8 @@
 using netDxf.Entities;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 
 
@@ -96,43 +90,8 @@ namespace Direct2DDXFViewer.DrawingObjects
                 Brush.Dispose();
                 Brush = null;
             }
-            byte r, g, b, a;
-            if (Entity.Color.IsByLayer)
-            {
-                if (Entity.Layer.Color.R == 255 && Entity.Layer.Color.G == 255 && Entity.Layer.Color.B == 255)
-                {
-                    r = g = b = 0; a = 255;
-                    //Brush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
-                    //OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1));
-                    //OuterEdgeBrush.Opacity = _outerEdgeOpacity;
-                }
-                else
-                {
-                    r = Entity.Layer.Color.R; g = Entity.Layer.Color.G; b = Entity.Layer.Color.B; a = 255;
-                    //Brush = new SolidColorBrush(DeviceContext,
-                    //    new RawColor4((float)(Entity.Layer.Color.R / 255), (float)(Entity.Layer.Color.G / 255), (float)(Entity.Layer.Color.B / 255), 1.0f));
-                    //OuterEdgeBrush = new SolidColorBrush(DeviceContext,
-                    //    new RawColor4((float)(Entity.Layer.Color.R / 255), (float)(Entity.Layer.Color.G / 255), (float)(Entity.Layer.Color.B / 255), 1));
-                    //OuterEdgeBrush.Opacity = _outerEdgeOpacity;
-                }
-            }
-            else
-            {
-                if (Entity.Color.R == 255 && Entity.Color.G == 255 && Entity.Color.B == 255)
-                {
-                    r = g = b = 0; a = 255;
-                    //Brush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1.0f));
-                    //OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4(0.0f, 0.0f, 0.0f, 1));
-                    //OuterEdgeBrush.Opacity = _outerEdgeOpacity;
-                }
-                else
-                {
-                    r = Entity.Color.R; g = Entity.Color.G; b = Entity.Color.B; a = 255;
-                    //Brush = new SolidColorBrush(DeviceContext, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1.0f));
-                    //OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4((float)(Entity.Color.R) / 255, (float)(Entity.Color.G) / 255, (float)(Entity.Color.B) / 255, 1f));
-                    //OuterEdgeBrush.Opacity = _outerEdgeOpacity;
-                }
-            }
+            
+            (byte r, byte g, byte b, byte a) = GetRGBAColor();
 
             bool brushExisted = ResCache.Brushes.TryGetValue((r, g, b, a), value: out Brush brush);
             if (!brushExisted)
@@ -144,6 +103,35 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 Brush = brush;
             }
+        }
+
+        public (byte r, byte g, byte b, byte a) GetRGBAColor()
+        {
+            byte r, g, b, a;
+            if (Entity.Color.IsByLayer)
+            {
+                if (Entity.Layer.Color.R == 255 && Entity.Layer.Color.G == 255 && Entity.Layer.Color.B == 255)
+                {
+                    r = g = b = 0; a = 255;
+                }
+                else
+                {
+                    r = Entity.Layer.Color.R; g = Entity.Layer.Color.G; b = Entity.Layer.Color.B; a = 255;
+                }
+            }
+            else
+            {
+                if (Entity.Color.R == 255 && Entity.Color.G == 255 && Entity.Color.B == 255)
+                {
+                    r = g = b = 0; a = 255;
+                }
+                else
+                {
+                    r = Entity.Color.R; g = Entity.Color.G; b = Entity.Color.B; a = 255;
+                }
+            }
+
+            return (r, g, b, a);
         }
 
         public void GetStrokeStyle()

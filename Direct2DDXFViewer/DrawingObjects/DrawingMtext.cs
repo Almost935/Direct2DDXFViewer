@@ -72,7 +72,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         #region Methods
         public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush)
         {
-            deviceContext.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, (float)DxfMtext.Position.Y), _textLayout, Brush);
+            deviceContext.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, (float)DxfMtext.Position.Y), _textLayout, brush);
             //deviceContext.DrawText(DxfMtext.PlainText(), _textFormat, new RawRectangleF((float)Bounds.Left, (float)Bounds.Top, (float)Bounds.Right, (float)Bounds.Bottom), Brush);
         }
         public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush)
@@ -80,7 +80,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             var transform = target.Transform;
             transform.M22 *= -1;
             target.Transform = transform;
-            target.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, -(float)DxfMtext.Position.Y), _textLayout, Brush);
+            target.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, -(float)DxfMtext.Position.Y), _textLayout, brush);
             transform.M22 *= -1;
             target.Transform = transform;
         }

@@ -31,18 +31,33 @@ namespace Direct2DDXFViewer.DrawingObjects
                 return objectLayer;
             }
         }
-        public void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness)
+        public void DrawVisibleObjectsToDeviceContext(DeviceContext1 deviceContext, float thickness)
         {
             foreach (var layer in Layers.Values)
             {
-                layer.DrawToDeviceContext(deviceContext, thickness);
+                layer.DrawVisibleObjectsToDeviceContext(deviceContext, thickness);
             }
         }
-        public void DrawToRenderTarget(RenderTarget renderTarget, float thickness)
+        public void DrawVisibleObjectsToRenderTarget(RenderTarget renderTarget, float thickness)
         {
             foreach (var layer in Layers.Values)
             {
-                layer.DrawToRenderTarget(renderTarget, thickness);
+                layer.DrawVisibleObjectsToRenderTarget(renderTarget, thickness);
+            }
+        }
+
+        public void DrawObjectsToDeviceContext(DeviceContext1 deviceContext, float thickness)
+        {
+            foreach (var layer in Layers.Values)
+            {
+                layer.DrawObjectsToDeviceContext(deviceContext, thickness);
+            }
+        }
+        public void DrawObjectsToRenderTarget(RenderTarget renderTarget, float thickness)
+        {
+            foreach (var layer in Layers.Values)
+            {
+                layer.DrawObjectsToRenderTarget(renderTarget, thickness);
             }
         }
 

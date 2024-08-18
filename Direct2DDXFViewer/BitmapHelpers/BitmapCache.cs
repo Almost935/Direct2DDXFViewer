@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ using System.Windows.Media;
 
 namespace Direct2DDXFViewer.BitmapHelpers
 {
-    public class BitmapCache : INotifyPropertyChanged
+    public class BitmapCache : INotifyPropertyChanged, IDisposable
     {
         #region Fields
         private const int _initializationFactor = 5;
@@ -29,7 +30,9 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private float _currentZoom;
         private RawMatrix3x2 _extentsMatrix;
         private readonly float _zoomFactor;
-        private bool _isUpdatingBitmaps = false;
+        private DxfBitmap _lastUpdateBitmap;
+        private string _tempFolderPath;
+        private bool _disposed = false; 
         #endregion
 
         #region Properties
@@ -57,15 +60,17 @@ namespace Direct2DDXFViewer.BitmapHelpers
             _extentsMatrix = extentsMatrix;
             _zoomFactor = zoomFactor;
 
-            InitializeBitmaps();    
+            CreateTempFolder();
+            InitializeBitmaps();
+            CallUpdateBitmapsAsync();
         }
         #endregion
 
         #region Methods
         public void InitializeBitmaps()
         {
-            CurrentBitmap = new(_deviceContext, _factory, _layerManager, _extentsMatrix, 1);
-            
+            CurrentBitmap = new(_deviceContext, _factory, _layerManager, _extentsMatrix, 1, _tempFolderPath);
+
             // Iterate through next initializationFactor amount of zoomed in bitmaps
             for (int i = 0; i < _initializationFactor; i++)
             {
@@ -83,7 +88,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
             _bitmapsInitialized = true;
         }
-        public DxfBitmap GetBitmap(float zoom) 
+        public DxfBitmap GetBitmap(float zoom)
         {
             zoom = (float)Math.Round(zoom, 3);
 
@@ -93,7 +98,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
                 if (!bitmapExists)
                 {
-                    newBitmap = new DxfBitmap(_deviceContext, _factory, _layerManager, _extentsMatrix, zoom);
+                    newBitmap = new DxfBitmap(_deviceContext, _factory, _layerManager, _extentsMatrix, zoom, _tempFolderPath);
                     _createdBitmaps.Add(zoom, newBitmap);
                 }
 
@@ -108,8 +113,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 bool bitmapExists = _createdBitmaps.TryGetValue(zoom, out bitmap);
                 if (!bitmapExists)
                 {
-                    bitmap = new DxfBitmap(_deviceContext, _factory, _layerManager, _extentsMatrix, zoom);
-                    _createdBitmaps.Add(zoom, bitmap);
+                    bitmap = new DxfBitmap(_deviceContext, _factory, _layerManager, _extentsMatrix, zoom, _tempFolderPath);
+                    _createdBitmaps.TryAdd(zoom, bitmap);
                 }
                 else
                 {
@@ -125,18 +130,24 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public void SetCurrentDxfBitmap(float zoom)
         {
             CurrentBitmap = GetBitmap(zoom);
-            CallUpdateBitmapsAsync(CurrentBitmap);
         }
-        private async Task CallUpdateBitmapsAsync(DxfBitmap bitmap)
+        private async Task CallUpdateBitmapsAsync()
         {
-            if (!_isUpdatingBitmaps)
+            while (true)
             {
                 await Task.Run(() => UpdateBitmaps());
+                await Task.Delay(10);
             }
         }
         private void UpdateBitmaps()
-        { 
-            _isUpdatingBitmaps = true;
+        {
+            Stopwatch stopwatch = new();
+            stopwatch.Start();
+
+            if (_lastUpdateBitmap is not null)
+            {
+                if (_lastUpdateBitmap == CurrentBitmap) { return; }
+            }
 
             DxfBitmap[] newZoomedInLoadedBitmaps = new DxfBitmap[_initializationFactor];
             DxfBitmap[] newZoomedOutLoadedBitmaps = new DxfBitmap[_initializationFactor];
@@ -157,8 +168,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
             }
 
             // Iterate through current bitmaps and dispose of those that are no longer needed
-            float upperLimit = CurrentBitmap.Zoom * (float)Math.Pow(_zoomFactor, _initializationFactor);
-            float lowerLimit = CurrentBitmap.Zoom * (1 / (float)Math.Pow(_zoomFactor, _initializationFactor));
+            float upperLimit = (float)Math.Round(CurrentBitmap.Zoom * Math.Pow(_zoomFactor, _initializationFactor), 3);
+            float lowerLimit = (float)Math.Round(CurrentBitmap.Zoom * (1 / Math.Pow(_zoomFactor, _initializationFactor)), 3);
 
             foreach (var bitmap in _zoomedInLoadedBitmaps)
             {
@@ -171,22 +182,42 @@ namespace Direct2DDXFViewer.BitmapHelpers
             {
                 if (bitmap is not null)
                 {
-                    if (bitmap.Zoom < lowerLimit || bitmap.Zoom > upperLimit) { bitmap.Dispose(); } 
+                    if (bitmap.Zoom < lowerLimit || bitmap.Zoom > upperLimit) { bitmap.Dispose(); }
                 }
             }
             _zoomedInLoadedBitmaps = newZoomedInLoadedBitmaps;
             _zoomedOutLoadedBitmaps = newZoomedOutLoadedBitmaps;
+            _lastUpdateBitmap = CurrentBitmap;
 
-            //foreach (var bitmap in _zoomedOutLoadedBitmaps)
-            //{
-            //    Debug.WriteLine($"New _zoomedOutLoadedBitmaps: {bitmap.Zoom}");
-            //}
-            //foreach (var bitmap in _zoomedInLoadedBitmaps)
-            //{
-            //    Debug.WriteLine($"New _zoomedInLoadedBitmaps: {bitmap.Zoom}");
-            //}
+            stopwatch.Stop();
+            Debug.WriteLine($"UpdateBitmaps: {stopwatch.ElapsedMilliseconds} ms");
 
-            _isUpdatingBitmaps = false;
+            return;
+        }
+
+        public void CreateTempFolder()
+        {
+            // Get the path to the temporary files directory
+            string tempPath = Path.GetTempPath();
+            string folderName = "CadViewer";
+
+            // Combine the temporary path with the folder name
+            _tempFolderPath = Path.Combine(tempPath, folderName);
+
+            // Check if the directory already exists
+            if (Directory.Exists(_tempFolderPath))
+            {
+                Directory.Delete(_tempFolderPath, true);
+            }
+            Directory.CreateDirectory(_tempFolderPath);
+        }
+
+        private void DeleteTempFolder()
+        {
+            if (!string.IsNullOrEmpty(_tempFolderPath) && Directory.Exists(_tempFolderPath))
+            {
+                Directory.Delete(_tempFolderPath, true);
+            }
         }
 
         protected void OnPropertyChanged(string propertyName)
@@ -197,6 +228,50 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         #region Events
         public event PropertyChangedEventHandler PropertyChanged;
+        #endregion
+
+        #region IDisposable Support
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed state (managed objects).
+                    foreach (var bitmap in _zoomedInLoadedBitmaps)
+                    {
+                        bitmap?.Dispose();
+                    }
+                    foreach (var bitmap in _zoomedOutLoadedBitmaps)
+                    {
+                        bitmap?.Dispose();
+                    }
+                    foreach (var bitmap in _createdBitmaps.Values)
+                    {
+                        bitmap?.Dispose();
+                    }
+                    DeleteTempFolder();
+                }
+
+                // Free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // Set large fields to null.
+
+                _disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~BitmapCache()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(false);
+        }
         #endregion
     }
 }
