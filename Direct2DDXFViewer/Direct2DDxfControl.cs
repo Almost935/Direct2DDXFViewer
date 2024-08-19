@@ -61,7 +61,7 @@ namespace Direct2DDXFViewer
         private int _objectDetailLevelTransitionNum = 500;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\SmallDxf.dxf";
+        private string _filePath = @"DXF\LargeDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();

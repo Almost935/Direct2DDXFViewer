@@ -56,9 +56,17 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             if (BitmapSaved)
             {
-                while (IsFileInUse(_filepath))
+                bool fileInUse = IsFileInUse(_filepath);
+                if (fileInUse)
                 {
-                    Thread.Sleep(500);
+                    Debug.WriteLine($"File in use: Zoom = {Zoom}");
+                    Stopwatch timer = new();
+                    timer.Start();
+                    // Wait for the file to be released by the other process (if any)
+                    while (IsFileInUse(_filepath) || timer.ElapsedMilliseconds < 5000)
+                    {
+                        Thread.Sleep(500);
+                    }
                 }
 
                 using (var imagingFactory = new ImagingFactory()) // Use 'using' to ensure disposal
@@ -90,6 +98,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             }
             catch (IOException)
             {
+                
                 // If an IOException is thrown, the file is in use
                 return true;
             }
@@ -99,6 +108,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             if (!BitmapSaved)
             {
+                Debug.WriteLine($"SaveBitmapToTemporaryFile: Zoom = {Zoom}");
                 _filepath = Path.Combine(_tempFileFolderPath, $"{Zoom}.png");
                 // Select encoder based on file extension
                 BitmapEncoder encoder;
@@ -126,7 +136,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             _imagingFactory = new();
             _wicBitmap = new SharpDX.WIC.Bitmap(_imagingFactory, (int)(_deviceContext.Size.Width * Zoom), (int)(_deviceContext.Size.Height * Zoom), SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
 
-            Debug.WriteLine($"_wicBitmap.Size: {_wicBitmap.Size.Width} {_wicBitmap.Size.Height}");
+            //Debug.WriteLine($"_wicBitmap.Size: {_wicBitmap.Size.Width} {_wicBitmap.Size.Height}");
 
             _wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())
             {
@@ -185,7 +195,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         public Bitmap GetBitmap()
         {
-            Debug.WriteLine($"GetBitmap: Zoom: {Zoom} Bitmap.IsDisposed: {Bitmap.IsDisposed}");
             if (Bitmap.IsDisposed)
             {
                 LoadBitmapFromFile();
