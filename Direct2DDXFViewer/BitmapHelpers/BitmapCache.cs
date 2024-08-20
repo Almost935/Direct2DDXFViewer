@@ -159,26 +159,16 @@ namespace Direct2DDXFViewer.BitmapHelpers
             // Iterate through next initializationFactor amount of zoomed in bitmaps
             for (int i = 0; i < _initializationFactor; i++)
             {
-                stopwatch.Restart();
-                
                 float zoom = (float)Math.Round(CurrentBitmap.Zoom * Math.Pow(_zoomFactor, (i + 1)), 3);
                 DxfBitmap bitmap = GetBitmap(zoom);
                 newZoomedInLoadedBitmaps[i] = bitmap;
-
-                stopwatch.Stop();
-                Debug.WriteLine($"zoom: {zoom} stopwatch.ElapsedMilliseconds: {stopwatch.ElapsedMilliseconds}");
             }
             // Iterate through next initializationFactor amount of zoomed out bitmaps
             for (int i = 0; i < _initializationFactor; i++)
             {
-                stopwatch.Restart();
-
                 float zoom = (float)Math.Round(CurrentBitmap.Zoom * (1 / Math.Pow(_zoomFactor, (i + 1))), 3);
                 DxfBitmap bitmap = GetBitmap(zoom);
                 newZoomedOutLoadedBitmaps[i] = bitmap;
-
-                stopwatch.Stop();
-                Debug.WriteLine($"zoom: {zoom} stopwatch.ElapsedMilliseconds: {stopwatch.ElapsedMilliseconds}");
             }
 
             // Iterate through current bitmaps and dispose of those that are no longer needed
@@ -203,8 +193,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
             _zoomedOutLoadedBitmaps = newZoomedOutLoadedBitmaps;
             _lastUpdateBitmap = CurrentBitmap;
 
-            //stopwatch.Stop();
-            //Debug.WriteLine($"UpdateBitmaps: {stopwatch.ElapsedMilliseconds} ms");
+            stopwatch.Stop();
+            Debug.WriteLine($"UpdateBitmaps: {stopwatch.ElapsedMilliseconds} ms");
 
             return;
         }

@@ -108,14 +108,12 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             if (!BitmapSaved)
             {
-                Debug.WriteLine($"SaveBitmapToTemporaryFile: Zoom = {Zoom}");
                 _filepath = Path.Combine(_tempFileFolderPath, $"{Zoom}.png");
-                // Select encoder based on file extension
-                BitmapEncoder encoder;
+
                 using (var stream = new WICStream(_imagingFactory, _filepath, SharpDX.IO.NativeFileAccess.Write))
+                using (var encoder = new PngBitmapEncoder(_imagingFactory, stream))
+                using (var frame = new BitmapFrameEncode(encoder))
                 {
-                    encoder = new PngBitmapEncoder(_imagingFactory, stream);
-                    var frame = new BitmapFrameEncode(encoder);
                     frame.Initialize();
                     frame.SetSize(_wicBitmap.Size.Width, _wicBitmap.Size.Height);
                     var guid = SharpDX.WIC.PixelFormat.Format32bppPBGRA;
@@ -124,6 +122,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     frame.Commit();
                     encoder.Commit();
                 }
+
                 _wicBitmap.Dispose();
                 _imagingFactory.Dispose();
 
