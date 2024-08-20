@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Media;
 
 namespace Direct2DDXFViewer.BitmapHelpers
@@ -20,23 +21,24 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Fields
         private const int _initializationFactor = 5;
 
-        private DxfBitmap[] _zoomedInLoadedBitmaps = new DxfBitmap[_initializationFactor];
-        private DxfBitmap[] _zoomedOutLoadedBitmaps = new DxfBitmap[_initializationFactor];
+        private DxfBitmapView[] _zoomedInLoadedBitmaps = new DxfBitmapView[_initializationFactor];
+        private DxfBitmapView[] _zoomedOutLoadedBitmaps = new DxfBitmapView[_initializationFactor];
         private bool _bitmapsInitialized = false;
-        private Dictionary<float, DxfBitmap> _createdBitmaps = new();
+        private Dictionary<float, DxfBitmapView> _createdBitmaps = new();
         private readonly DeviceContext1 _deviceContext;
         private readonly Factory1 _factory;
         private readonly ObjectLayerManager _layerManager;
         private float _currentZoom;
+        private Rect _extents;
         private RawMatrix3x2 _extentsMatrix;
         private readonly float _zoomFactor;
-        private DxfBitmap _lastUpdateBitmap;
+        private DxfBitmapView _lastUpdateBitmap;
         private string _tempFolderPath;
         private bool _disposed = false; 
         #endregion
 
         #region Properties
-        public DxfBitmap CurrentBitmap { get; set; }
+        public DxfBitmapView CurrentBitmap { get; set; }
         public float CurrentZoom
         {
             get => _currentZoom;
@@ -52,11 +54,12 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region
-        public BitmapCache(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, RawMatrix3x2 extentsMatrix, float zoomFactor)
+        public BitmapCache(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect extents, RawMatrix3x2 extentsMatrix, float zoomFactor)
         {
             _deviceContext = deviceContext;
             _factory = factory;
             _layerManager = layerManager;
+            _extents = extents;
             _extentsMatrix = extentsMatrix;
             _zoomFactor = zoomFactor;
 
@@ -69,7 +72,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Methods
         public void InitializeBitmaps()
         {
-            CurrentBitmap = new(_deviceContext, _factory, _layerManager, _extentsMatrix, 1, _tempFolderPath);
+            CurrentBitmap = new(_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, 1, _tempFolderPath);
+            CurrentBitmap = new(_deviceContext, _factory, _layerManager, _extentsMatrix, 1, _tempFolderPath, new Size2((int)_deviceContext.Size.Width, (int)_deviceContext.Size.Height));
 
             // Iterate through next initializationFactor amount of zoomed in bitmaps
             for (int i = 0; i < _initializationFactor; i++)
@@ -88,24 +92,24 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
             _bitmapsInitialized = true;
         }
-        public DxfBitmap GetBitmap(float zoom)
+        public DxfBitmapView GetBitmap(float zoom)
         {
             zoom = (float)Math.Round(zoom, 3);
 
             if (!_bitmapsInitialized)
             {
-                bool bitmapExists = _createdBitmaps.TryGetValue(zoom, out DxfBitmap newBitmap);
+                bool bitmapExists = _createdBitmaps.TryGetValue(zoom, out DxfBitmapView newBitmap);
 
                 if (!bitmapExists)
                 {
-                    newBitmap = new DxfBitmap(_deviceContext, _factory, _layerManager, _extentsMatrix, zoom, _tempFolderPath);
+                    newBitmap = new(_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, zoom, _tempFolderPath);
                     _createdBitmaps.Add(zoom, newBitmap);
                 }
 
                 return newBitmap;
             }
 
-            DxfBitmap bitmap = _zoomedInLoadedBitmaps.FirstOrDefault(x => x.Zoom == zoom);
+            DxfBitmapView bitmap = _zoomedInLoadedBitmaps.FirstOrDefault(x => x.Zoom == zoom);
             bitmap ??= _zoomedOutLoadedBitmaps.FirstOrDefault(x => x.Zoom == zoom);
 
             if (bitmap is null)
@@ -113,19 +117,20 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 bool bitmapExists = _createdBitmaps.TryGetValue(zoom, out bitmap);
                 if (!bitmapExists)
                 {
-                    bitmap = new DxfBitmap(_deviceContext, _factory, _layerManager, _extentsMatrix, zoom, _tempFolderPath);
+                    bitmap = new (_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, zoom, _tempFolderPath);
                     _createdBitmaps.TryAdd(zoom, bitmap);
                 }
                 else
                 {
-                    if (bitmap.Bitmap.IsDisposed)
-                    {
-                        bitmap.GetBitmap();
-                    }
+                   bitmap.
                 }
             }
 
             return bitmap;
+        }
+        public void CreateNewDxfBitmapView(float zoom)
+        {
+            DxfBitmapView bitmapView = new(_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, zoom, _tempFolderPath);
         }
         public void SetCurrentDxfBitmap(float zoom)
         {

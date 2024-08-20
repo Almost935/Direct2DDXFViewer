@@ -61,7 +61,7 @@ namespace Direct2DDXFViewer
         private int _objectDetailLevelTransitionNum = 500;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\LargeDxf.dxf";
+        private string _filePath = @"DXF\SmallDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -225,7 +225,7 @@ namespace Direct2DDXFViewer
             stopwatch.Start();
 
             RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
-            _bitmapCache = new(deviceContext, factory, LayerManager, extentsMatrix, _zoomFactor);
+            _bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor);
 
             stopwatch.Stop();
         }

@@ -20,7 +20,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private DeviceContext1 _deviceContext;
         private Factory1 _factory;
         private ObjectLayerManager _layerManager;
-        private RawMatrix3x2 _extentsMatrix;
+        private Rect _extents;
+        private RawMatrix3x2 _transform;
         private string _tempFileFolderPath;
         private string _filepath;
         private SharpDX.WIC.Bitmap _wicBitmap;
@@ -31,23 +32,28 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         #region Properties
         public float Zoom { get; set; }
+        public Size2 Size { get; set; } 
         public Bitmap Bitmap { get; set; }
         public bool BitmapSaved = false;
         public Rect DestRect { get; set; }
         public Rect SourceRect { get; set; }
         public Dictionary<(byte r, byte g, byte b, byte a), Brush> Brushes { get; set; } = new();
-
+        public enum Quadrants { TopRight, TopLeft, BottomRight, BottomLeft }
+        public Quadrants Quadrant { get; set; }
         #endregion
 
         #region Constructor
-        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, RawMatrix3x2 extentsMatrix, float zoom, string tempFileFolder)
+        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect extents, RawMatrix3x2 extentsMatrix, float zoom, string tempFileFolder, Size2 size, Quadrants quadrant)
         {
             _deviceContext = deviceContext;
             _factory = factory;
             _layerManager = layerManager;
-            _extentsMatrix = extentsMatrix;
+            _extents = extents;
+            _transform = extentsMatrix;
             Zoom = zoom;
             _tempFileFolderPath = tempFileFolder;
+            Size = size;
+            Quadrant = quadrant;
 
             RenderBitmap();
             SaveBitmapToTemporaryFile();
@@ -111,7 +117,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             if (!BitmapSaved)
             {
-                _filepath = Path.Combine(_tempFileFolderPath, $"{Zoom}.png");
+                _filepath = Path.Combine(_tempFileFolderPath, $"{Quadrant}.png");
 
                 using (var stream = new WICStream(_imagingFactory, _filepath, SharpDX.IO.NativeFileAccess.Write))
                 using (var encoder = new PngBitmapEncoder(_imagingFactory, stream))
@@ -134,9 +140,9 @@ namespace Direct2DDXFViewer.BitmapHelpers
         }
 
         private void RenderBitmap()
-        {
+        { 
             _imagingFactory = new();
-            _wicBitmap = new SharpDX.WIC.Bitmap(_imagingFactory, (int)(_deviceContext.Size.Width * Zoom), (int)(_deviceContext.Size.Height * Zoom), SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
+            _wicBitmap = new(_imagingFactory, Size.Width, Size.Height, SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
 
             //Debug.WriteLine($"_wicBitmap.Size: {_wicBitmap.Size.Width} {_wicBitmap.Size.Height}");
 
@@ -146,7 +152,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 AntialiasMode = AntialiasMode.PerPrimitive
             };
             _wicRenderTarget.BeginDraw();
-            _wicRenderTarget.Transform = _extentsMatrix;
+            _wicRenderTarget.Transform = _transform;
 
             foreach (var layer in _layerManager.Layers.Values)
             {
