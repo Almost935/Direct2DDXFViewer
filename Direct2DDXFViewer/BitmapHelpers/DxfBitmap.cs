@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Windows;
 using Direct2DDXFViewer.DrawingObjects;
 using netDxf.Entities;
 using SharpDX;
@@ -32,6 +33,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public float Zoom { get; set; }
         public Bitmap Bitmap { get; set; }
         public bool BitmapSaved = false;
+        public Rect DestRect { get; set; }
+        public Rect SourceRect { get; set; }
         public Dictionary<(byte r, byte g, byte b, byte a), Brush> Brushes { get; set; } = new();
 
         #endregion

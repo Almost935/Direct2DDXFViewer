@@ -276,11 +276,6 @@ namespace Direct2DDXFViewer
                     destRect.Transform(_transformMatrix);
                     RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
 
-                    //Debug.WriteLine($"\n_bitmapCache.CurrentBitmap.Bitmap.IsDisposed: {_bitmapCache.CurrentBitmap.Bitmap.IsDisposed}" +
-                    //    $"\n_bitmapCache.CurrentBitmap.Zoom: {_bitmapCache.CurrentBitmap.Zoom}");
-
-
-
                     deviceContext.DrawBitmap(_bitmapCache.CurrentBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
                     deviceContext.EndDraw();
                     resCache.Device.ImmediateContext.Flush();
