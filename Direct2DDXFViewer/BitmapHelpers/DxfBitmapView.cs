@@ -5,6 +5,7 @@ using SharpDX.Mathematics.Interop;
 using SharpDX.WIC;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -63,30 +64,35 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             Size overallSize = new(_deviceContext.Size.Width * Zoom, _deviceContext.Size.Height * Zoom);
             Size destSize = new((_deviceContext.Size.Width * Zoom ) / 2, (_deviceContext.Size.Height * Zoom) / 2);
-            Size sourceSize = new(_extents.Width * 0.5, _extents.Height * 0.5);
 
             Rect topLeftExtents = new(_extents.Left, _extents.Top, _extents.Width * 0.5, _extents.Height * 0.5);
             Rect topRightExtents = new(_extents.Left + (_extents.Width * 0.5), _extents.Top, _extents.Width * 0.5, _extents.Height * 0.5);
             Rect bottomLeftExtents = new(_extents.Left, _extents.Top + (_extents.Height * 0.5), _extents.Width * 0.5, _extents.Height * 0.5);
             Rect bottomRightExtents = new(_extents.Left + (_extents.Width * 0.5), _extents.Top + (_extents.Height * 0.5), _extents.Width * 0.5, _extents.Height * 0.5);
 
-            Rect topLeftExtents = new(0, 0, destSize.Width, destSize.Height);
-            Rect topRightExtents = new(_extents.Left + (_extents.Width * 0.5), _extents.Top, _extents.Width * 0.5, _extents.Height * 0.5);
-            Rect bottomLeftExtents = new(_extents.Left, _extents.Top + (_extents.Height * 0.5), _extents.Width * 0.5, _extents.Height * 0.5);
-            Rect bottomRightExtents = new(_extents.Left + (_extents.Width * 0.5), _extents.Top + (_extents.Height * 0.5), _extents.Width * 0.5, _extents.Height * 0.5);
+            Rect topLeftDest = new(0, 0, destSize.Width, destSize.Height);
+            Rect topRightDest = new(destSize.Width, 0, destSize.Width, destSize.Height);
+            Rect bottomLeftDest = new(0, destSize.Height, destSize.Width, destSize.Height);
+            Rect bottomRightDest = new(destSize.Width, destSize.Height, destSize.Width, destSize.Height);
 
             RawMatrix3x2 topLeftMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31, _extentsMatrix.M32);
-            RawMatrix3x2 topRightMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31 + (float)sourceSize.Width,
+            RawMatrix3x2 topRightMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31 - (float)(destSize.Width),
                 _extentsMatrix.M32);
             RawMatrix3x2 bottomLeftMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31,
-                _extentsMatrix.M32 - (float)sourceSize.Height);
-            RawMatrix3x2 bottomRightMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31 + (float)sourceSize.Width,
-                _extentsMatrix.M32 - (float)sourceSize.Height);
+                _extentsMatrix.M32 - (float)(destSize.Height));
+            RawMatrix3x2 bottomRightMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31 - (float)(destSize.Width),
+                _extentsMatrix.M32 - (float)(destSize.Height));
 
-            TopLeftBitmap = new(_deviceContext, _factory, _layerManager, topLeftExtents, topLeftMatrix, Zoom, _tempFileFolderPath, destSize, DxfBitmap.Quadrants.TopLeft);
-            TopRightBitmap = new(_deviceContext, _factory, _layerManager, topRightExtents, topRightMatrix, Zoom, _tempFileFolderPath, destSize, DxfBitmap.Quadrants.TopRight);
-            BottomLeftBitmap = new(_deviceContext, _factory, _layerManager, bottomLeftExtents, bottomLeftMatrix, Zoom, _tempFileFolderPath, destSize, DxfBitmap.Quadrants.BottomLeft); 
-            BottomRightBitmap = new(_deviceContext, _factory, _layerManager, bottomRightExtents, bottomRightMatrix, Zoom, _tempFileFolderPath, destSize, DxfBitmap.Quadrants.BottomRight);
+            TopLeftBitmap = new(_deviceContext, _factory, _layerManager, topLeftDest, topLeftExtents, topLeftMatrix, Zoom, _tempFileFolderPath, new Size2((int)destSize.Width, (int)destSize.Height), DxfBitmap.Quadrants.TopLeft);
+            TopRightBitmap = new(_deviceContext, _factory, _layerManager, topRightDest, topRightExtents, topRightMatrix, Zoom, _tempFileFolderPath, new Size2((int)destSize.Width, (int)destSize.Height), DxfBitmap.Quadrants.TopRight);
+            BottomLeftBitmap = new(_deviceContext, _factory, _layerManager, bottomLeftDest, bottomLeftExtents, bottomLeftMatrix, Zoom, _tempFileFolderPath, new Size2((int)destSize.Width, (int)destSize.Height), DxfBitmap.Quadrants.BottomLeft); 
+            BottomRightBitmap = new(_deviceContext, _factory, _layerManager, bottomRightDest, bottomRightExtents, bottomRightMatrix, Zoom, _tempFileFolderPath, new Size2((int)destSize.Width, (int)destSize.Height), DxfBitmap.Quadrants.BottomRight);
+
+            Debug.WriteLine($"\nZoom: {Zoom}");
+            Debug.WriteLine($"topLeftMatrix: {topLeftMatrix.M11} {topLeftMatrix.M22} {topLeftMatrix.M31} {topLeftMatrix.M32}");
+            Debug.WriteLine($"topRightMatrix: {topRightMatrix.M11} {topRightMatrix.M22} {topRightMatrix.M31} {topRightMatrix.M32}");
+            Debug.WriteLine($"bottomLeftMatrix: {bottomLeftMatrix.M11} {bottomLeftMatrix.M22} {bottomLeftMatrix.M31} {bottomLeftMatrix.M32}");
+            Debug.WriteLine($"bottomRightMatrix: {bottomRightMatrix.M11} {bottomRightMatrix.M22} {bottomRightMatrix.M31} {bottomRightMatrix.M32}");
         }
         public void CreateViewFolder(string path)
         {
