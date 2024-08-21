@@ -73,20 +73,19 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public void InitializeBitmaps()
         {
             CurrentBitmap = new(_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, 1, _tempFolderPath);
-            CurrentBitmap = new(_deviceContext, _factory, _layerManager, _extentsMatrix, 1, _tempFolderPath, new Size2((int)_deviceContext.Size.Width, (int)_deviceContext.Size.Height));
 
             // Iterate through next initializationFactor amount of zoomed in bitmaps
             for (int i = 0; i < _initializationFactor; i++)
             {
                 float zoom = (float)Math.Round(CurrentBitmap.Zoom * Math.Pow(_zoomFactor, (i + 1)), 3);
-                DxfBitmap bitmap = GetBitmap(zoom);
+                DxfBitmapView bitmap = GetBitmap(zoom);
                 _zoomedInLoadedBitmaps[i] = bitmap;
             }
             // Iterate through next initializationFactor amount of zoomed out bitmaps
             for (int i = 0; i < _initializationFactor; i++)
             {
                 float zoom = (float)Math.Round(CurrentBitmap.Zoom * (1 / Math.Pow(_zoomFactor, (i + 1))), 3);
-                DxfBitmap bitmap = GetBitmap(zoom);
+                DxfBitmapView bitmap = GetBitmap(zoom);
                 _zoomedOutLoadedBitmaps[i] = bitmap;
             }
 
@@ -122,7 +121,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 }
                 else
                 {
-                   bitmap.
+                   bitmap.LoadDxfBitmaps();
                 }
             }
 
@@ -156,8 +155,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 }
             }
 
-            DxfBitmap[] newZoomedInLoadedBitmaps = new DxfBitmap[_initializationFactor];
-            DxfBitmap[] newZoomedOutLoadedBitmaps = new DxfBitmap[_initializationFactor];
+            DxfBitmapView[] newZoomedInLoadedBitmaps = new DxfBitmapView[_initializationFactor];
+            DxfBitmapView[] newZoomedOutLoadedBitmaps = new DxfBitmapView[_initializationFactor];
 
             Debug.WriteLine("\n");
 
@@ -165,14 +164,14 @@ namespace Direct2DDXFViewer.BitmapHelpers
             for (int i = 0; i < _initializationFactor; i++)
             {
                 float zoom = (float)Math.Round(CurrentBitmap.Zoom * Math.Pow(_zoomFactor, (i + 1)), 3);
-                DxfBitmap bitmap = GetBitmap(zoom);
+                DxfBitmapView bitmap = GetBitmap(zoom);
                 newZoomedInLoadedBitmaps[i] = bitmap;
             }
             // Iterate through next initializationFactor amount of zoomed out bitmaps
             for (int i = 0; i < _initializationFactor; i++)
             {
                 float zoom = (float)Math.Round(CurrentBitmap.Zoom * (1 / Math.Pow(_zoomFactor, (i + 1))), 3);
-                DxfBitmap bitmap = GetBitmap(zoom);
+                DxfBitmapView bitmap = GetBitmap(zoom);
                 newZoomedOutLoadedBitmaps[i] = bitmap;
             }
 

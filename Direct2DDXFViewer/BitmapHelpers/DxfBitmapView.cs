@@ -10,12 +10,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Media;
 using Bitmap = SharpDX.Direct2D1.Bitmap;
 
 namespace Direct2DDXFViewer.BitmapHelpers
 {
-    public class DxfBitmapView
+    public class DxfBitmapView : IDisposable
     {
         #region Fields
         private DeviceContext1 _deviceContext;
@@ -28,6 +29,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private WicRenderTarget _wicRenderTarget;
         private ImagingFactory _imagingFactory;
         private string _tempFileFolderPath;
+        private bool _disposed = false;
         #endregion
 
         #region Properties
@@ -37,6 +39,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public DxfBitmap TopLeftBitmap { get; set; }
         public DxfBitmap BottomRightBitmap { get; set; }
         public DxfBitmap BottomLeftBitmap { get; set; }
+        public DxfBitmap[] Bitmaps => new DxfBitmap[] { TopLeftBitmap, TopRightBitmap, BottomLeftBitmap, BottomRightBitmap };
         #endregion
 
         #region Constructor
@@ -58,26 +61,32 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Methods
         public void GetDxfBitmaps()
         {
-            Size2 overallSize = new((int)(_deviceContext.Size.Width * Zoom), (int)(_deviceContext.Size.Height * Zoom));
-            Size2 size = new((int)(_deviceContext.Size.Width * Zoom ) / 2, (int)(_deviceContext.Size.Height * Zoom) / 2);
+            Size overallSize = new(_deviceContext.Size.Width * Zoom, _deviceContext.Size.Height * Zoom);
+            Size destSize = new((_deviceContext.Size.Width * Zoom ) / 2, (_deviceContext.Size.Height * Zoom) / 2);
+            Size sourceSize = new(_extents.Width * 0.5, _extents.Height * 0.5);
 
             Rect topLeftExtents = new(_extents.Left, _extents.Top, _extents.Width * 0.5, _extents.Height * 0.5);
             Rect topRightExtents = new(_extents.Left + (_extents.Width * 0.5), _extents.Top, _extents.Width * 0.5, _extents.Height * 0.5);
             Rect bottomLeftExtents = new(_extents.Left, _extents.Top + (_extents.Height * 0.5), _extents.Width * 0.5, _extents.Height * 0.5);
             Rect bottomRightExtents = new(_extents.Left + (_extents.Width * 0.5), _extents.Top + (_extents.Height * 0.5), _extents.Width * 0.5, _extents.Height * 0.5);
 
+            Rect topLeftExtents = new(0, 0, destSize.Width, destSize.Height);
+            Rect topRightExtents = new(_extents.Left + (_extents.Width * 0.5), _extents.Top, _extents.Width * 0.5, _extents.Height * 0.5);
+            Rect bottomLeftExtents = new(_extents.Left, _extents.Top + (_extents.Height * 0.5), _extents.Width * 0.5, _extents.Height * 0.5);
+            Rect bottomRightExtents = new(_extents.Left + (_extents.Width * 0.5), _extents.Top + (_extents.Height * 0.5), _extents.Width * 0.5, _extents.Height * 0.5);
+
             RawMatrix3x2 topLeftMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31, _extentsMatrix.M32);
-            RawMatrix3x2 topRightMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31 + size.Width,
+            RawMatrix3x2 topRightMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31 + (float)sourceSize.Width,
                 _extentsMatrix.M32);
             RawMatrix3x2 bottomLeftMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31,
-                _extentsMatrix.M32 - size.Height);
-            RawMatrix3x2 bottomRightMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31 + size.Width,
-                _extentsMatrix.M32 - size.Height);
+                _extentsMatrix.M32 - (float)sourceSize.Height);
+            RawMatrix3x2 bottomRightMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31 + (float)sourceSize.Width,
+                _extentsMatrix.M32 - (float)sourceSize.Height);
 
-            TopLeftBitmap = new(_deviceContext, _factory, _layerManager, topLeftExtents, topLeftMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopLeft);
-            TopRightBitmap = new(_deviceContext, _factory, _layerManager, topRightExtents, topRightMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopRight);
-            BottomLeftBitmap = new(_deviceContext, _factory, _layerManager, bottomLeftExtents, bottomLeftMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomLeft); 
-            BottomRightBitmap = new(_deviceContext, _factory, _layerManager, bottomRightExtents, bottomRightMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomRight);
+            TopLeftBitmap = new(_deviceContext, _factory, _layerManager, topLeftExtents, topLeftMatrix, Zoom, _tempFileFolderPath, destSize, DxfBitmap.Quadrants.TopLeft);
+            TopRightBitmap = new(_deviceContext, _factory, _layerManager, topRightExtents, topRightMatrix, Zoom, _tempFileFolderPath, destSize, DxfBitmap.Quadrants.TopRight);
+            BottomLeftBitmap = new(_deviceContext, _factory, _layerManager, bottomLeftExtents, bottomLeftMatrix, Zoom, _tempFileFolderPath, destSize, DxfBitmap.Quadrants.BottomLeft); 
+            BottomRightBitmap = new(_deviceContext, _factory, _layerManager, bottomRightExtents, bottomRightMatrix, Zoom, _tempFileFolderPath, destSize, DxfBitmap.Quadrants.BottomRight);
         }
         public void CreateViewFolder(string path)
         {
@@ -98,6 +107,41 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public void LoadDxfBitmaps()
         {
 
+        }
+        
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    _overallBitmap?.Dispose();
+                    _wicBitmap?.Dispose();
+                    _wicRenderTarget?.Dispose();
+                    _imagingFactory?.Dispose();
+                    TopLeftBitmap?.Dispose();
+                    TopRightBitmap?.Dispose();
+                    BottomLeftBitmap?.Dispose();
+                    BottomRightBitmap?.Dispose();
+                }
+
+                // Dispose unmanaged resources
+
+                _disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~DxfBitmapView()
+        {
+            Dispose(false);
         }
         #endregion
     }

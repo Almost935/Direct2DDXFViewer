@@ -20,7 +20,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private DeviceContext1 _deviceContext;
         private Factory1 _factory;
         private ObjectLayerManager _layerManager;
-        private Rect _extents;
         private RawMatrix3x2 _transform;
         private string _tempFileFolderPath;
         private string _filepath;
@@ -32,23 +31,24 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         #region Properties
         public float Zoom { get; set; }
-        public Size2 Size { get; set; } 
+        public Size2 Size { get; set; }
         public Bitmap Bitmap { get; set; }
         public bool BitmapSaved = false;
         public Rect DestRect { get; set; }
-        public Rect SourceRect { get; set; }
+        public Rect Extents { get; set; }
         public Dictionary<(byte r, byte g, byte b, byte a), Brush> Brushes { get; set; } = new();
         public enum Quadrants { TopRight, TopLeft, BottomRight, BottomLeft }
         public Quadrants Quadrant { get; set; }
         #endregion
 
         #region Constructor
-        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect extents, RawMatrix3x2 extentsMatrix, float zoom, string tempFileFolder, Size2 size, Quadrants quadrant)
+        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, float zoom, string tempFileFolder, Size2 size, Quadrants quadrant)
         {
             _deviceContext = deviceContext;
             _factory = factory;
             _layerManager = layerManager;
-            _extents = extents;
+            DestRect = destRect;
+            Extents = extents;
             _transform = extentsMatrix;
             Zoom = zoom;
             _tempFileFolderPath = tempFileFolder;
@@ -107,7 +107,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             }
             catch (IOException)
             {
-                
+
                 // If an IOException is thrown, the file is in use
                 return true;
             }
@@ -140,7 +140,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         }
 
         private void RenderBitmap()
-        { 
+        {
             _imagingFactory = new();
             _wicBitmap = new(_imagingFactory, Size.Width, Size.Height, SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
 
