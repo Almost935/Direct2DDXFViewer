@@ -278,6 +278,8 @@ namespace Direct2DDXFViewer
 
                     //deviceContext.DrawBitmap(_bitmapCache.CurrentBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
 
+                    Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
+
                     foreach (var bitmap in _bitmapCache.CurrentBitmap.Bitmaps)
                     {
                         var destRect = bitmap.DestRect;
@@ -285,7 +287,11 @@ namespace Direct2DDXFViewer
                         destRect.Transform(matrix);
                         RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
                         deviceContext.DrawBitmap(bitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+                        deviceContext.DrawRectangle(destRawRect, brush);
+
                     }
+
+                    brush.Dispose();
 
                     deviceContext.EndDraw();
                     resCache.Device.ImmediateContext.Flush();

@@ -138,7 +138,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 _disposed = true;
             }
         }
-
+        
         public void Dispose()
         {
             Dispose(true);
