@@ -284,7 +284,7 @@ namespace Direct2DDXFViewer
                     {
                         var destRect = bitmap.DestRect;
                         Matrix matrix = new(1, 0, 0, 1, _transformMatrix.OffsetX, _transformMatrix.OffsetY);
-                        destRect.Transform(matrix);
+                        destRect.Transform(_transformMatrix);
                         RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
                         deviceContext.DrawBitmap(bitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
                         deviceContext.DrawRectangle(destRawRect, brush);

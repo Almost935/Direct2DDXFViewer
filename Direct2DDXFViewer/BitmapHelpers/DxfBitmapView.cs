@@ -62,8 +62,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Methods
         public void GetDxfBitmaps()
         {
-            Size overallSize = new(_deviceContext.Size.Width * Zoom, _deviceContext.Size.Height * Zoom);
-            Size destSize = new((_deviceContext.Size.Width * Zoom ) / 2, (_deviceContext.Size.Height * Zoom) / 2);
+            Size destSize = new((_deviceContext.Size.Width) / 2, (_deviceContext.Size.Height) / 2);
 
             Rect topLeftExtents = new(_extents.Left, _extents.Top, _extents.Width * 0.5, _extents.Height * 0.5);
             Rect topRightExtents = new(_extents.Left + (_extents.Width * 0.5), _extents.Top, _extents.Width * 0.5, _extents.Height * 0.5);
