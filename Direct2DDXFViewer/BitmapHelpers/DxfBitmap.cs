@@ -143,7 +143,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             _imagingFactory = new();
             _wicBitmap = new(_imagingFactory, Size.Width, Size.Height, SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
-
+            
             //Debug.WriteLine($"_wicBitmap.Size: {_wicBitmap.Size.Width} {_wicBitmap.Size.Height}");
 
             _wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())

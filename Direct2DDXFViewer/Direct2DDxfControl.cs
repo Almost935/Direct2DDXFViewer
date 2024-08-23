@@ -288,7 +288,6 @@ namespace Direct2DDXFViewer
                         RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
                         deviceContext.DrawBitmap(bitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
                         deviceContext.DrawRectangle(destRawRect, brush);
-
                     }
 
                     brush.Dispose();
