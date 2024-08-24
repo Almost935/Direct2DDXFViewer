@@ -68,7 +68,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 bool fileInUse = IsFileInUse(_filepath);
                 if (fileInUse)
                 {
-                    Debug.WriteLine($"File in use: Zoom = {Zoom}");
+                    //Debug.WriteLine($"File in use: Zoom = {Zoom}");
                     Stopwatch timer = new();
                     timer.Start();
                     // Wait for the file to be released by the other process (if any)
@@ -225,14 +225,13 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 }
 
                 // Dispose unmanaged resources
-
                 _disposed = true;
             }
         }
 
         public void Dispose()
         {
-            Debug.WriteLine($"DISPOSE: {Zoom}");
+            //Debug.WriteLine($"DISPOSE: {Zoom}");
             Dispose(true);
             GC.SuppressFinalize(this);
         }

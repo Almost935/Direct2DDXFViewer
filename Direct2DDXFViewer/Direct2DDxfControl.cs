@@ -272,25 +272,17 @@ namespace Direct2DDXFViewer
                     }
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 1));
-                    //Rect destRect = new(0, 0, deviceContext.Size.Width, deviceContext.Size.Height);
-                    //destRect.Transform(_transformMatrix);
-                    //RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
-
-                    //deviceContext.DrawBitmap(_bitmapCache.CurrentBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-
-                    Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
 
                     foreach (var bitmap in _bitmapCache.CurrentBitmap.Bitmaps)
                     {
+                        if (bitmap.Bitmap.IsDisposed) { continue; }
+
                         var destRect = bitmap.DestRect;
                         Matrix matrix = new(1, 0, 0, 1, _transformMatrix.OffsetX, _transformMatrix.OffsetY);
                         destRect.Transform(_transformMatrix);
                         RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
                         deviceContext.DrawBitmap(bitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-                        deviceContext.DrawRectangle(destRawRect, brush);
                     }
-
-                    brush.Dispose();
 
                     deviceContext.EndDraw();
                     resCache.Device.ImmediateContext.Flush();

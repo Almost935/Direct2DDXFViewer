@@ -127,10 +127,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
             return bitmap;
         }
-        public void CreateNewDxfBitmapView(float zoom)
-        {
-            DxfBitmapView bitmapView = new(_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, zoom, _tempFolderPath);
-        }
         public void SetCurrentDxfBitmap(float zoom)
         {
             CurrentBitmap = GetBitmap(zoom);
@@ -158,8 +154,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
             DxfBitmapView[] newZoomedInLoadedBitmaps = new DxfBitmapView[_initializationFactor];
             DxfBitmapView[] newZoomedOutLoadedBitmaps = new DxfBitmapView[_initializationFactor];
 
-            Debug.WriteLine("\n");
-
             // Iterate through next initializationFactor amount of zoomed in bitmaps
             for (int i = 0; i < _initializationFactor; i++)
             {
@@ -179,18 +173,32 @@ namespace Direct2DDXFViewer.BitmapHelpers
             float upperLimit = (float)Math.Round(CurrentBitmap.Zoom * Math.Pow(_zoomFactor, _initializationFactor), 3);
             float lowerLimit = (float)Math.Round(CurrentBitmap.Zoom * (1 / Math.Pow(_zoomFactor, _initializationFactor)), 3);
 
+            Debug.WriteLine($"\n\n\nCurrentBitmap.Zoom: {CurrentBitmap.Zoom}");
+            Debug.WriteLine($"Upper Limit: {upperLimit}");
+            Debug.WriteLine($"Lower Limit: {lowerLimit}");
+
             foreach (var bitmap in _zoomedInLoadedBitmaps)
             {
+                Debug.WriteLine($"Zoomed In: {bitmap.Zoom}");
                 if (bitmap is not null)
                 {
-                    if (bitmap.Zoom < lowerLimit || bitmap.Zoom > upperLimit) { bitmap.Dispose(); }
+                    if (bitmap.Zoom < lowerLimit || bitmap.Zoom > upperLimit) 
+                    {
+                        bitmap.Dispose(); 
+                        Debug.WriteLine($"\nDispose Zoomed In: {bitmap.Zoom}\n");
+                    }
                 }
             }
             foreach (var bitmap in _zoomedOutLoadedBitmaps)
             {
+                Debug.WriteLine($"Zoomed Out: {bitmap.Zoom}");
                 if (bitmap is not null)
                 {
-                    if (bitmap.Zoom < lowerLimit || bitmap.Zoom > upperLimit) { bitmap.Dispose(); }
+                    if (bitmap.Zoom < lowerLimit || bitmap.Zoom > upperLimit) 
+                    { 
+                        bitmap.Dispose(); 
+                        Debug.WriteLine($"\nDispose Zoomed Out: {bitmap.Zoom}\n");
+                    }
                 }
             }
             _zoomedInLoadedBitmaps = newZoomedInLoadedBitmaps;
@@ -198,7 +206,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             _lastUpdateBitmap = CurrentBitmap;
 
             stopwatch.Stop();
-            Debug.WriteLine($"UpdateBitmaps: {stopwatch.ElapsedMilliseconds} ms");
+            //Debug.WriteLine($"UpdateBitmaps: {stopwatch.ElapsedMilliseconds} ms");
 
             return;
         }
