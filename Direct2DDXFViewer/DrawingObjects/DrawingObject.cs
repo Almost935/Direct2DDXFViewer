@@ -136,24 +136,6 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public void GetStrokeStyle()
         {
-            //if (StrokeStyle is not null)
-            //{
-            //    StrokeStyle.Dispose();
-            //    StrokeStyle = null;
-            //}
-            //StrokeStyleProperties1 ssp = new()
-            //{
-            //    StartCap = CapStyle.Round,
-            //    EndCap = CapStyle.Round,
-            //    DashCap = CapStyle.Flat,
-            //    LineJoin = LineJoin.Round,
-            //    MiterLimit = 10.0f,
-            //    DashStyle = DashStyle.Solid,
-            //    DashOffset = 0.0f,
-            //    TransformType = StrokeTransformType.Hairline
-            //};
-            //StrokeStyle = new(Factory, ssp);
-
             bool strokeStyleExists = ResCache.StrokeStyles.TryGetValue(ResourceCache.LineType.Solid, value: out StrokeStyle1 strokeStyle);
             if (!strokeStyleExists)
             {

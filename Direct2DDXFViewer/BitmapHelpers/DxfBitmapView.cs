@@ -88,61 +88,78 @@ namespace Direct2DDXFViewer.BitmapHelpers
             BottomLeftBitmap = new(_deviceContext, _factory, _layerManager, bottomLeftDest, bottomLeftExtents, bottomLeftMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomLeft);
             BottomRightBitmap = new(_deviceContext, _factory, _layerManager, bottomRightDest, bottomRightExtents, bottomRightMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomRight);
         }
-    public void CreateViewFolder(string path)
-    {
-        // Get the path to the temporary files directory
-        string tempPath = Path.GetTempPath();
-        string folderName = $"{Zoom}";
-
-        // Combine the temporary path with the folder name
-        _tempFileFolderPath = Path.Combine(tempPath, folderName);
-
-        // Check if the directory already exists
-        if (Directory.Exists(_tempFileFolderPath))
+        public void CreateViewFolder(string path)
         {
-            Directory.Delete(_tempFileFolderPath, true);
-        }
-        Directory.CreateDirectory(_tempFileFolderPath);
-    }
-    public void LoadDxfBitmaps()
-    {
+            // Get the path to the temporary files directory
+            string folderName = $"{Zoom}";
 
-    }
+            // Combine the temporary path with the folder name
+            _tempFileFolderPath = Path.Combine(path, folderName);
 
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposed)
-        {
-            if (disposing)
+            // Check if the directory already exists
+            if (Directory.Exists(_tempFileFolderPath))
             {
-                // Dispose managed resources
-                _overallBitmap?.Dispose();
-                _wicBitmap?.Dispose();
-                _wicRenderTarget?.Dispose();
-                _imagingFactory?.Dispose();
-                TopLeftBitmap?.Dispose();
-                TopRightBitmap?.Dispose();
-                BottomLeftBitmap?.Dispose();
-                BottomRightBitmap?.Dispose();
+                Directory.Delete(_tempFileFolderPath, true);
             }
-
-            // Dispose unmanaged resources
-
-            _disposed = true;
+            Directory.CreateDirectory(_tempFileFolderPath);
         }
-    }
+        public void LoadDxfBitmaps()
+        {
+            foreach (var bitmap in Bitmaps)
+            {
+                if (bitmap.IsDisposed)
+                {
+                    bitmap.GetBitmap();
+                }
+            }
+        }
+        public List<DxfBitmap> GetVisibleBitmaps(Rect view)
+        {
+            List<DxfBitmap> bitmaps = new();
 
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
+            foreach (var bitmap in Bitmaps)
+            {
+                if (bitmap.BitmapInView(view))
+                {
+                    bitmaps.Add(bitmap);
+                }
+            }
+            return bitmaps;
+        }
 
-    ~DxfBitmapView()
-    {
-        Dispose(false);
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    _overallBitmap?.Dispose();
+                    _wicBitmap?.Dispose();
+                    _wicRenderTarget?.Dispose();
+                    _imagingFactory?.Dispose();
+                    TopLeftBitmap?.Dispose();
+                    TopRightBitmap?.Dispose();
+                    BottomLeftBitmap?.Dispose();
+                    BottomRightBitmap?.Dispose();
+                }
+
+                // Dispose unmanaged resources
+
+                _disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~DxfBitmapView()
+        {
+            Dispose(false);
+        }
+        #endregion
     }
-    #endregion
-}
 }

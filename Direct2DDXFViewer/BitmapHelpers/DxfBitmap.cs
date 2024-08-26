@@ -39,6 +39,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public Dictionary<(byte r, byte g, byte b, byte a), Brush> Brushes { get; set; } = new();
         public enum Quadrants { TopRight, TopLeft, BottomRight, BottomLeft }
         public Quadrants Quadrant { get; set; }
+        public bool IsDisposed => _disposed;
         #endregion
 
         #region Constructor
@@ -99,7 +100,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             try
             {
-                using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.None))
+                using (FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.None))
                 {
                     // If we can open the file with exclusive access, it's not in use
                     return false;
@@ -138,7 +139,15 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 BitmapSaved = true;
             }
         }
+        public bool BitmapInView(Rect view)
+        {
+            if (DestRect.IntersectsWith(view) || view.Contains(DestRect))
+            {
+                return true;
+            }
 
+            return false;
+        }
         private void RenderBitmap()
         {
             _imagingFactory = new();
@@ -165,7 +174,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
             Bitmap = Bitmap.FromWicBitmap(_deviceContext, _wicBitmap);
         }
-        public Brush GetDrawingObjectBrush(EntityObject entity, WicRenderTarget target)
+        private Brush GetDrawingObjectBrush(EntityObject entity, WicRenderTarget target)
         {
             byte r, g, b, a;
             if (entity.Color.IsByLayer)
@@ -217,21 +226,19 @@ namespace Direct2DDXFViewer.BitmapHelpers
             {
                 if (disposing)
                 {
-                    // Dispose managed resources
                     _wicBitmap?.Dispose();
                     _wicRenderTarget?.Dispose();
                     _imagingFactory?.Dispose();
                     Bitmap?.Dispose();
                 }
 
-                // Dispose unmanaged resources
                 _disposed = true;
             }
         }
 
         public void Dispose()
         {
-            //Debug.WriteLine($"DISPOSE: {Zoom}");
+            Debug.WriteLine($"DISPOSE: {Zoom}");
             Dispose(true);
             GC.SuppressFinalize(this);
         }

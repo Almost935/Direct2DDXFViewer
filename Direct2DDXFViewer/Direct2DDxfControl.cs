@@ -33,7 +33,7 @@ using PixelFormat = SharpDX.Direct2D1.PixelFormat;
 using AlphaMode = SharpDX.Direct2D1.AlphaMode;
 using Factory1 = SharpDX.Direct2D1.Factory1;
 using Bitmap = SharpDX.Direct2D1.Bitmap;
-using BitmapCache = Direct2DDXFViewer.BitmapHelpers.BitmapCache; 
+using BitmapCache = Direct2DDXFViewer.BitmapHelpers.BitmapCache;
 
 namespace Direct2DDXFViewer
 {
@@ -164,7 +164,7 @@ namespace Direct2DDXFViewer
         public void LoadDxf(Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
         {
             Stopwatch stopwatch = new();
-            stopwatch.Start();  
+            stopwatch.Start();
 
             DxfDoc = DxfDocument.Load(FilePath);
             if (DxfDoc is not null)
@@ -231,7 +231,7 @@ namespace Direct2DDXFViewer
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
-        { 
+        {
             GetBrushes(target);
 
             if (!_dxfLoaded)
@@ -273,6 +273,8 @@ namespace Direct2DDXFViewer
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 1));
 
+                    Brush brush = new SolidColorBrush(deviceContext, new RawColor4(1, 0, 0, 1));
+
                     foreach (var bitmap in _bitmapCache.CurrentBitmap.Bitmaps)
                     {
                         if (bitmap.Bitmap.IsDisposed) { continue; }
@@ -280,16 +282,27 @@ namespace Direct2DDXFViewer
                         var destRect = bitmap.DestRect;
                         Matrix matrix = new(1, 0, 0, 1, _transformMatrix.OffsetX, _transformMatrix.OffsetY);
                         destRect.Transform(_transformMatrix);
+                        Rect rect = new(0, 0, this.ActualWidth, this.ActualHeight);
+
+                        if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) { continue; }
+
                         RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
                         deviceContext.DrawBitmap(bitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+
+                        Debug.WriteLine($"bitmap.Bitmap.Size: {bitmap.Bitmap.Size}");
+
+                        deviceContext.DrawRectangle(destRawRect, brush);
                     }
+
 
                     deviceContext.EndDraw();
                     resCache.Device.ImmediateContext.Flush();
 
+                    brush.Dispose();
+
                     stopwatch.Stop();
                     int elapsedTime = (int)stopwatch.ElapsedMilliseconds;
-                    //Debug.WriteLine($"elapsedTime: {elapsedTime}");
+                    //Debug.WriteLine($"\nRenderAsync elapsedTime: {elapsedTime}");
                     _deviceContextIsDirty = false;
                 }
 
