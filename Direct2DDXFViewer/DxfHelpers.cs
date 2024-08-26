@@ -72,179 +72,82 @@ namespace Direct2DDXFViewer
 
             return layerManager;
         }
-        public static void LoadEntityObject(EntityObject e, ObjectLayerManager layerManager, Factory1 factory,
+        public static int LoadEntityObject(EntityObject e, ObjectLayerManager layerManager, Factory1 factory,
             DeviceContext1 deviceContext, ResourceCache resCache)
         {
-            if (e is Line line)
+            switch (e)
             {
-                ObjectLayer layer = layerManager.GetLayer(line.Layer.Name);
-                DrawingLine drawingLine = new(line, factory, deviceContext, resCache, layer);
-                layer.DrawingObjects.Add(drawingLine);
-            }
-            if (e is Arc arc)
-            {
-                ObjectLayer layer = layerManager.GetLayer(arc.Layer.Name);
-                DrawingArc drawingArc = new(arc, factory, deviceContext, resCache, layer);
-                layer.DrawingObjects.Add(drawingArc);
-            }
-            if (e is Polyline2D polyline2D)
-            {
-                ObjectLayer layer = layerManager.GetLayer(polyline2D.Layer.Name);
-                DrawingPolyline2D drawingPolyline2D = new(polyline2D, factory, deviceContext, resCache, layer);
-                layer.DrawingObjects.Add(drawingPolyline2D);
-            }
-            if (e is Polyline3D polyline3D)
-            {
-                ObjectLayer layer = layerManager.GetLayer(polyline3D.Layer.Name);
-                DrawingPolyline3D drawingPolyline3D = new(polyline3D, factory, deviceContext, resCache, layer);
-                layer.DrawingObjects.Add(drawingPolyline3D);
-            }
-            if (e is Circle circle)
-            {
-                ObjectLayer layer = layerManager.GetLayer(circle.Layer.Name);
-                DrawingCircle drawingCircle = new(circle, factory, deviceContext, resCache, layer);
-                layer.DrawingObjects.Add(drawingCircle);
-            }
-            if (e is Insert block)
-            {
-                ObjectLayer layer = layerManager.GetLayer(block.Layer.Name);
-                DrawingBlock drawingBlock = new(block, factory, deviceContext, resCache, layer);
-                layer.DrawingObjects.Add(drawingBlock);
-            }
-            if (e is netDxf.Entities.Ellipse ellipse)
-            {
-                ObjectLayer layer = layerManager.GetLayer(ellipse.Layer.Name);
-                DrawingEllipse drawingEllipse = new(ellipse, factory, deviceContext, resCache, layer);
-                layer.DrawingObjects.Add(drawingEllipse);
-            }
-            if (e is MText mtext)
-            {
-                ObjectLayer layer = layerManager.GetLayer(mtext.Layer.Name);
-                DrawingMtext drawingMtext = new(mtext, factory, deviceContext, resCache, layer, resCache.FactoryWrite);
-                layer.DrawingObjects.Add(drawingMtext);
+                case Line line:
+                    ObjectLayer layer = layerManager.GetLayer(line.Layer.Name);
+                    DrawingLine drawingLine = new(line, factory, deviceContext, resCache, layer);
+                    layer.DrawingObjects.Add(drawingLine);
+
+                    return drawingLine.EntityCount;
+
+                case Arc arc:
+                    layer = layerManager.GetLayer(arc.Layer.Name);
+                    DrawingArc drawingArc = new(arc, factory, deviceContext, resCache, layer);
+                    layer.DrawingObjects.Add(drawingArc);
+
+                    return drawingArc.EntityCount;
+
+                case Polyline2D polyline2D:
+                    layer = layerManager.GetLayer(polyline2D.Layer.Name);
+                    DrawingPolyline2D drawingPolyline2D = new(polyline2D, factory, deviceContext, resCache, layer);
+                    layer.DrawingObjects.Add(drawingPolyline2D);
+
+                    return drawingPolyline2D.EntityCount;
+
+                case Polyline3D polyline3D:
+                    layer = layerManager.GetLayer(polyline3D.Layer.Name);
+                    DrawingPolyline3D drawingPolyline3D = new(polyline3D, factory, deviceContext, resCache, layer);
+                    layer.DrawingObjects.Add(drawingPolyline3D);
+
+                    return drawingPolyline3D.EntityCount;
+
+                case Circle circle:
+                    layer = layerManager.GetLayer(circle.Layer.Name);
+                    DrawingCircle drawingCircle = new(circle, factory, deviceContext, resCache, layer);
+                    layer.DrawingObjects.Add(drawingCircle);
+
+                    return drawingCircle.EntityCount;
+
+                case Insert block:
+                    layer = layerManager.GetLayer(block.Layer.Name);
+                    DrawingBlock drawingBlock = new(block, factory, deviceContext, resCache, layer);
+                    layer.DrawingObjects.Add(drawingBlock);
+
+                    return drawingBlock.EntityCount;
+
+                case netDxf.Entities.Ellipse ellipse:
+                    layer = layerManager.GetLayer(ellipse.Layer.Name);
+                    DrawingEllipse drawingEllipse = new(ellipse, factory, deviceContext, resCache, layer);
+                    layer.DrawingObjects.Add(drawingEllipse);
+
+                    return drawingEllipse.EntityCount;
+
+                case MText mtext:
+                    layer = layerManager.GetLayer(mtext.Layer.Name);
+                    DrawingMtext drawingMtext = new(mtext, factory, deviceContext, resCache, layer, resCache.FactoryWrite);
+                    layer.DrawingObjects.Add(drawingMtext);
+
+                    return drawingMtext.EntityCount;
+
+                default:
+                    return 0;
             }
         }
-        public static void LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory1 factory,
+        public static int LoadDrawingObjects(DxfDocument dxfDocument, ObjectLayerManager layerManager, Factory1 factory,
             DeviceContext1 deviceContext, ResourceCache resCache)
         {
-            Stopwatch stopwatch = new();
-            int count = dxfDocument.Entities.Lines.Count();
-            stopwatch.Restart();
-            Debug.WriteLine($"\ndxfDocument.Entities.Lines.Count(): {count}");
-            foreach (var line in dxfDocument.Entities.Lines)
+            int count = 0;
+
+            foreach (var e in dxfDocument.Entities.All)
             {
-                LoadEntityObject(line, layerManager, factory, deviceContext, resCache);
-            }
-            stopwatch.Stop();
-            Debug.WriteLine($"DrawingLines: {stopwatch.ElapsedMilliseconds} ms");
-            if (count > 0)
-            {
-                Debug.WriteLine($"Time per Line: {stopwatch.ElapsedMilliseconds / count}\n");
+                count += LoadEntityObject(e, layerManager, factory, deviceContext, resCache);
             }
 
-            count = dxfDocument.Entities.Arcs.Count();
-            stopwatch.Restart();
-            Debug.WriteLine($"\ndxfDocument.Entities.Arcs.Count(): {count}");
-            foreach (var arc in dxfDocument.Entities.Arcs)
-            {
-                LoadEntityObject(arc, layerManager, factory, deviceContext, resCache);
-            }
-            stopwatch.Stop();
-            Debug.WriteLine($"DrawingArc: {stopwatch.ElapsedMilliseconds} ms");
-            if (count > 0)
-            {
-                Debug.WriteLine($"Time per Arc: {stopwatch.ElapsedMilliseconds / count}\n");
-            }
-
-            count = dxfDocument.Entities.Polylines2D.Count();
-            stopwatch.Restart();
-            Debug.WriteLine($"\ndxfDocument.Entities.Polylines2D.Count(): {count}");
-            foreach (var polyline2D in dxfDocument.Entities.Polylines2D)
-            {
-                LoadEntityObject(polyline2D, layerManager, factory, deviceContext, resCache);
-            }
-            stopwatch.Stop();
-            Debug.WriteLine($"Polylines2D: {stopwatch.ElapsedMilliseconds} ms");
-            if (count > 0)
-            {
-                Debug.WriteLine($"Time per Polyline2D: {stopwatch.ElapsedMilliseconds / count}\n");
-            }
-
-            count = dxfDocument.Entities.Polylines3D.Count();
-            stopwatch.Restart();
-            Debug.WriteLine($"\ndxfDocument.Entities.Polylines3D.Count(): {count}");
-            foreach (var polyline3D in dxfDocument.Entities.Polylines3D)
-            {
-                LoadEntityObject(polyline3D, layerManager, factory, deviceContext, resCache);
-            }
-            stopwatch.Stop();
-            Debug.WriteLine($"DrawingPolyline3D: {stopwatch.ElapsedMilliseconds} ms");
-            if (count > 0)
-            {
-                Debug.WriteLine($"Time per DrawingPolyline3D: {stopwatch.ElapsedMilliseconds / count}\n");
-            }
-
-            count = dxfDocument.Entities.Circles.Count();
-            stopwatch.Restart();
-            Debug.WriteLine($"\ndxfDocument.Entities.Circles.Count(): {count}");
-            foreach (var circle in dxfDocument.Entities.Circles)
-            {
-                LoadEntityObject(circle, layerManager, factory, deviceContext, resCache);
-            }
-            stopwatch.Stop();
-            Debug.WriteLine($"DrawingCircle: {stopwatch.ElapsedMilliseconds} ms");
-            if (count > 0)
-            {
-                Debug.WriteLine($"Time per DrawingCircle: {stopwatch.ElapsedMilliseconds / count}\n");
-            }
-
-            count = dxfDocument.Entities.Inserts.Count();
-            stopwatch.Restart();
-            Debug.WriteLine($"\ndxfDocument.Entities.Inserts.Count(): {count}");
-            foreach (var block in dxfDocument.Entities.Inserts)
-            {
-                LoadEntityObject(block, layerManager, factory, deviceContext, resCache);
-            }
-            stopwatch.Stop();
-            Debug.WriteLine($"DrawingBlock: {stopwatch.ElapsedMilliseconds} ms");
-            if (count > 0)
-            {
-                Debug.WriteLine($"Time per DrawingBlock: {stopwatch.ElapsedMilliseconds / count}\n");
-            }
-
-            count = dxfDocument.Entities.Ellipses.Count();
-            stopwatch.Restart();
-            Debug.WriteLine($"\ndxfDocument.Entities.Ellipses.Count(): {count}");
-            foreach (var ellipse in dxfDocument.Entities.Ellipses)
-            {
-                LoadEntityObject(ellipse, layerManager, factory, deviceContext, resCache);
-            }
-            stopwatch.Stop();
-            Debug.WriteLine($"DrawingEllipse: {stopwatch.ElapsedMilliseconds} ms");
-            if (count > 0)
-            {
-                Debug.WriteLine($"Time per DrawingEllipse: {stopwatch.ElapsedMilliseconds / count}\n");
-            }
-
-            count = dxfDocument.Entities.MTexts.Count();
-            stopwatch.Restart();
-            Debug.WriteLine($"\ndxfDocument.Entities.MTexts.Count(): {count}");
-            foreach (var mtext in dxfDocument.Entities.MTexts)
-            {
-                LoadEntityObject(mtext, layerManager, factory, deviceContext, resCache);
-            }
-            stopwatch.Stop();
-            Debug.WriteLine($"DrawingMtext: {stopwatch.ElapsedMilliseconds} ms");
-            if (count > 0)
-            {
-                Debug.WriteLine($"Time per DrawingMtext: {stopwatch.ElapsedMilliseconds / count}\n");
-            }
-
-
-            //foreach (var e in dxfDocument.Entities.All)
-            //{
-            //    LoadEntityObject(e, layerManager, factory, deviceContext, resCache);
-            //}
+            return count;
         }
         public static DrawingObject GetDrawingObject(EntityObject entity, ObjectLayer layer, Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
         {

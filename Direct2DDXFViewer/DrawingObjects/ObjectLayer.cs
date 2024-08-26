@@ -40,6 +40,10 @@ namespace Direct2DDXFViewer.DrawingObjects
                 OnPropertyChanged(nameof(DrawingObjects));
             }
         }
+        public int DrawingObjectsCount
+        {
+            get { return DrawingObjects.Count; }
+        }
         public bool IsVisible
         {
             get { return isVisible; }

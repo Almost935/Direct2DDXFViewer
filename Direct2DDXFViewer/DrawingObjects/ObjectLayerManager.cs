@@ -18,6 +18,18 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         #region Properties
         public Dictionary<string, ObjectLayer> Layers { get; set; } = new();
+        public int DrawingObjectsCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (var layer in Layers.Values)
+                {
+                    count += layer.DrawingObjectsCount;
+                }
+                return count;
+            }
+        }
         #endregion
 
         #region Methods

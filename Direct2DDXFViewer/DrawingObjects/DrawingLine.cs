@@ -46,6 +46,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             DeviceContext = deviceContext;
             ResCache = resCache;
             Layer = layer;
+            EntityCount = 1;
 
             StartPoint = new((float)dxfLine.StartPoint.X, (float)dxfLine.StartPoint.Y);
             EndPoint = new((float)dxfLine.EndPoint.X, (float)dxfLine.EndPoint.Y);

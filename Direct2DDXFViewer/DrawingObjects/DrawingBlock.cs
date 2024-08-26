@@ -33,6 +33,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public ObservableCollection<DrawingObject> DrawingObjects { get; set; } = new();
 
+
         public float CurrentScale { get; set; } = 1;
         #endregion
 
@@ -84,7 +85,12 @@ namespace Direct2DDXFViewer.DrawingObjects
             foreach (var e in DxfBlock.Explode())
             {
                 var obj = DxfHelpers.GetDrawingObject(e, Layer, Factory, DeviceContext, ResCache);
-                if (obj is not null) { DrawingObjects.Add(obj); }
+               
+                if (obj is not null) 
+                {
+                    EntityCount += obj.EntityCount;
+                    DrawingObjects.Add(obj); 
+                }
             }
         }
         #endregion

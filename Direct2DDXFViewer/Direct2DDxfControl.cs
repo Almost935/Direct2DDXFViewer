@@ -59,9 +59,10 @@ namespace Direct2DDXFViewer
         private List<DrawingObject> _visibleDrawingObjects = new();
         private bool _visibleObjectsDirty = true;
         private int _objectDetailLevelTransitionNum = 500;
+        private int _bitmapLevels;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\SmallDxf.dxf";
+        private string _filePath = @"DXF\LargeDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -163,21 +164,18 @@ namespace Direct2DDXFViewer
         #region Methods
         public void LoadDxf(Factory1 factory, DeviceContext1 deviceContext, ResourceCache resCache)
         {
-            Stopwatch stopwatch = new();
-            stopwatch.Start();
-
             DxfDoc = DxfDocument.Load(FilePath);
             if (DxfDoc is not null)
             {
                 _dxfLoaded = true;
                 Extents = DxfHelpers.GetExtentsFromHeader(DxfDoc);
                 LayerManager = DxfHelpers.GetLayers(DxfDoc);
-                DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, deviceContext, resCache);
+                
+                int count = DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, deviceContext, resCache);
+                _bitmapLevels = count / 1000;
 
                 _offscreenRenderTarget = new(deviceContext, CompatibleRenderTargetOptions.None, new PixelFormat(Format.Unknown, AlphaMode.Premultiplied));
             }
-
-            stopwatch.Stop();
         }
 
         public Matrix GetInitialMatrix()
@@ -221,13 +219,8 @@ namespace Direct2DDXFViewer
         }
         public void InitializeBitmapCache(DeviceContext1 deviceContext, Factory1 factory)
         {
-            Stopwatch stopwatch = new();
-            stopwatch.Start();
-
             RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
-            _bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor);
-
-            stopwatch.Stop();
+            _bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _bitmapLevels);
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
@@ -288,8 +281,6 @@ namespace Direct2DDXFViewer
 
                         RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
                         deviceContext.DrawBitmap(bitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-
-                        Debug.WriteLine($"bitmap.Bitmap.Size: {bitmap.Bitmap.Size}");
 
                         deviceContext.DrawRectangle(destRawRect, brush);
                     }

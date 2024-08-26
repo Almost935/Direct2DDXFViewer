@@ -61,6 +61,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         public bool IsInView { get; set; } = true;
         public bool IsPartOfBlock { get; set; } = false;
         public DrawingBlock Block { get; set; }
+        public int EntityCount { get; set; }
         #endregion
 
         #region Constructor

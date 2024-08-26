@@ -55,7 +55,11 @@ namespace Direct2DDXFViewer.DrawingObjects
             foreach (var e in DxfPolyline2D.Explode())
             {
                 var obj = DxfHelpers.GetDrawingSegment(e, Layer, Factory, DeviceContext, ResCache);
-                if (obj is not null){ DrawingSegments.Add(obj); }
+                if (obj is not null)
+                {
+                    EntityCount += obj.EntityCount;
+                    DrawingSegments.Add(obj); 
+                }
             }
         }
         #endregion

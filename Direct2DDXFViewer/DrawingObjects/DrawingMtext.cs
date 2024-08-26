@@ -58,6 +58,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             ResCache = resCache;
             Layer = layer;
             _factoryWrite = factoryWrite;
+            EntityCount = 1;
 
             UpdateGeometry();
             GetStrokeStyle();

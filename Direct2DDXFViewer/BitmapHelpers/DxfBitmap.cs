@@ -17,11 +17,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
     public class DxfBitmap : IDisposable
     {
         #region Fields
-        private DeviceContext1 _deviceContext;
-        private Factory1 _factory;
-        private ObjectLayerManager _layerManager;
+        private readonly DeviceContext1 _deviceContext;
+        private readonly Factory1 _factory;
+        private readonly ObjectLayerManager _layerManager;
         private RawMatrix3x2 _transform;
-        private string _tempFileFolderPath;
+        private readonly string _tempFileFolderPath;
         private string _filepath;
         private SharpDX.WIC.Bitmap _wicBitmap;
         private WicRenderTarget _wicRenderTarget;
@@ -40,10 +40,13 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public enum Quadrants { TopRight, TopLeft, BottomRight, BottomLeft }
         public Quadrants Quadrant { get; set; }
         public bool IsDisposed => _disposed;
+        public int Level { get; set; }
+        public DxfBitmap[] DxfBitmaps { get; set; }
+
         #endregion
 
         #region Constructor
-        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, float zoom, string tempFileFolder, Size2 size, Quadrants quadrant)
+        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, float zoom, string tempFileFolder, Size2 size, Quadrants quadrant, int level)
         {
             _deviceContext = deviceContext;
             _factory = factory;
@@ -55,9 +58,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
             _tempFileFolderPath = tempFileFolder;
             Size = size;
             Quadrant = quadrant;
+            Level = level;
 
             RenderBitmap();
             SaveBitmapToTemporaryFile();
+            Subdivide();
         }
         #endregion
 
@@ -218,6 +223,16 @@ namespace Direct2DDXFViewer.BitmapHelpers
             }
 
             return Bitmap;
+        }
+        public void Subdivide()
+        {
+            if (Level > 1)
+            {
+                int newLevel = Level - 1;
+                DxfBitmaps = new DxfBitmap[4];
+
+
+            }
         }
 
         protected virtual void Dispose(bool disposing)

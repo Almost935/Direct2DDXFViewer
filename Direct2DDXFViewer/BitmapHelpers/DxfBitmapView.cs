@@ -31,11 +31,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private ImagingFactory _imagingFactory;
         private string _tempFileFolderPath;
         private bool _disposed = false;
+        private int _levels;
         #endregion
 
         #region Properties
         public float Zoom;
-        public Rect OverallBounds { get; set; }
         public DxfBitmap TopRightBitmap { get; set; }
         public DxfBitmap TopLeftBitmap { get; set; }
         public DxfBitmap BottomRightBitmap { get; set; }
@@ -44,7 +44,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region Constructor
-        public DxfBitmapView(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect extents, RawMatrix3x2 extentsMatrix, float zoom, string tempFileFolderPath)
+        public DxfBitmapView(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect extents, RawMatrix3x2 extentsMatrix, float zoom, string tempFileFolderPath, int levels)
         {
             _deviceContext = deviceContext;
             _factory = factory;
@@ -52,7 +52,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             _extents = extents;
             _extentsMatrix = extentsMatrix;
             Zoom = zoom;
-            OverallBounds = new(new Point(0, 0), new Size(_deviceContext.Size.Width * Zoom, _deviceContext.Size.Height * Zoom));
+            _levels = levels;
 
             CreateViewFolder(tempFileFolderPath);
             GetDxfBitmaps();
@@ -83,10 +83,10 @@ namespace Direct2DDXFViewer.BitmapHelpers
             RawMatrix3x2 bottomRightMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31 - (float)(destSize.Width),
                 _extentsMatrix.M32 - (float)(destSize.Height));
 
-            TopLeftBitmap = new(_deviceContext, _factory, _layerManager, topLeftDest, topLeftExtents, topLeftMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopLeft);
-            TopRightBitmap = new(_deviceContext, _factory, _layerManager, topRightDest, topRightExtents, topRightMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopRight);
-            BottomLeftBitmap = new(_deviceContext, _factory, _layerManager, bottomLeftDest, bottomLeftExtents, bottomLeftMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomLeft);
-            BottomRightBitmap = new(_deviceContext, _factory, _layerManager, bottomRightDest, bottomRightExtents, bottomRightMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomRight);
+            TopLeftBitmap = new(_deviceContext, _factory, _layerManager, topLeftDest, topLeftExtents, topLeftMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopLeft, _levels);
+            TopRightBitmap = new(_deviceContext, _factory, _layerManager, topRightDest, topRightExtents, topRightMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopRight, _levels);
+            BottomLeftBitmap = new(_deviceContext, _factory, _layerManager, bottomLeftDest, bottomLeftExtents, bottomLeftMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomLeft, _levels);
+            BottomRightBitmap = new(_deviceContext, _factory, _layerManager, bottomRightDest, bottomRightExtents, bottomRightMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomRight, _levels);
         }
         public void CreateViewFolder(string path)
         {
