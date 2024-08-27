@@ -19,7 +19,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
     public class BitmapCache : INotifyPropertyChanged, IDisposable
     {
         #region Fields
-        private const int _initializationFactor = 5;
+        private const int _initializationFactor = 10;
 
         private DxfBitmapView[] _zoomedInLoadedBitmaps = new DxfBitmapView[_initializationFactor];
         private DxfBitmapView[] _zoomedOutLoadedBitmaps = new DxfBitmapView[_initializationFactor];
@@ -97,6 +97,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             zoom = (float)Math.Round(zoom, 3);
 
+            Debug.WriteLine($"\nzoom: {zoom}");
+
             if (!_bitmapsInitialized)
             {
                 bool bitmapExists = _createdBitmaps.TryGetValue(zoom, out DxfBitmapView newBitmap);
@@ -113,17 +115,25 @@ namespace Direct2DDXFViewer.BitmapHelpers
             DxfBitmapView bitmap = _zoomedInLoadedBitmaps.FirstOrDefault(x => x.Zoom == zoom);
             bitmap ??= _zoomedOutLoadedBitmaps.FirstOrDefault(x => x.Zoom == zoom);
 
+            Debug.WriteLine($"bitmap is null: {bitmap is null}");
+
             if (bitmap is null)
             {
                 bool bitmapExists = _createdBitmaps.TryGetValue(zoom, out bitmap);
+
                 if (!bitmapExists)
                 {
+                    Debug.WriteLine($"bitmapExists: {bitmapExists} NEW BITMAP");
+
                     bitmap = new (_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, zoom, _tempFolderPath, _levels);
-                    _createdBitmaps.TryAdd(zoom, bitmap);
+                    bool added = _createdBitmaps.TryAdd(zoom, bitmap);
+                    Debug.WriteLine($"added: {added}");
                 }
                 else
                 {
-                   bitmap.LoadDxfBitmaps();
+                    Debug.WriteLine($"bitmapExists: {bitmapExists}");
+
+                    bitmap.LoadDxfBitmaps();
                 }
             }
 
@@ -176,8 +186,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
             float upperLimit = (float)Math.Round(CurrentBitmap.Zoom * Math.Pow(_zoomFactor, _initializationFactor), 3);
             float lowerLimit = (float)Math.Round(CurrentBitmap.Zoom * (1 / Math.Pow(_zoomFactor, _initializationFactor)), 3);
 
+            Debug.WriteLine($"\n\n\n");
+
             foreach (var bitmap in _zoomedInLoadedBitmaps)
             {
+                Debug.WriteLine($"_zoomedInLoadedBitmaps bitmap.Zoom: {bitmap.Zoom}");
                 if (bitmap is not null)
                 {
                     if (bitmap.Zoom < lowerLimit || bitmap.Zoom > upperLimit) 
@@ -190,6 +203,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             }
             foreach (var bitmap in _zoomedOutLoadedBitmaps)
             {
+                Debug.WriteLine($"_zoomedOutLoadedBitmaps bitmap.Zoom: {bitmap.Zoom}");
                 if (bitmap is not null)
                 {
                     if (bitmap.Zoom < lowerLimit || bitmap.Zoom > upperLimit) 

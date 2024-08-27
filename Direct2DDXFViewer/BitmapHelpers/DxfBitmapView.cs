@@ -133,7 +133,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
             {
                 if (disposing)
                 {
-                    // Dispose managed resources
                     _overallBitmap?.Dispose();
                     _wicBitmap?.Dispose();
                     _wicRenderTarget?.Dispose();
@@ -143,8 +142,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     BottomLeftBitmap?.Dispose();
                     BottomRightBitmap?.Dispose();
                 }
-
-                // Dispose unmanaged resources
 
                 _disposed = true;
             }

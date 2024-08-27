@@ -62,7 +62,7 @@ namespace Direct2DDXFViewer
         private int _bitmapLevels;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\LargeDxf.dxf";
+        private string _filePath = @"DXF\MediumDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
