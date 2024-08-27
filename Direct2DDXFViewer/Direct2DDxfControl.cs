@@ -43,16 +43,13 @@ namespace Direct2DDXFViewer
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
         private readonly float _zoomFactor = 1.25f;
+        private int _currentZoomFactor = 0;
         private bool _isPanning = false;
         private bool _isRendering = false;
-        private BitmapRenderTarget _offscreenRenderTarget;
         private BitmapCache _bitmapCache;
-        private (float min, float max) _bitmapZoomRange;
         private bool _deviceContextIsDirty = true;
-        private int _bitmapInitFactor = 5;
         private Point _lastTranslatePos = new();
         private bool _dxfLoaded = false;
-        private Rect _currentView;
         private Rect _currentDxfView;
         private bool _bitmapLoaded = false;
         private bool _disposed = false;
@@ -173,8 +170,6 @@ namespace Direct2DDXFViewer
                 
                 int count = DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, deviceContext, resCache);
                 _bitmapLevels = count / 1000;
-
-                _offscreenRenderTarget = new(deviceContext, CompatibleRenderTargetOptions.None, new PixelFormat(Format.Unknown, AlphaMode.Premultiplied));
             }
         }
 
@@ -355,10 +350,12 @@ namespace Direct2DDXFViewer
             if (e.Delta > 0)
             {
                 zoom = _zoomFactor;
+                _currentZoomFactor += 1;
             }
             else
             {
-                zoom = 1f / _zoomFactor;
+                zoom = 1 / _zoomFactor;
+                _currentZoomFactor -= 1;
             }
 
             UpdateZoom(zoom);

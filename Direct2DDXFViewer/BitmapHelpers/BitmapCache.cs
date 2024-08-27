@@ -97,11 +97,12 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             zoom = (float)Math.Round(zoom, 3);
 
-            Debug.WriteLine($"\nzoom: {zoom}");
-
             if (!_bitmapsInitialized)
             {
                 bool bitmapExists = _createdBitmaps.TryGetValue(zoom, out DxfBitmapView newBitmap);
+
+                Debug.WriteLineIf(bitmapExists, $"\nINITIALIZATION: Bitmap exists. Zoom = {zoom}");
+                Debug.WriteLineIf(bitmapExists, $"\nINITIALIZATION: Bitmap doesn't exist. New bitmap created. Zoom = {zoom}");
 
                 if (!bitmapExists)
                 {
@@ -115,25 +116,19 @@ namespace Direct2DDXFViewer.BitmapHelpers
             DxfBitmapView bitmap = _zoomedInLoadedBitmaps.FirstOrDefault(x => x.Zoom == zoom);
             bitmap ??= _zoomedOutLoadedBitmaps.FirstOrDefault(x => x.Zoom == zoom);
 
-            Debug.WriteLine($"bitmap is null: {bitmap is null}");
+            Debug.WriteLineIf(bitmap is not null, $"\nBitmap exists and is currently loaded, No new bitmap created. Zoom = {zoom}");
 
             if (bitmap is null)
             {
                 bool bitmapExists = _createdBitmaps.TryGetValue(zoom, out bitmap);
 
+                Debug.WriteLineIf(bitmapExists, $"\nBitmap exists but is not loaded, No new bitmap created. Zoom = {zoom}");
+                Debug.WriteLineIf(!bitmapExists, $"\nBitmap does not exist. New bitmap created. Zoom = {zoom}");
+
                 if (!bitmapExists)
                 {
-                    Debug.WriteLine($"bitmapExists: {bitmapExists} NEW BITMAP");
-
                     bitmap = new (_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, zoom, _tempFolderPath, _levels);
                     bool added = _createdBitmaps.TryAdd(zoom, bitmap);
-                    Debug.WriteLine($"added: {added}");
-                }
-                else
-                {
-                    Debug.WriteLine($"bitmapExists: {bitmapExists}");
-
-                    bitmap.LoadDxfBitmaps();
                 }
             }
 
@@ -153,9 +148,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         }
         private void UpdateBitmaps()
         {
-            Stopwatch stopwatch = new();
-            stopwatch.Start();
-
             if (_lastUpdateBitmap is not null)
             {
                 if (_lastUpdateBitmap == CurrentBitmap) 
@@ -163,7 +155,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     return; 
                 }
             }
-
             DxfBitmapView[] newZoomedInLoadedBitmaps = new DxfBitmapView[_initializationFactor];
             DxfBitmapView[] newZoomedOutLoadedBitmaps = new DxfBitmapView[_initializationFactor];
 
@@ -186,40 +177,29 @@ namespace Direct2DDXFViewer.BitmapHelpers
             float upperLimit = (float)Math.Round(CurrentBitmap.Zoom * Math.Pow(_zoomFactor, _initializationFactor), 3);
             float lowerLimit = (float)Math.Round(CurrentBitmap.Zoom * (1 / Math.Pow(_zoomFactor, _initializationFactor)), 3);
 
-            Debug.WriteLine($"\n\n\n");
-
             foreach (var bitmap in _zoomedInLoadedBitmaps)
             {
-                Debug.WriteLine($"_zoomedInLoadedBitmaps bitmap.Zoom: {bitmap.Zoom}");
                 if (bitmap is not null)
                 {
                     if (bitmap.Zoom < lowerLimit || bitmap.Zoom > upperLimit) 
                     {
                         bitmap.Dispose();
-
-                        Debug.WriteLine($"bitmap.Zoom: {bitmap.Zoom}");
                     }
                 }
             }
             foreach (var bitmap in _zoomedOutLoadedBitmaps)
             {
-                Debug.WriteLine($"_zoomedOutLoadedBitmaps bitmap.Zoom: {bitmap.Zoom}");
                 if (bitmap is not null)
                 {
                     if (bitmap.Zoom < lowerLimit || bitmap.Zoom > upperLimit) 
                     { 
                         bitmap.Dispose();
-
-                        Debug.WriteLine($"bitmap.Zoom: {bitmap.Zoom}");
                     }
                 }
             }
             _zoomedInLoadedBitmaps = newZoomedInLoadedBitmaps;
             _zoomedOutLoadedBitmaps = newZoomedOutLoadedBitmaps;
             _lastUpdateBitmap = CurrentBitmap;
-
-            stopwatch.Stop();
-            //Debug.WriteLine($"UpdateBitmaps: {stopwatch.ElapsedMilliseconds} ms");
 
             return;
         }

@@ -74,7 +74,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 bool fileInUse = IsFileInUse(_filepath);
                 if (fileInUse)
                 {
-                    //Debug.WriteLine($"File in use: Zoom = {Zoom}");
                     Stopwatch timer = new();
                     timer.Start();
                     // Wait for the file to be released by the other process (if any)
@@ -157,16 +156,23 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             _imagingFactory = new();
             _wicBitmap = new(_imagingFactory, Size.Width, Size.Height, SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
-            
-            //Debug.WriteLine($"_wicBitmap.Size: {_wicBitmap.Size.Width} {_wicBitmap.Size.Height}");
 
-            _wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())
+            //Debug.WriteLine($"_wicBitmap.Size: {_wicBitmap.Size.Width} {_wicBitmap.Size.Height} Zoom: {Zoom}");
+
+            try
             {
-                DotsPerInch = new Size2F(96.0f * Zoom, 96.0f * Zoom),
-                AntialiasMode = AntialiasMode.PerPrimitive
-            };
-            _wicRenderTarget.BeginDraw();
-            _wicRenderTarget.Transform = _transform;
+                _wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())
+                {
+                    DotsPerInch = new Size2F(96.0f * Zoom, 96.0f * Zoom),
+                    AntialiasMode = AntialiasMode.PerPrimitive
+                };
+                _wicRenderTarget.BeginDraw();
+                _wicRenderTarget.Transform = _transform;
+            }
+            catch(Exception ex)
+            {
+                Debug.WriteLine($"ERROR: {ex.Message}");
+            }
 
             foreach (var layer in _layerManager.Layers.Values)
             {
@@ -228,10 +234,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             if (Level > 1)
             {
-                int newLevel = Level - 1;
                 DxfBitmaps = new DxfBitmap[4];
-
-
             }
         }
 
@@ -253,7 +256,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         public void Dispose()
         {
-            Debug.WriteLine($"DISPOSE: {Zoom}");
+            //Debug.WriteLine($"DISPOSE: {Zoom}");
             Dispose(true);
             GC.SuppressFinalize(this);
         }
