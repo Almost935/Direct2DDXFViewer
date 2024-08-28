@@ -34,6 +34,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private string _tempFileFolderPath;
         private bool _disposed = false;
         private int _levels;
+        private int _maxBitmapSize;
         #endregion
 
         #region Properties
@@ -46,10 +47,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public DxfBitmap BottomRightBitmap { get; set; }
         public DxfBitmap BottomLeftBitmap { get; set; }
         public DxfBitmap[] Bitmaps => new DxfBitmap[] { TopLeftBitmap, TopRightBitmap, BottomLeftBitmap, BottomRightBitmap };
+        public bool IsBitmapOversized { get; set; } = false;
         #endregion
 
         #region Constructor
-        public DxfBitmapView(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect extents, RawMatrix3x2 extentsMatrix, int zoomStep, float zoomFactor, int zoomPrecision, string tempFileFolderPath, int levels)
+        public DxfBitmapView(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect extents, RawMatrix3x2 extentsMatrix, int zoomStep, float zoomFactor, int zoomPrecision, string tempFileFolderPath, int levels, int maxBitmapSize)
         {
             _deviceContext = deviceContext;
             _factory = factory;
@@ -57,6 +59,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             _extents = extents;
             _extentsMatrix = extentsMatrix;
             _levels = levels;
+            _maxBitmapSize = maxBitmapSize;
 
             ZoomFactor = zoomFactor;
             ZoomStep = zoomStep;
@@ -65,6 +68,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
             CreateViewFolder(tempFileFolderPath);
             GetDxfBitmaps();
+            _maxBitmapSize = maxBitmapSize;
         }
         #endregion
 
@@ -92,10 +96,37 @@ namespace Direct2DDXFViewer.BitmapHelpers
             RawMatrix3x2 bottomRightMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31 - (float)(destSize.Width),
                 _extentsMatrix.M32 - (float)(destSize.Height));
 
-            TopLeftBitmap = new(_deviceContext, _factory, _layerManager, topLeftDest, topLeftExtents, topLeftMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopLeft, _levels);
-            TopRightBitmap = new(_deviceContext, _factory, _layerManager, topRightDest, topRightExtents, topRightMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopRight, _levels);
-            BottomLeftBitmap = new(_deviceContext, _factory, _layerManager, bottomLeftDest, bottomLeftExtents, bottomLeftMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomLeft, _levels);
-            BottomRightBitmap = new(_deviceContext, _factory, _layerManager, bottomRightDest, bottomRightExtents, bottomRightMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomRight, _levels);
+            TopLeftBitmap = new(_deviceContext, _factory, _layerManager, topLeftDest, topLeftExtents, topLeftMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopLeft, _levels, _maxBitmapSize);
+            if (TopLeftBitmap.IsBitmapOversized) 
+            { 
+                IsBitmapOversized = true;
+                this.Dispose();
+                return;
+            }
+
+            TopRightBitmap = new(_deviceContext, _factory, _layerManager, topRightDest, topRightExtents, topRightMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopRight, _levels, _maxBitmapSize);
+            if (TopRightBitmap.IsBitmapOversized)
+            {
+                IsBitmapOversized = true;
+                this.Dispose();
+                return;
+            }
+
+            BottomLeftBitmap = new(_deviceContext, _factory, _layerManager, bottomLeftDest, bottomLeftExtents, bottomLeftMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomLeft, _levels, _maxBitmapSize);
+            if (BottomLeftBitmap.IsBitmapOversized)
+            {
+                IsBitmapOversized = true;
+                this.Dispose();
+                return;
+            }
+
+            BottomRightBitmap = new(_deviceContext, _factory, _layerManager, bottomRightDest, bottomRightExtents, bottomRightMatrix, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomRight, _levels, _maxBitmapSize);
+            if (BottomRightBitmap.IsBitmapOversized)
+            {
+                IsBitmapOversized = true;
+                this.Dispose();
+                return;
+            }
         }
         public void CreateViewFolder(string path)
         {
@@ -124,8 +155,12 @@ namespace Direct2DDXFViewer.BitmapHelpers
         }
         public List<DxfBitmap> GetVisibleBitmaps(Rect view)
         {
-            List<DxfBitmap> bitmaps = new();
+            if (IsBitmapOversized)
+            {
+                return null;
+            }
 
+            List<DxfBitmap> bitmaps = new();
             foreach (var bitmap in Bitmaps)
             {
                 if (bitmap.BitmapInView(view))

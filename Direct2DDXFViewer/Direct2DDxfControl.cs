@@ -217,7 +217,7 @@ namespace Direct2DDXFViewer
         public void InitializeBitmapCache(DeviceContext1 deviceContext, Factory1 factory)
         {
             RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
-            _bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _zoomPrecision, _bitmapLevels);
+            _bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _zoomPrecision, _bitmapLevels, resCache.MaxBitmapSize);
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
@@ -260,33 +260,36 @@ namespace Direct2DDXFViewer
                     {
                         GetVisibleObjects();
                     }
+
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 1));
 
-                    Brush brush = new SolidColorBrush(deviceContext, new RawColor4(1, 0, 0, 1));
-
-                    foreach (var bitmap in _bitmapCache.CurrentBitmap.Bitmaps)
+                    // If _bitmapCache.CurrentBitmap is null, this means that the bitmap was too large for the direct 3D texture to create.
+                    // In this case, we draw the items to the device context rather than use a bitmap.
+                    if (_bitmapCache.CurrentBitmap is null)
                     {
-                        if (bitmap.Bitmap.IsDisposed) { continue; }
-
-                        var destRect = bitmap.DestRect;
-                        Matrix matrix = new(1, 0, 0, 1, _transformMatrix.OffsetX, _transformMatrix.OffsetY);
-                        destRect.Transform(_transformMatrix);
-                        Rect rect = new(0, 0, this.ActualWidth, this.ActualHeight);
-
-                        if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) { continue; }
-
-                        RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
-                        deviceContext.DrawBitmap(bitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-
-                        deviceContext.DrawRectangle(destRawRect, brush);
+                        RenderVisibleGeometries(deviceContext);
                     }
+                    else
+                    {
+                        foreach (var bitmap in _bitmapCache.CurrentBitmap.Bitmaps)
+                        {
+                            if (bitmap.Bitmap.IsDisposed) { continue; }
 
+                            var destRect = bitmap.DestRect;
+                            Matrix matrix = new(1, 0, 0, 1, _transformMatrix.OffsetX, _transformMatrix.OffsetY);
+                            destRect.Transform(_transformMatrix);
+                            Rect rect = new(0, 0, this.ActualWidth, this.ActualHeight);
+
+                            if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) { continue; }
+
+                            RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
+                            deviceContext.DrawBitmap(bitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+                        }
+                    }
 
                     deviceContext.EndDraw();
                     resCache.Device.ImmediateContext.Flush();
-
-                    brush.Dispose();
 
                     stopwatch.Stop();
                     int elapsedTime = (int)stopwatch.ElapsedMilliseconds;
@@ -297,21 +300,29 @@ namespace Direct2DDXFViewer
                 await Task.Delay(15);
             }
         }
-        private Bitmap RenderBitmap(DeviceContext1 deviceContext, float zoom)
+        private void RenderVisibleGeometries(DeviceContext1 deviceContext)
         {
-            Size2F size = new(deviceContext.Size.Width * zoom, deviceContext.Size.Height * zoom);
-            BitmapRenderTarget bitmapRenderTarget = new(deviceContext, CompatibleRenderTargetOptions.None, size)
+            Debug.WriteLine($"_visibleDrawingObjects.Count: {_visibleDrawingObjects.Count}"); 
+            foreach (var obj in _visibleDrawingObjects)
             {
-                DotsPerInch = new Size2F(96.0f * zoom, 96.0f * zoom),
-                AntialiasMode = AntialiasMode.Aliased
-            };
-
-            bitmapRenderTarget.BeginDraw();
-            bitmapRenderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
-            _layerManager.DrawVisibleObjectsToRenderTarget(bitmapRenderTarget, 1);
-            bitmapRenderTarget.EndDraw();
-            return bitmapRenderTarget.Bitmap;
+                obj.DrawToDeviceContext(deviceContext, 1, obj.Brush);
+            }
         }
+        //private Bitmap RenderBitmap(DeviceContext1 deviceContext, float zoom)
+        //{
+        //    Size2F size = new(deviceContext.Size.Width * zoom, deviceContext.Size.Height * zoom);
+        //    BitmapRenderTarget bitmapRenderTarget = new(deviceContext, CompatibleRenderTargetOptions.None, size)
+        //    {
+        //        DotsPerInch = new Size2F(96.0f * zoom, 96.0f * zoom),
+        //        AntialiasMode = AntialiasMode.Aliased
+        //    };
+
+        //    bitmapRenderTarget.BeginDraw();
+        //    bitmapRenderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
+        //    _layerManager.DrawVisibleObjectsToRenderTarget(bitmapRenderTarget, 1);
+        //    bitmapRenderTarget.EndDraw();
+        //    return bitmapRenderTarget.Bitmap;
+        //}
         private void RenderVisibleObjectsToBitmap(RenderTarget renderTarget)
         {
             renderTarget.BeginDraw();

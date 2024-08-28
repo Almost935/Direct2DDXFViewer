@@ -27,6 +27,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private WicRenderTarget _wicRenderTarget;
         private ImagingFactory _imagingFactory;
         private bool _disposed = false;
+        private int _maxBitmapSize;
         #endregion
 
         #region Properties
@@ -42,11 +43,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public bool IsDisposed => _disposed;
         public int Level { get; set; }
         public DxfBitmap[] DxfBitmaps { get; set; }
-
+        public bool IsBitmapOversized { get; set; } = false;
         #endregion
 
         #region Constructor
-        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, float zoom, string tempFileFolder, Size2 size, Quadrants quadrant, int level)
+        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, float zoom, string tempFileFolder, Size2 size, Quadrants quadrant, int level, int maxBitmapSize)
         {
             _deviceContext = deviceContext;
             _factory = factory;
@@ -59,6 +60,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             Size = size;
             Quadrant = quadrant;
             Level = level;
+            _maxBitmapSize = maxBitmapSize;
 
             RenderBitmap();
             SaveBitmapToTemporaryFile();
@@ -154,25 +156,22 @@ namespace Direct2DDXFViewer.BitmapHelpers
         }
         private void RenderBitmap()
         {
+            if (Size.Width > _maxBitmapSize || Size.Height > _maxBitmapSize)
+            {
+                IsBitmapOversized = true;
+                return;
+            }
+
             _imagingFactory = new();
             _wicBitmap = new(_imagingFactory, Size.Width, Size.Height, SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
 
-            //Debug.WriteLine($"_wicBitmap.Size: {_wicBitmap.Size.Width} {_wicBitmap.Size.Height} Zoom: {Zoom}");
-
-            try
+            _wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())
             {
-                _wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())
-                {
-                    DotsPerInch = new Size2F(96.0f * Zoom, 96.0f * Zoom),
-                    AntialiasMode = AntialiasMode.PerPrimitive
-                };
-                _wicRenderTarget.BeginDraw();
-                _wicRenderTarget.Transform = _transform;
-            }
-            catch(Exception ex)
-            {
-                Debug.WriteLine($"ERROR: {ex.Message}");
-            }
+                DotsPerInch = new Size2F(96.0f * Zoom, 96.0f * Zoom),
+                AntialiasMode = AntialiasMode.PerPrimitive
+            };
+            _wicRenderTarget.BeginDraw();
+            _wicRenderTarget.Transform = _transform;
 
             foreach (var layer in _layerManager.Layers.Values)
             {
@@ -223,6 +222,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         public Bitmap GetBitmap()
         {
+            if (IsBitmapOversized)
+            {
+                return null;
+            }
+
             if (Bitmap.IsDisposed)
             {
                 LoadBitmapFromFile();
