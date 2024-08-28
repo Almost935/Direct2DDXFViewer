@@ -73,5 +73,10 @@ namespace Direct2DDXFViewer.Helpers
         {
             return (b.Y - a.Y) * (c.X - b.X) - (b.X - a.X) * (c.Y - b.Y);
         }
+
+        public static float GetZoom(float zoomFactor, int zoomStep, int numOfDigits)
+        {
+            return (float)Math.Round(Math.Pow(zoomFactor, zoomStep), numOfDigits);
+        }
     }
 }

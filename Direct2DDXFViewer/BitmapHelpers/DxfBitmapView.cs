@@ -1,4 +1,6 @@
 ﻿using Direct2DDXFViewer.DrawingObjects;
+using Direct2DDXFViewer.Helpers;
+using netDxf;
 using SharpDX;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
@@ -35,8 +37,10 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region Properties
+        public int ZoomStep { get; set; }
+        public float ZoomFactor { get; set; }
+        public int ZoomPrecision { get; set; }
         public float Zoom { get; set; }
-        public int ZoomFactor { get; set; }
         public DxfBitmap TopRightBitmap { get; set; }
         public DxfBitmap TopLeftBitmap { get; set; }
         public DxfBitmap BottomRightBitmap { get; set; }
@@ -45,15 +49,19 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region Constructor
-        public DxfBitmapView(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect extents, RawMatrix3x2 extentsMatrix, int zoomFactor, string tempFileFolderPath, int levels)
+        public DxfBitmapView(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect extents, RawMatrix3x2 extentsMatrix, int zoomStep, float zoomFactor, int zoomPrecision, string tempFileFolderPath, int levels)
         {
             _deviceContext = deviceContext;
             _factory = factory;
             _layerManager = layerManager;
             _extents = extents;
             _extentsMatrix = extentsMatrix;
-            ZoomFactor = zoomFactor;
             _levels = levels;
+
+            ZoomFactor = zoomFactor;
+            ZoomStep = zoomStep;
+            ZoomPrecision = zoomPrecision;
+            Zoom = MathHelpers.GetZoom(ZoomFactor, ZoomStep, ZoomPrecision);
 
             CreateViewFolder(tempFileFolderPath);
             GetDxfBitmaps();

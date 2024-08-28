@@ -40,10 +40,12 @@ namespace Direct2DDXFViewer
     public class Direct2DDxfControl : Direct2DControl.Direct2DControl, INotifyPropertyChanged, IDisposable
     {
         #region Fields
+        private const int _zoomPrecision = 3;
+
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
         private readonly float _zoomFactor = 1.25f;
-        private int _currentZoomFactor = 0;
+        private int _currentZoomStep = 0;
         private bool _isPanning = false;
         private bool _isRendering = false;
         private BitmapCache _bitmapCache;
@@ -215,7 +217,7 @@ namespace Direct2DDXFViewer
         public void InitializeBitmapCache(DeviceContext1 deviceContext, Factory1 factory)
         {
             RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
-            _bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _bitmapLevels);
+            _bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _zoomPrecision, _bitmapLevels);
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
@@ -350,12 +352,12 @@ namespace Direct2DDXFViewer
             if (e.Delta > 0)
             {
                 zoom = _zoomFactor;
-                _currentZoomFactor += 1;
+                _currentZoomStep += 1;
             }
             else
             {
                 zoom = 1 / _zoomFactor;
-                _currentZoomFactor -= 1;
+                _currentZoomStep -= 1;
             }
 
             UpdateZoom(zoom);
@@ -528,7 +530,7 @@ namespace Direct2DDXFViewer
             {
                 _overallMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
                 _transformMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
-                _bitmapCache.SetCurrentDxfBitmap((float)_transformMatrix.M11);
+                _bitmapCache.SetCurrentDxfBitmap(_currentZoomStep);
                 UpdateCurrentView();
                 _visibleObjectsDirty = true;
                 _deviceContextIsDirty = true;
