@@ -27,27 +27,37 @@ namespace Direct2DDXFViewer
     public partial class Direct2DDxfViewer : UserControl, INotifyPropertyChanged
     {
         #region Fields
-        private Point dxfPointerCoords = new();
-        private Point pointerCoords = new();
+        private Point _dxfPointerCoords = new();
+        private Point _pointerCoords = new();
+        private int _currentZoomStep;
         #endregion
 
         #region Properties
         public Point DxfPointerCoords
         {
-            get { return dxfPointerCoords; }
+            get { return _dxfPointerCoords; }
             set
             {
-                dxfPointerCoords = value;
+                _dxfPointerCoords = value;
                 OnPropertyChanged(nameof(DxfPointerCoords));
             }
         }
         public Point PointerCoords
         {
-            get { return pointerCoords; }
+            get { return _pointerCoords; }
             set
             {
-                pointerCoords = value;
+                _pointerCoords = value;
                 OnPropertyChanged(nameof(PointerCoords));
+            }
+        }
+        public int CurrentZoomStep
+        {
+            get { return _currentZoomStep; }
+            set
+            {
+                _currentZoomStep = value;
+                OnPropertyChanged(nameof(CurrentZoomStep));
             }
         }
         #endregion
@@ -80,6 +90,10 @@ namespace Direct2DDXFViewer
             if (e.PropertyName == nameof(dxfControl.PointerCoords))
             {
                 PointerCoords = dxfControl.PointerCoords;
+            }
+            if (e.PropertyName == nameof(dxfControl.CurrentZoomStep))
+            {
+               CurrentZoomStep = dxfControl.CurrentZoomStep;
             }
         }
 

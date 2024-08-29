@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using Direct2DDXFViewer.DrawingObjects;
+using Direct2DDXFViewer.Helpers;
 using netDxf.Entities;
 using SharpDX;
 using SharpDX.Direct2D1;
@@ -31,6 +32,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region Properties
+        public int ZoomStep { get; set; }
         public float Zoom { get; set; }
         public Size2 Size { get; set; }
         public Bitmap Bitmap { get; set; }
@@ -47,7 +49,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region Constructor
-        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, float zoom, string tempFileFolder, Size2 size, Quadrants quadrant, int level, int maxBitmapSize)
+        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, int zoomStep, float zoom, string tempFileFolder, Size2 size, Quadrants quadrant, int level, int maxBitmapSize)
         {
             _deviceContext = deviceContext;
             _factory = factory;
@@ -55,6 +57,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             DestRect = destRect;
             Extents = extents;
             _transform = extentsMatrix;
+            ZoomStep = zoomStep;
             Zoom = zoom;
             _tempFileFolderPath = tempFileFolder;
             Size = size;
@@ -64,22 +67,21 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
             RenderBitmap();
             SaveBitmapToTemporaryFile();
-            Subdivide();
         }
         #endregion
 
         #region Methods
         private void LoadBitmapFromFile()
         {
-            if (BitmapSaved)
+            if (BitmapSaved && !IsBitmapOversized)
             {
-                bool fileInUse = IsFileInUse(_filepath);
+                bool fileInUse = FileHelpers.IsFileInUse(_filepath);
                 if (fileInUse)
                 {
                     Stopwatch timer = new();
                     timer.Start();
                     // Wait for the file to be released by the other process (if any)
-                    while (IsFileInUse(_filepath) || timer.ElapsedMilliseconds < 5000)
+                    while (FileHelpers.IsFileInUse(_filepath) || timer.ElapsedMilliseconds < 5000)
                     {
                         Thread.Sleep(500);
                     }
@@ -102,28 +104,16 @@ namespace Direct2DDXFViewer.BitmapHelpers
             }
         }
 
-        private bool IsFileInUse(string filePath)
-        {
-            try
-            {
-                using (FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.None))
-                {
-                    // If we can open the file with exclusive access, it's not in use
-                    return false;
-                }
-            }
-            catch (IOException)
-            {
-
-                // If an IOException is thrown, the file is in use
-                return true;
-            }
-        }
-
         public void SaveBitmapToTemporaryFile()
         {
-            if (!BitmapSaved)
+            if (!BitmapSaved && !IsBitmapOversized)
             {
+                if (_imagingFactory == null || _wicBitmap == null || _tempFileFolderPath == null)
+                {
+                    Debug.WriteLine($"\nError in SaveBitmapToTemporaryFile, ZoomStep: {ZoomStep} Quadrant: {Quadrant}\n");
+                    throw new InvalidOperationException("Necessary objects are not initialized.");
+                }
+
                 _filepath = Path.Combine(_tempFileFolderPath, $"{Quadrant}.png");
 
                 using (var stream = new WICStream(_imagingFactory, _filepath, SharpDX.IO.NativeFileAccess.Write))
@@ -138,7 +128,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     frame.Commit();
                     encoder.Commit();
                 }
-
                 _wicBitmap.Dispose();
                 _imagingFactory.Dispose();
 
@@ -233,13 +222,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
             }
 
             return Bitmap;
-        }
-        public void Subdivide()
-        {
-            if (Level > 1)
-            {
-                DxfBitmaps = new DxfBitmap[4];
-            }
         }
 
         protected virtual void Dispose(bool disposing)

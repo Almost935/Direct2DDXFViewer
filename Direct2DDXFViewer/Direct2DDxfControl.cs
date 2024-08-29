@@ -45,7 +45,6 @@ namespace Direct2DDXFViewer
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
         private readonly float _zoomFactor = 1.25f;
-        private int _currentZoomStep = 0;
         private bool _isPanning = false;
         private bool _isRendering = false;
         private BitmapCache _bitmapCache;
@@ -67,6 +66,7 @@ namespace Direct2DDXFViewer
         private Rect _extents = new();
         private ObjectLayerManager _layerManager;
         private DrawingObject _snappedObject;
+        private int _currentZoomStep = 0;
 
         private enum SnapMode { Point, Object };
         private SnapMode _snapMode = SnapMode.Point;
@@ -137,6 +137,15 @@ namespace Direct2DDXFViewer
             {
                 _snappedObject = value;
                 OnPropertyChanged(nameof(SnappedObject));
+            }
+        }
+        public int CurrentZoomStep
+        {
+            get { return _currentZoomStep; }
+            set
+            {
+                _currentZoomStep = value;
+                OnPropertyChanged(nameof(CurrentZoomStep));
             }
         }
 
@@ -264,11 +273,13 @@ namespace Direct2DDXFViewer
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 1));
 
-                    // If _bitmapCache.CurrentBitmap is null, this means that the bitmap was too large for the direct 3D texture to create.
-                    // In this case, we draw the items to the device context rather than use a bitmap.
-                    if (_bitmapCache.CurrentBitmap is null)
+                    // If _bitmapCache.CurrentBitmap is null, this means that the bitmap was too large for the direct 3D
+                    // texture to create. In this case, we draw the items to the device context rather than use a bitmap.
+                    if (CurrentZoomStep > _bitmapCache.MaxZoomStep)
                     {
-                        RenderVisibleGeometries(deviceContext);
+                        BitmapRenderTarget bitmapRenderTarget = new(deviceContext, CompatibleRenderTargetOptions.None, new Size2F((float)ActualWidth, (float)ActualHeight));
+                        RenderVisibleObjectsToBitmap(bitmapRenderTarget);
+                        deviceContext.DrawBitmap(bitmapRenderTarget.Bitmap, new RawRectangleF(0, 0, (float)ActualWidth, (float)ActualHeight), 1.0f, BitmapInterpolationMode.Linear);
                     }
                     else
                     {
@@ -292,20 +303,12 @@ namespace Direct2DDXFViewer
                     resCache.Device.ImmediateContext.Flush();
 
                     stopwatch.Stop();
-                    int elapsedTime = (int)stopwatch.ElapsedMilliseconds;
+                    //int elapsedTime = (int)stopwatch.ElapsedMilliseconds;
                     //Debug.WriteLine($"\nRenderAsync elapsedTime: {elapsedTime}");
                     _deviceContextIsDirty = false;
                 }
 
                 await Task.Delay(15);
-            }
-        }
-        private void RenderVisibleGeometries(DeviceContext1 deviceContext)
-        {
-            Debug.WriteLine($"_visibleDrawingObjects.Count: {_visibleDrawingObjects.Count}"); 
-            foreach (var obj in _visibleDrawingObjects)
-            {
-                obj.DrawToDeviceContext(deviceContext, 1, obj.Brush);
             }
         }
         //private Bitmap RenderBitmap(DeviceContext1 deviceContext, float zoom)
@@ -327,18 +330,14 @@ namespace Direct2DDXFViewer
         {
             renderTarget.BeginDraw();
             renderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
-            renderTarget.Clear(new RawColor4(1, 1, 1, 1));
 
             if (_visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum) { renderTarget.AntialiasMode = AntialiasMode.Aliased; }
             else { renderTarget.AntialiasMode = AntialiasMode.PerPrimitive; }
-
-            renderTarget.AntialiasMode = AntialiasMode.PerPrimitive;
 
             foreach (var drawingObject in _visibleDrawingObjects)
             {
                 drawingObject.DrawToRenderTarget(renderTarget, 1, drawingObject.Brush);
             }
-
             renderTarget.EndDraw();
         }
         private void RenderInteractiveObjects(RenderTarget target)
@@ -363,12 +362,12 @@ namespace Direct2DDXFViewer
             if (e.Delta > 0)
             {
                 zoom = _zoomFactor;
-                _currentZoomStep += 1;
+                CurrentZoomStep += 1;
             }
             else
             {
                 zoom = 1 / _zoomFactor;
-                _currentZoomStep -= 1;
+                CurrentZoomStep -= 1;
             }
 
             UpdateZoom(zoom);

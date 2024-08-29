@@ -67,6 +67,10 @@
                                Margin="20 0 20 0"
                                VerticalAlignment="Center"
                                FontSize="12" />
+                    <TextBlock Text="{Binding ElementName=dxfViewer, Path=CurrentZoomStep}"
+                               Margin="20 0 20 0"
+                               VerticalAlignment="Center"
+                               FontSize="12" />
                 </WrapPanel>
             </Border>
         </Grid>
