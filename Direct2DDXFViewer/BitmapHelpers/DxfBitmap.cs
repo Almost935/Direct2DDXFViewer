@@ -46,6 +46,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public int Level { get; set; }
         public DxfBitmap[] DxfBitmaps { get; set; }
         public bool IsBitmapOversized { get; set; } = false;
+        public bool BitmapLoaded => Bitmap.IsDisposed;
         #endregion
 
         #region Constructor
@@ -76,6 +77,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             if (BitmapSaved && !IsBitmapOversized)
             {
                 bool fileInUse = FileHelpers.IsFileInUse(_filepath);
+
                 if (fileInUse)
                 {
                     Stopwatch timer = new();
@@ -110,7 +112,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
             {
                 if (_imagingFactory == null || _wicBitmap == null || _tempFileFolderPath == null)
                 {
-                    Debug.WriteLine($"\nError in SaveBitmapToTemporaryFile, ZoomStep: {ZoomStep} Quadrant: {Quadrant}\n");
                     throw new InvalidOperationException("Necessary objects are not initialized.");
                 }
 
@@ -216,12 +217,18 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 return null;
             }
 
-            if (Bitmap.IsDisposed)
+            if (!BitmapLoaded)
             {
                 LoadBitmapFromFile();
             }
 
             return Bitmap;
+        }
+        public void DisposeBitmap()
+        {
+            if (!BitmapSaved) { SaveBitmapToTemporaryFile(); }
+
+            Bitmap?.Dispose();
         }
 
         protected virtual void Dispose(bool disposing)
@@ -235,14 +242,12 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     _imagingFactory?.Dispose();
                     Bitmap?.Dispose();
                 }
-
                 _disposed = true;
             }
         }
 
         public void Dispose()
         {
-            //Debug.WriteLine($"DISPOSE: {Zoom}");
             Dispose(true);
             GC.SuppressFinalize(this);
         }

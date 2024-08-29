@@ -27,7 +27,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private ObjectLayerManager _layerManager;
         private Rect _extents;
         private RawMatrix3x2 _extentsMatrix;
-        private Bitmap _overallBitmap;
         private SharpDX.WIC.Bitmap _wicBitmap;
         private WicRenderTarget _wicRenderTarget;
         private ImagingFactory _imagingFactory;
@@ -48,6 +47,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public DxfBitmap BottomLeftBitmap { get; set; }
         public DxfBitmap[] Bitmaps => new DxfBitmap[] { TopLeftBitmap, TopRightBitmap, BottomLeftBitmap, BottomRightBitmap };
         public bool IsBitmapOversized { get; set; } = false;
+        public bool BitmapsLoaded { get; set; } = false;
         #endregion
 
         #region Constructor
@@ -136,25 +136,22 @@ namespace Direct2DDXFViewer.BitmapHelpers
             // Combine the temporary path with the folder name
             _tempFileFolderPath = Path.Combine(path, folderName);
 
-            Debug.WriteLine($"\n_tempFileFolderPath: {_tempFileFolderPath}");
-            Debug.WriteLine($"Directory.Exists(_tempFileFolderPath): {Directory.Exists(_tempFileFolderPath)}");
-
             // Check if the directory already exists
             if (Directory.Exists(_tempFileFolderPath))
             {
-
                 Directory.Delete(_tempFileFolderPath, true);
             }
             Directory.CreateDirectory(_tempFileFolderPath);
         }
         public void LoadDxfBitmaps()
         {
-            foreach (var bitmap in Bitmaps)
+            if (!IsBitmapOversized && !BitmapsLoaded)
             {
-                if (bitmap.IsDisposed)
+                foreach (var bitmap in Bitmaps)
                 {
                     bitmap.GetBitmap();
                 }
+                BitmapsLoaded = true;
             }
         }
         public List<DxfBitmap> GetVisibleBitmaps(Rect view)
@@ -174,14 +171,20 @@ namespace Direct2DDXFViewer.BitmapHelpers
             }
             return bitmaps;
         }
-
+        public void DisposeBitmaps()
+        {
+            foreach (var bitmap in Bitmaps)
+            {
+                bitmap.DisposeBitmap();
+            }
+            BitmapsLoaded = false;
+        }
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
             {
                 if (disposing)
                 {
-                    _overallBitmap?.Dispose();
                     _wicBitmap?.Dispose();
                     _wicRenderTarget?.Dispose();
                     _imagingFactory?.Dispose();
@@ -189,6 +192,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     TopRightBitmap?.Dispose();
                     BottomLeftBitmap?.Dispose();
                     BottomRightBitmap?.Dispose();
+
+                    BitmapsLoaded = false;
                 }
 
                 _disposed = true;

@@ -58,6 +58,7 @@ namespace Direct2DDXFViewer
         private bool _visibleObjectsDirty = true;
         private int _objectDetailLevelTransitionNum = 500;
         private int _bitmapLevels;
+        private BitmapRenderTarget _offscreenRenderTarget;
 
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\MediumDxf.dxf";
@@ -232,6 +233,7 @@ namespace Direct2DDXFViewer
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
         {
             GetBrushes(target);
+            _offscreenRenderTarget ??= new(deviceContext, CompatibleRenderTargetOptions.None, new Size2F((float)ActualWidth, (float)ActualHeight));
 
             if (!_dxfLoaded)
             {
@@ -277,17 +279,25 @@ namespace Direct2DDXFViewer
                     // texture to create. In this case, we draw the items to the device context rather than use a bitmap.
                     if (CurrentZoomStep > _bitmapCache.MaxZoomStep)
                     {
-                        BitmapRenderTarget bitmapRenderTarget = new(deviceContext, CompatibleRenderTargetOptions.None, new Size2F((float)ActualWidth, (float)ActualHeight));
-                        RenderVisibleObjectsToBitmap(bitmapRenderTarget);
-                        deviceContext.DrawBitmap(bitmapRenderTarget.Bitmap, new RawRectangleF(0, 0, (float)ActualWidth, (float)ActualHeight), 1.0f, BitmapInterpolationMode.Linear);
+                        Stopwatch geometryRenderTime = new();
+                        geometryRenderTime.Start();
+
+                        RenderVisibleObjectsToBitmap(_offscreenRenderTarget);
+                        deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, new RawRectangleF(0, 0, (float)ActualWidth, (float)ActualHeight), 1.0f, BitmapInterpolationMode.Linear);
+
+                        geometryRenderTime.Stop();
                     }
                     else
                     {
-                        foreach (var bitmap in _bitmapCache.CurrentBitmap.Bitmaps)
+                        foreach (var dxfBitmap in _bitmapCache.CurrentBitmap.Bitmaps)
                         {
-                            if (bitmap.Bitmap.IsDisposed) { continue; }
+                            //if (dxfBitmap.Bitmap.IsDisposed) 
+                            //{
+                            //    Debug.WriteLine($"dxfBitmap.Bitmap.IsDisposed: {dxfBitmap.Bitmap.IsDisposed}");
+                            //    dxfBitmap.GetBitmap(); 
+                            //}
 
-                            var destRect = bitmap.DestRect;
+                            var destRect = dxfBitmap.DestRect;
                             Matrix matrix = new(1, 0, 0, 1, _transformMatrix.OffsetX, _transformMatrix.OffsetY);
                             destRect.Transform(_transformMatrix);
                             Rect rect = new(0, 0, this.ActualWidth, this.ActualHeight);
@@ -295,7 +305,7 @@ namespace Direct2DDXFViewer
                             if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) { continue; }
 
                             RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
-                            deviceContext.DrawBitmap(bitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+                            deviceContext.DrawBitmap(dxfBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
                         }
                     }
 
@@ -311,24 +321,11 @@ namespace Direct2DDXFViewer
                 await Task.Delay(15);
             }
         }
-        //private Bitmap RenderBitmap(DeviceContext1 deviceContext, float zoom)
-        //{
-        //    Size2F size = new(deviceContext.Size.Width * zoom, deviceContext.Size.Height * zoom);
-        //    BitmapRenderTarget bitmapRenderTarget = new(deviceContext, CompatibleRenderTargetOptions.None, size)
-        //    {
-        //        DotsPerInch = new Size2F(96.0f * zoom, 96.0f * zoom),
-        //        AntialiasMode = AntialiasMode.Aliased
-        //    };
-
-        //    bitmapRenderTarget.BeginDraw();
-        //    bitmapRenderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
-        //    _layerManager.DrawVisibleObjectsToRenderTarget(bitmapRenderTarget, 1);
-        //    bitmapRenderTarget.EndDraw();
-        //    return bitmapRenderTarget.Bitmap;
-        //}
         private void RenderVisibleObjectsToBitmap(RenderTarget renderTarget)
-        {
+        { 
             renderTarget.BeginDraw();
+            renderTarget.Clear(new RawColor4(1, 1, 1, 1));  
+
             renderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
 
             if (_visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum) { renderTarget.AntialiasMode = AntialiasMode.Aliased; }
@@ -540,10 +537,14 @@ namespace Direct2DDXFViewer
             {
                 _overallMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
                 _transformMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
-                _bitmapCache.SetCurrentDxfBitmap(_currentZoomStep);
                 UpdateCurrentView();
                 _visibleObjectsDirty = true;
                 _deviceContextIsDirty = true;
+
+                if (CurrentZoomStep !> _bitmapCache.MaxZoomStep)
+                {
+                    _bitmapCache.SetCurrentDxfBitmap(CurrentZoomStep);
+                }
             }
         }
         private void UpdateTranslate(Vector translate)
