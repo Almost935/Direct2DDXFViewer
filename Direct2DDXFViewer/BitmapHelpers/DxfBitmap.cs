@@ -45,7 +45,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public bool IsDisposed => _disposed;
         public int Level { get; set; }
         public DxfBitmap[] DxfBitmaps { get; set; }
-        public bool IsBitmapOversized { get; set; } = false;
         public bool BitmapLoaded => Bitmap.IsDisposed;
         #endregion
 
@@ -74,11 +73,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Methods
         private void LoadBitmapFromFile()
         {
-            //Debug.WriteLine($"LoadBitmapFromFile");
+            Debug.WriteLine($"LoadBitmapFromFile: ZoomStep: {ZoomStep}");
 
-            if (BitmapSaved && !IsBitmapOversized)
+            if (BitmapSaved)
             {
-                //Debug.WriteLine($"BitmapSaved && !IsBitmapOversized: {BitmapSaved && !IsBitmapOversized}");
+                Debug.WriteLine($"BitmapSaved: {BitmapSaved}");
 
                 bool fileInUse = FileHelpers.IsFileInUse(_filepath);
 
@@ -105,6 +104,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
                         // Create a Direct2D Bitmap from the WIC Bitmap
                         Bitmap = Bitmap.FromWicBitmap(_deviceContext, converter);
+
+                        Debug.WriteLine($"DXF BITMAP BITMAP RELOADED: Bitmap is null: {Bitmap is null}");
                     }
                 }
             }
@@ -112,7 +113,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         public void SaveBitmapToTemporaryFile()
         {
-            if (!BitmapSaved && !IsBitmapOversized)
+            if (!BitmapSaved)
             {
                 if (_imagingFactory == null || _wicBitmap == null || _tempFileFolderPath == null)
                 {
@@ -150,12 +151,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         }
         private void RenderBitmap()
         {
-            if (Size.Width > _maxBitmapSize || Size.Height > _maxBitmapSize)
-            {
-                IsBitmapOversized = true;
-                return;
-            }
-
             _imagingFactory = new();
             _wicBitmap = new(_imagingFactory, Size.Width, Size.Height, SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
 
@@ -216,11 +211,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         public Bitmap GetBitmap()
         {
-            if (IsBitmapOversized)
-            {
-                return null;
-            }
-
+            //Debug.WriteLine($"GetBitmap: ZoomStep: {ZoomStep}");
             if (!BitmapLoaded)
             {
                 LoadBitmapFromFile();

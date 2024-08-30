@@ -61,7 +61,7 @@ namespace Direct2DDXFViewer
         private BitmapRenderTarget _offscreenRenderTarget;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\MediumDxf.dxf";
+        private string _filePath = @"DXF\SmallDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -293,6 +293,9 @@ namespace Direct2DDXFViewer
 
                         foreach (var dxfBitmap in _bitmapCache.CurrentBitmap.Bitmaps)
                         {
+                            //Debug.WriteLine($"\ndxfBitmap.Bitmap is null: {dxfBitmap.Bitmap is null}");
+                            //Debug.WriteLine($"dxfBitmap.Bitmap.IsDisposed: {dxfBitmap.Bitmap.IsDisposed}");
+
                             var destRect = dxfBitmap.DestRect;
                             Matrix matrix = new(1, 0, 0, 1, _transformMatrix.OffsetX, _transformMatrix.OffsetY);
                             destRect.Transform(_transformMatrix);

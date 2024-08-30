@@ -46,7 +46,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public DxfBitmap BottomRightBitmap { get; set; }
         public DxfBitmap BottomLeftBitmap { get; set; }
         public DxfBitmap[] Bitmaps => new DxfBitmap[] { TopLeftBitmap, TopRightBitmap, BottomLeftBitmap, BottomRightBitmap };
-        public bool IsBitmapOversized { get; set; } = false;
+        //public bool IsBitmapOversized { get; set; } = false;
         public bool BitmapsLoaded { get; set; } = false;
         #endregion
 
@@ -96,36 +96,9 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 _extentsMatrix.M32 - (float)(destSize.Height));
 
             TopLeftBitmap = new(_deviceContext, _factory, _layerManager, topLeftDest, topLeftExtents, topLeftMatrix, ZoomStep, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopLeft, _levels, _maxBitmapSize);
-            if (TopLeftBitmap.IsBitmapOversized) 
-            { 
-                IsBitmapOversized = true;
-                this.Dispose();
-                return;
-            }
-
             TopRightBitmap = new(_deviceContext, _factory, _layerManager, topRightDest, topRightExtents, topRightMatrix, ZoomStep, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopRight, _levels, _maxBitmapSize);
-            if (TopRightBitmap.IsBitmapOversized)
-            {
-                IsBitmapOversized = true;
-                this.Dispose();
-                return;
-            }
-
             BottomLeftBitmap = new(_deviceContext, _factory, _layerManager, bottomLeftDest, bottomLeftExtents, bottomLeftMatrix, ZoomStep, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomLeft, _levels, _maxBitmapSize);
-            if (BottomLeftBitmap.IsBitmapOversized)
-            {
-                IsBitmapOversized = true;
-                this.Dispose();
-                return;
-            }
-
             BottomRightBitmap = new(_deviceContext, _factory, _layerManager, bottomRightDest, bottomRightExtents, bottomRightMatrix, ZoomStep, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomRight, _levels, _maxBitmapSize);
-            if (BottomRightBitmap.IsBitmapOversized)
-            {
-                IsBitmapOversized = true;
-                this.Dispose();
-                return;
-            }
         }
         public void CreateViewFolder(string path)
         {
@@ -144,25 +117,20 @@ namespace Direct2DDXFViewer.BitmapHelpers
         }
         public void LoadDxfBitmaps()
         {
-            //Debug.WriteLine("\nLoading bitmaps");
+            //Debug.WriteLine($"\nLoading bitmaps, ZoomStep: {ZoomStep}");
 
-            if (!IsBitmapOversized && !BitmapsLoaded)
+            if (!BitmapsLoaded)
             {
-                //Debug.WriteLine($"!IsBitmapOversized && !BitmapsLoaded: {!IsBitmapOversized && !BitmapsLoaded}");
                 foreach (var bitmap in Bitmaps)
                 {
                     bitmap.GetBitmap();
+                    //Debug.WriteLine($"bitmap.IsDisposed: {bitmap.IsDisposed}");
                 }
                 BitmapsLoaded = true;
             }
         }
         public List<DxfBitmap> GetVisibleBitmaps(Rect view)
         {
-            if (IsBitmapOversized)
-            {
-                return null;
-            }
-
             List<DxfBitmap> bitmaps = new();
             foreach (var bitmap in Bitmaps)
             {
