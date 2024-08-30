@@ -68,7 +68,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
             CreateViewFolder(tempFileFolderPath);
             GetDxfBitmaps();
-            _maxBitmapSize = maxBitmapSize;
         }
         #endregion
 
@@ -145,8 +144,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
         }
         public void LoadDxfBitmaps()
         {
+            //Debug.WriteLine("\nLoading bitmaps");
+
             if (!IsBitmapOversized && !BitmapsLoaded)
             {
+                //Debug.WriteLine($"!IsBitmapOversized && !BitmapsLoaded: {!IsBitmapOversized && !BitmapsLoaded}");
                 foreach (var bitmap in Bitmaps)
                 {
                     bitmap.GetBitmap();

@@ -74,8 +74,12 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Methods
         private void LoadBitmapFromFile()
         {
+            //Debug.WriteLine($"LoadBitmapFromFile");
+
             if (BitmapSaved && !IsBitmapOversized)
             {
+                //Debug.WriteLine($"BitmapSaved && !IsBitmapOversized: {BitmapSaved && !IsBitmapOversized}");
+
                 bool fileInUse = FileHelpers.IsFileInUse(_filepath);
 
                 if (fileInUse)

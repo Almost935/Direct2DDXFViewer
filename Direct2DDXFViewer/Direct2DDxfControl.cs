@@ -289,14 +289,10 @@ namespace Direct2DDXFViewer
                     }
                     else
                     {
+                        //Debug.WriteLine($"Rendering Bitmap: _bitmapCache.CurrentBitmap.ZoomStep: {_bitmapCache.CurrentBitmap.ZoomStep}");
+
                         foreach (var dxfBitmap in _bitmapCache.CurrentBitmap.Bitmaps)
                         {
-                            //if (dxfBitmap.Bitmap.IsDisposed) 
-                            //{
-                            //    Debug.WriteLine($"dxfBitmap.Bitmap.IsDisposed: {dxfBitmap.Bitmap.IsDisposed}");
-                            //    dxfBitmap.GetBitmap(); 
-                            //}
-
                             var destRect = dxfBitmap.DestRect;
                             Matrix matrix = new(1, 0, 0, 1, _transformMatrix.OffsetX, _transformMatrix.OffsetY);
                             destRect.Transform(_transformMatrix);
@@ -541,7 +537,7 @@ namespace Direct2DDXFViewer
                 _visibleObjectsDirty = true;
                 _deviceContextIsDirty = true;
 
-                if (CurrentZoomStep !> _bitmapCache.MaxZoomStep)
+                if (CurrentZoomStep <= _bitmapCache.MaxZoomStep)
                 {
                     _bitmapCache.SetCurrentDxfBitmap(CurrentZoomStep);
                 }
