@@ -45,7 +45,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public bool IsDisposed => _disposed;
         public int Level { get; set; }
         public DxfBitmap[] DxfBitmaps { get; set; }
-        public bool BitmapLoaded => Bitmap.IsDisposed;
         #endregion
 
         #region Constructor
@@ -73,39 +72,36 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Methods
         private void LoadBitmapFromFile()
         {
-            Debug.WriteLine($"LoadBitmapFromFile: ZoomStep: {ZoomStep}");
-
-            if (BitmapSaved)
+            if (BitmapSaved && Bitmap.IsDisposed)
             {
-                Debug.WriteLine($"BitmapSaved: {BitmapSaved}");
-
                 bool fileInUse = FileHelpers.IsFileInUse(_filepath);
 
-                if (fileInUse)
-                {
-                    Stopwatch timer = new();
-                    timer.Start();
-                    // Wait for the file to be released by the other process (if any)
-                    while (FileHelpers.IsFileInUse(_filepath) || timer.ElapsedMilliseconds < 5000)
-                    {
-                        Thread.Sleep(500);
-                    }
-                }
+                if (fileInUse) { return; }
 
-                using (var imagingFactory = new ImagingFactory()) // Use 'using' to ensure disposal
+                //if (fileInUse)
+                //{
+                //    Stopwatch timer = new();
+                //    timer.Start();
+                //    while (FileHelpers.IsFileInUse(_filepath))
+                //    {
+                //        if (timer.ElapsedMilliseconds > 1000 || !Bitmap.IsDisposed)
+                //        {
+                //            return;
+                //        }
+
+                //        Debug.WriteLine($"File in use. {ZoomStep} {Bitmap.IsDisposed}");
+                //        Thread.Sleep(100);
+                //    }
+                //}
+
+                using (var imagingFactory = new ImagingFactory())
                 {
-                    // Load the image using WIC
                     using (var decoder = new BitmapDecoder(imagingFactory, _filepath, DecodeOptions.CacheOnLoad))
                     using (var frame = decoder.GetFrame(0))
                     using (var converter = new FormatConverter(imagingFactory))
                     {
-                        // Convert the image format to 32bppPBGRA which is compatible with Direct2D
                         converter.Initialize(frame, SharpDX.WIC.PixelFormat.Format32bppPBGRA);
-
-                        // Create a Direct2D Bitmap from the WIC Bitmap
                         Bitmap = Bitmap.FromWicBitmap(_deviceContext, converter);
-
-                        Debug.WriteLine($"DXF BITMAP BITMAP RELOADED: Bitmap is null: {Bitmap is null}");
                     }
                 }
             }
@@ -157,7 +153,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             _wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())
             {
                 DotsPerInch = new Size2F(96.0f * Zoom, 96.0f * Zoom),
-                AntialiasMode = AntialiasMode.PerPrimitive
+                AntialiasMode = AntialiasMode.Aliased
             };
             _wicRenderTarget.BeginDraw();
             _wicRenderTarget.Transform = _transform;
@@ -211,8 +207,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         public Bitmap GetBitmap()
         {
-            //Debug.WriteLine($"GetBitmap: ZoomStep: {ZoomStep}");
-            if (!BitmapLoaded)
+            if (Bitmap.IsDisposed)
             {
                 LoadBitmapFromFile();
             }

@@ -117,14 +117,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
         }
         public void LoadDxfBitmaps()
         {
-            //Debug.WriteLine($"\nLoading bitmaps, ZoomStep: {ZoomStep}");
-
             if (!BitmapsLoaded)
             {
                 foreach (var bitmap in Bitmaps)
                 {
                     bitmap.GetBitmap();
-                    //Debug.WriteLine($"bitmap.IsDisposed: {bitmap.IsDisposed}");
                 }
                 BitmapsLoaded = true;
             }
@@ -162,6 +159,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     TopRightBitmap?.Dispose();
                     BottomLeftBitmap?.Dispose();
                     BottomRightBitmap?.Dispose();
+                    DisposeBitmaps();
 
                     BitmapsLoaded = false;
                 }

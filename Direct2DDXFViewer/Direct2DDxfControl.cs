@@ -61,7 +61,7 @@ namespace Direct2DDXFViewer
         private BitmapRenderTarget _offscreenRenderTarget;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\SmallDxf.dxf";
+        private string _filePath = @"DXF\LargeDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -70,7 +70,7 @@ namespace Direct2DDXFViewer
         private int _currentZoomStep = 0;
 
         private enum SnapMode { Point, Object };
-        private SnapMode _snapMode = SnapMode.Point;
+        private SnapMode _snapMode = SnapMode.Object;
         #endregion
 
         #region Properties
@@ -250,13 +250,13 @@ namespace Direct2DDXFViewer
                 _bitmapLoaded = true;
             }
 
-
             if (!_isRendering && deviceContext is not null && _dxfLoaded)
             {
                 _isRendering = true;
                 RenderAsync(deviceContext);
             }
         }
+
         private async void RenderAsync(DeviceContext1 deviceContext)
         {
             Stopwatch stopwatch = new();
@@ -264,60 +264,56 @@ namespace Direct2DDXFViewer
             while (_isRendering)
             {
                 stopwatch.Restart();
+                int delay = 17;
 
                 if (LayerManager is not null && deviceContext is not null && _deviceContextIsDirty)
                 {
-                    if (_visibleObjectsDirty)
-                    {
-                        GetVisibleObjects();
-                    }
-
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 1));
 
-                    // If _bitmapCache.CurrentBitmap is null, this means that the bitmap was too large for the direct 3D
-                    // texture to create. In this case, we draw the items to the device context rather than use a bitmap.
                     if (CurrentZoomStep > _bitmapCache.MaxZoomStep)
                     {
-                        Stopwatch geometryRenderTime = new();
-                        geometryRenderTime.Start();
+                        if (_visibleObjectsDirty)
+                        {
+                            GetVisibleObjects();
+                        }
 
                         RenderVisibleObjectsToBitmap(_offscreenRenderTarget);
                         deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, new RawRectangleF(0, 0, (float)ActualWidth, (float)ActualHeight), 1.0f, BitmapInterpolationMode.Linear);
-
-                        geometryRenderTime.Stop();
                     }
                     else
                     {
-                        //Debug.WriteLine($"Rendering Bitmap: _bitmapCache.CurrentBitmap.ZoomStep: {_bitmapCache.CurrentBitmap.ZoomStep}");
-
-                        foreach (var dxfBitmap in _bitmapCache.CurrentBitmap.Bitmaps)
-                        {
-                            //Debug.WriteLine($"\ndxfBitmap.Bitmap is null: {dxfBitmap.Bitmap is null}");
-                            //Debug.WriteLine($"dxfBitmap.Bitmap.IsDisposed: {dxfBitmap.Bitmap.IsDisposed}");
-
-                            var destRect = dxfBitmap.DestRect;
-                            Matrix matrix = new(1, 0, 0, 1, _transformMatrix.OffsetX, _transformMatrix.OffsetY);
-                            destRect.Transform(_transformMatrix);
-                            Rect rect = new(0, 0, this.ActualWidth, this.ActualHeight);
-
-                            if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) { continue; }
-
-                            RawRectangleF destRawRect = new((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
-                            deviceContext.DrawBitmap(dxfBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-                        }
+                        RenderBitmaps(deviceContext);
                     }
 
                     deviceContext.EndDraw();
                     resCache.Device.ImmediateContext.Flush();
 
                     stopwatch.Stop();
-                    //int elapsedTime = (int)stopwatch.ElapsedMilliseconds;
-                    //Debug.WriteLine($"\nRenderAsync elapsedTime: {elapsedTime}");
+                    int elapsedTime = (int)stopwatch.ElapsedMilliseconds;
+                    delay = 17 - elapsedTime;
                     _deviceContextIsDirty = false;
                 }
 
-                await Task.Delay(15);
+                if (delay > 0)
+                {
+                    await Task.Delay(delay);
+                }
+            }
+        }
+
+        private void RenderBitmaps(DeviceContext1 deviceContext)
+        {
+            var rect = new Rect(0, 0, this.ActualWidth, this.ActualHeight);
+            foreach (var dxfBitmap in _bitmapCache.CurrentBitmap.Bitmaps)
+            {
+                var destRect = dxfBitmap.DestRect;
+                destRect.Transform(_transformMatrix);
+
+                if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) continue;
+
+                var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
+                deviceContext.DrawBitmap(dxfBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
             }
         }
         private void RenderVisibleObjectsToBitmap(RenderTarget renderTarget)
@@ -438,11 +434,11 @@ namespace Direct2DDXFViewer
             {
                 await Task.Delay(100);
 
-                if (_snapMode == SnapMode.Point)
-                {
-                    await Task.Run(() => HitTestPoints());
-                }
-                else if (_snapMode == SnapMode.Object)
+                //if (_snapMode == SnapMode.Point)
+                //{
+                //    await Task.Run(() => HitTestPoints());
+                //}
+                if (_snapMode == SnapMode.Object)
                 {
                     await Task.Run(() => HitTestGeometry());
                 }
@@ -496,6 +492,9 @@ namespace Direct2DDXFViewer
                 _visibleDrawingObjects.Clear();
 
                 int count = 0;
+
+                
+
                 foreach (var layer in LayerManager.Layers.Values)
                 {
                     if (layer is not null)
@@ -520,7 +519,7 @@ namespace Direct2DDXFViewer
         {
             while (true)
             {
-                await Task.Delay(100);
+                await Task.Delay(50);
                 await Task.Run(() => UpdateDxfPointerCoords());
             }
         }
