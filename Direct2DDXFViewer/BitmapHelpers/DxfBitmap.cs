@@ -43,12 +43,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public enum Quadrants { TopRight, TopLeft, BottomRight, BottomLeft }
         public Quadrants Quadrant { get; set; }
         public bool IsDisposed => _disposed;
-        public int Level { get; set; }
         public DxfBitmap[] DxfBitmaps { get; set; }
         #endregion
 
         #region Constructor
-        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, int zoomStep, float zoom, string tempFileFolder, Size2 size, Quadrants quadrant, int level, int maxBitmapSize)
+        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, int zoomStep, float zoom, string tempFileFolder, Size2 size, Quadrants quadrant, int maxBitmapSize)
         {
             _deviceContext = deviceContext;
             _factory = factory;
@@ -61,7 +60,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
             _tempFileFolderPath = tempFileFolder;
             Size = size;
             Quadrant = quadrant;
-            Level = level;
             _maxBitmapSize = maxBitmapSize;
 
             RenderBitmap();
@@ -153,7 +151,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             _wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())
             {
                 DotsPerInch = new Size2F(96.0f * Zoom, 96.0f * Zoom),
-                AntialiasMode = AntialiasMode.Aliased
+                AntialiasMode = AntialiasMode.PerPrimitive
             };
             _wicRenderTarget.BeginDraw();
             _wicRenderTarget.Transform = _transform;

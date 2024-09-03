@@ -41,6 +41,7 @@ namespace Direct2DDXFViewer
     {
         #region Fields
         private const int _zoomPrecision = 3;
+        private const int _numBitmapDivisions = 3;
 
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
@@ -61,7 +62,7 @@ namespace Direct2DDXFViewer
         private BitmapRenderTarget _offscreenRenderTarget;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\LargeDxf.dxf";
+        private string _filePath = @"DXF\SmallDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -227,7 +228,7 @@ namespace Direct2DDXFViewer
         public void InitializeBitmapCache(DeviceContext1 deviceContext, Factory1 factory)
         {
             RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
-            _bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _zoomPrecision, _bitmapLevels, resCache.MaxBitmapSize);
+            _bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _zoomPrecision, resCache.MaxBitmapSize, _numBitmapDivisions);
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
@@ -304,6 +305,9 @@ namespace Direct2DDXFViewer
 
         private void RenderBitmaps(DeviceContext1 deviceContext)
         {
+            Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
+            int count = 0;
+
             var rect = new Rect(0, 0, this.ActualWidth, this.ActualHeight);
             foreach (var dxfBitmap in _bitmapCache.CurrentBitmap.Bitmaps)
             {
@@ -314,7 +318,13 @@ namespace Direct2DDXFViewer
 
                 var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
                 deviceContext.DrawBitmap(dxfBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+
+                deviceContext.DrawRectangle(destRawRect, brush);
+
+                count++;
             }
+
+            Debug.WriteLine($"Bitmap count: {count}");
         }
         private void RenderVisibleObjectsToBitmap(RenderTarget renderTarget)
         { 

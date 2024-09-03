@@ -32,8 +32,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private ImagingFactory _imagingFactory;
         private string _tempFileFolderPath;
         private bool _disposed = false;
-        private int _levels;
         private int _maxBitmapSize;
+        private int _numOfDivisions;
         #endregion
 
         #region Properties
@@ -41,25 +41,26 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public float ZoomFactor { get; set; }
         public int ZoomPrecision { get; set; }
         public float Zoom { get; set; }
-        public DxfBitmap TopRightBitmap { get; set; }
-        public DxfBitmap TopLeftBitmap { get; set; }
-        public DxfBitmap BottomRightBitmap { get; set; }
-        public DxfBitmap BottomLeftBitmap { get; set; }
-        public DxfBitmap[] Bitmaps => new DxfBitmap[] { TopLeftBitmap, TopRightBitmap, BottomLeftBitmap, BottomRightBitmap };
+        public List<DxfBitmap> Bitmaps { get; set; } = new();
+        //public DxfBitmap TopRightBitmap { get; set; }
+        //public DxfBitmap TopLeftBitmap { get; set; }
+        //public DxfBitmap BottomRightBitmap { get; set; }
+        //public DxfBitmap BottomLeftBitmap { get; set; }
+        //public DxfBitmap[] Bitmaps => new DxfBitmap[] { TopLeftBitmap, TopRightBitmap, BottomLeftBitmap, BottomRightBitmap };
         //public bool IsBitmapOversized { get; set; } = false;
         public bool BitmapsLoaded { get; set; } = false;
         #endregion
 
         #region Constructor
-        public DxfBitmapView(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect extents, RawMatrix3x2 extentsMatrix, int zoomStep, float zoomFactor, int zoomPrecision, string tempFileFolderPath, int levels, int maxBitmapSize)
+        public DxfBitmapView(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect extents, RawMatrix3x2 extentsMatrix, int zoomStep, float zoomFactor, int zoomPrecision, string tempFileFolderPath, int maxBitmapSize, int numOfDivisions)
         {
             _deviceContext = deviceContext;
             _factory = factory;
             _layerManager = layerManager;
             _extents = extents;
             _extentsMatrix = extentsMatrix;
-            _levels = levels;
             _maxBitmapSize = maxBitmapSize;
+            _numOfDivisions = numOfDivisions;
 
             ZoomFactor = zoomFactor;
             ZoomStep = zoomStep;
@@ -74,31 +75,29 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Methods
         public void GetDxfBitmaps()
         {
-            Size2 size = new((int)(_deviceContext.Size.Width * Zoom) / 2, (int)(_deviceContext.Size.Height * Zoom) / 2);
-            Size destSize = new((_deviceContext.Size.Width) / 2, (_deviceContext.Size.Height) / 2);
+            Size overallSize = new(Zoom * _deviceContext.Size.Width, Zoom * _deviceContext.Size.Height);
+            double width = overallSize.Width / _numOfDivisions;
+            double height = overallSize.Height / _numOfDivisions;
+            Size2 size = new((int)(width), (int)(height));
+            double destWidth = _deviceContext.Size.Width / _numOfDivisions;
+            double destHeight = _deviceContext.Size.Height / _numOfDivisions;
+            double extentsWidth = _extents.Width / _numOfDivisions;
+            double extentsHeight = _extents.Height / _numOfDivisions;
 
-            Rect topLeftExtents = new(_extents.Left, _extents.Top, _extents.Width * 0.5, _extents.Height * 0.5);
-            Rect topRightExtents = new(_extents.Left + (_extents.Width * 0.5), _extents.Top, _extents.Width * 0.5, _extents.Height * 0.5);
-            Rect bottomLeftExtents = new(_extents.Left, _extents.Top + (_extents.Height * 0.5), _extents.Width * 0.5, _extents.Height * 0.5);
-            Rect bottomRightExtents = new(_extents.Left + (_extents.Width * 0.5), _extents.Top + (_extents.Height * 0.5), _extents.Width * 0.5, _extents.Height * 0.5);
+            for (int i = 0; i < _numOfDivisions; i++) // Width increment corresponds to i in this loop
+            {
+                for (int j = 0; j < _numOfDivisions; j++) // Height increment corresponds to j in this loop
+                {
+                    Rect extents = new(extentsWidth * i, extentsHeight * j, extentsWidth, extentsHeight);
+                    Rect dest = new((int)(destWidth * i), (int)(destHeight * j), destWidth, destHeight);
 
-            Rect topLeftDest = new(0, 0, destSize.Width, destSize.Height);
-            Rect topRightDest = new(destSize.Width, 0, destSize.Width, destSize.Height);
-            Rect bottomLeftDest = new(0, destSize.Height, destSize.Width, destSize.Height);
-            Rect bottomRightDest = new(destSize.Width, destSize.Height, destSize.Width, destSize.Height);
+                    RawMatrix3x2 matrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, 
+                        _extentsMatrix.M31 - (float)(destWidth * i), _extentsMatrix.M32 - (float)(destHeight * j));
 
-            RawMatrix3x2 topLeftMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31, _extentsMatrix.M32);
-            RawMatrix3x2 topRightMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31 - (float)(destSize.Width),
-                _extentsMatrix.M32);
-            RawMatrix3x2 bottomLeftMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31,
-                _extentsMatrix.M32 - (float)(destSize.Height));
-            RawMatrix3x2 bottomRightMatrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, _extentsMatrix.M31 - (float)(destSize.Width),
-                _extentsMatrix.M32 - (float)(destSize.Height));
-
-            TopLeftBitmap = new(_deviceContext, _factory, _layerManager, topLeftDest, topLeftExtents, topLeftMatrix, ZoomStep, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopLeft, _levels, _maxBitmapSize);
-            TopRightBitmap = new(_deviceContext, _factory, _layerManager, topRightDest, topRightExtents, topRightMatrix, ZoomStep, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopRight, _levels, _maxBitmapSize);
-            BottomLeftBitmap = new(_deviceContext, _factory, _layerManager, bottomLeftDest, bottomLeftExtents, bottomLeftMatrix, ZoomStep, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomLeft, _levels, _maxBitmapSize);
-            BottomRightBitmap = new(_deviceContext, _factory, _layerManager, bottomRightDest, bottomRightExtents, bottomRightMatrix, ZoomStep, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.BottomRight, _levels, _maxBitmapSize);
+                    DxfBitmap bitmap = new(_deviceContext, _factory, _layerManager, dest, extents, matrix, ZoomStep, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopLeft, _maxBitmapSize);
+                    Bitmaps.Add(bitmap);
+                }
+            }
         }
         public void CreateViewFolder(string path)
         {
@@ -155,10 +154,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     _wicBitmap?.Dispose();
                     _wicRenderTarget?.Dispose();
                     _imagingFactory?.Dispose();
-                    TopLeftBitmap?.Dispose();
-                    TopRightBitmap?.Dispose();
-                    BottomLeftBitmap?.Dispose();
-                    BottomRightBitmap?.Dispose();
                     DisposeBitmaps();
 
                     BitmapsLoaded = false;
