@@ -313,12 +313,9 @@ namespace Direct2DDXFViewer
             {
                 var destRect = dxfBitmap.DestRect;
                 destRect.Transform(_transformMatrix);
-
                 if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) continue;
-
                 var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
                 deviceContext.DrawBitmap(dxfBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-
                 deviceContext.DrawRectangle(destRawRect, brush);
             }
         }

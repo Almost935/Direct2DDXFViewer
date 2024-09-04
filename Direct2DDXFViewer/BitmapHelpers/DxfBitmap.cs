@@ -43,7 +43,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public enum Quadrants { TopRight, TopLeft, BottomRight, BottomLeft }
         public Quadrants Quadrant { get; set; }
         public bool IsDisposed => _disposed;
-        public DxfBitmap[] DxfBitmaps { get; set; }
         #endregion
 
         #region Constructor
