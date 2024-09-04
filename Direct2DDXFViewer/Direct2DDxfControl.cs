@@ -61,9 +61,10 @@ namespace Direct2DDXFViewer
         private int _objectDetailLevelTransitionNum = 500;
         private int _bitmapLevels;
         private BitmapRenderTarget _offscreenRenderTarget;
+        private BitmapRenderTarget _interactiveRenderTarget;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\LargeDxf.dxf";
+        private string _filePath = @"DXF\MediumDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -161,7 +162,8 @@ namespace Direct2DDXFViewer
         public Direct2DDxfControl()
         {
             UpdateDxfCoordsAsync();
-            //RunHitTestAsync();
+            RunGetVisibleObjectsAsync();
+            RunHitTestAsync();
 
             //Window window = Application.Current.MainWindow;
             //window.KeyUp += Window_KeyUp;
@@ -181,7 +183,7 @@ namespace Direct2DDXFViewer
                 _dxfLoaded = true;
                 Extents = DxfHelpers.GetExtentsFromHeader(DxfDoc);
                 LayerManager = DxfHelpers.GetLayers(DxfDoc);
-                
+
                 int count = DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, deviceContext, resCache);
                 _bitmapLevels = count / 1000;
             }
@@ -236,6 +238,7 @@ namespace Direct2DDXFViewer
         {
             GetBrushes(target);
             _offscreenRenderTarget ??= new(deviceContext, CompatibleRenderTargetOptions.None, new Size2F((float)ActualWidth, (float)ActualHeight));
+            _interactiveRenderTarget ??= new(deviceContext, CompatibleRenderTargetOptions.None, new Size2F((float)ActualWidth, (float)ActualHeight));
 
             if (!_dxfLoaded)
             {
@@ -275,10 +278,10 @@ namespace Direct2DDXFViewer
 
                     if (CurrentZoomStep > _bitmapCache.MaxZoomStep)
                     {
-                        if (_visibleObjectsDirty)
-                        {
-                            GetVisibleObjects();
-                        }
+                        //if (_visibleObjectsDirty)
+                        //{
+                        //    GetVisibleObjects();
+                        //}
 
                         RenderVisibleObjectsToBitmap(_offscreenRenderTarget);
                         deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, new RawRectangleF(0, 0, (float)ActualWidth, (float)ActualHeight), 1.0f, BitmapInterpolationMode.Linear);
@@ -306,8 +309,6 @@ namespace Direct2DDXFViewer
 
         private void RenderBitmaps(DeviceContext1 deviceContext)
         {
-            Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
-
             var rect = new Rect(0, 0, this.ActualWidth, this.ActualHeight);
             foreach (var dxfBitmap in _bitmapCache.CurrentBitmap.Bitmaps)
             {
@@ -316,28 +317,39 @@ namespace Direct2DDXFViewer
                 if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) continue;
                 var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
                 deviceContext.DrawBitmap(dxfBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-                deviceContext.DrawRectangle(destRawRect, brush);
             }
         }
         private void RenderVisibleObjectsToBitmap(RenderTarget renderTarget)
-        { 
-            renderTarget.BeginDraw();
-            renderTarget.Clear(new RawColor4(1, 1, 1, 1));  
+        {
+            Stopwatch stopwatch = new();
+            stopwatch.Start();
 
+            renderTarget.Clear(new RawColor4(1, 1, 1, 1));
             renderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
 
             if (_visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum) { renderTarget.AntialiasMode = AntialiasMode.Aliased; }
             else { renderTarget.AntialiasMode = AntialiasMode.PerPrimitive; }
 
-            foreach (var drawingObject in _visibleDrawingObjects)
+            var drawingObjectsCopy = _visibleDrawingObjects.ToList();
+            foreach (var drawingObject in drawingObjectsCopy)
             {
                 drawingObject.DrawToRenderTarget(renderTarget, 1, drawingObject.Brush);
             }
             renderTarget.EndDraw();
-        }
-        private void RenderInteractiveObjects(RenderTarget target)
-        {
 
+            stopwatch.Stop();
+        }
+        private void RenderInteractiveObjects(DeviceContext1 deviceContext, BitmapRenderTarget renderTarget)
+        {
+            renderTarget.BeginDraw();
+            renderTarget.Clear(new RawColor4(1, 1, 1, 1));
+            renderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
+
+            if (SnappedObject is not null)
+            {
+                Shadow shadow = new(deviceContext);
+                shadow.SetInput(0, renderTarget.Bitmap, true);
+            }
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -435,8 +447,6 @@ namespace Direct2DDXFViewer
         {
             while (true)
             {
-                await Task.Delay(100);
-
                 //if (_snapMode == SnapMode.Point)
                 //{
                 //    await Task.Run(() => HitTestPoints());
@@ -445,6 +455,7 @@ namespace Direct2DDXFViewer
                 {
                     await Task.Run(() => HitTestGeometry());
                 }
+                await Task.Delay(100);
             }
         }
         private void HitTestGeometry()
@@ -464,22 +475,21 @@ namespace Direct2DDXFViewer
                 {
                     SnappedObject.IsSnapped = false;
                     SnappedObject = null;
+                    _deviceContextIsDirty = true;
                 }
             }
 
-            foreach (var layer in LayerManager.Layers.Values)
+            foreach (var obj in _visibleDrawingObjects)
             {
-                if (layer.IsVisible)
+                if (obj.Layer.IsVisible && obj.Geometry is not null)
                 {
-                    foreach (var o in layer.DrawingObjects)
+                    if (obj.Geometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness, obj.StrokeStyle))
                     {
-                        if (o.Geometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness, o.StrokeStyle))
-                        {
-                            SnappedObject = o;
-                            SnappedObject.IsSnapped = true;
+                        SnappedObject = obj;
+                        SnappedObject.IsSnapped = true;
+                        _deviceContextIsDirty = true;
 
-                            return;
-                        }
+                        return;
                     }
                 }
             }
@@ -488,15 +498,20 @@ namespace Direct2DDXFViewer
         {
 
         }
+
+        private async Task RunGetVisibleObjectsAsync()
+        {
+            while (true)
+            {
+                await Task.Delay(500);
+                await Task.Run(() => GetVisibleObjects());
+            }
+        }
         private void GetVisibleObjects()
         {
-            if (LayerManager is not null)
+            if (LayerManager is not null && _visibleObjectsDirty)
             {
                 _visibleDrawingObjects.Clear();
-
-                int count = 0;
-
-                
 
                 foreach (var layer in LayerManager.Layers.Values)
                 {
@@ -511,11 +526,12 @@ namespace Direct2DDXFViewer
                             if (obj.IsInView)
                             {
                                 _visibleDrawingObjects.Add(obj);
-                                count++;
                             }
                         }
                     }
                 }
+
+                _visibleObjectsDirty = false;
             }
         }
         private async void UpdateDxfCoordsAsync()

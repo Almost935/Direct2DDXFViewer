@@ -42,12 +42,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public int ZoomPrecision { get; set; }
         public float Zoom { get; set; }
         public List<DxfBitmap> Bitmaps { get; set; } = new();
-        //public DxfBitmap TopRightBitmap { get; set; }
-        //public DxfBitmap TopLeftBitmap { get; set; }
-        //public DxfBitmap BottomRightBitmap { get; set; }
-        //public DxfBitmap BottomLeftBitmap { get; set; }
-        //public DxfBitmap[] Bitmaps => new DxfBitmap[] { TopLeftBitmap, TopRightBitmap, BottomLeftBitmap, BottomRightBitmap };
-        //public bool IsBitmapOversized { get; set; } = false;
         public bool BitmapsLoaded { get; set; } = false;
         #endregion
 

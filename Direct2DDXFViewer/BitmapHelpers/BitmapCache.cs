@@ -71,7 +71,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
             CreateTempFolder();
             InitializeBitmaps();
             //RunLoadBitmapsAsync();
-            UpdateLoadedBitmaps();
             CallUpdateLoadedBitmapsAsync();
         }
         #endregion
@@ -134,12 +133,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     }
                 }
             });
-
-            //for (int i = 0; i < _initializationFactor; i++)
-            //{
-            //    CreateAndAddBitmapView(i + 1, _zoomedInLoadedBitmaps, i);
-            //    CreateAndAddBitmapView(-1 * (i + 1), _zoomedOutLoadedBitmaps, i);
-            //}
 
             _bitmapsInitialized = true;
             overallStopwatch.Stop();
@@ -216,13 +209,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
 
         public void SetCurrentDxfBitmap(int zoomStep)
         {
-            //int adjustedZoomStep = zoomStep;
-            //while (adjustedZoomStep % _bitmapReuseFactor != 0)
-            //{
-            //    adjustedZoomStep -= 1;
-            //}
-
-            //Debug.WriteLine($"zoomStep: {zoomStep} adjustedZoomStep: {adjustedZoomStep}");
             CurrentBitmap = GetBitmap(zoomStep, true);
         }
 
@@ -231,7 +217,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             while (true)
             {
                 await Task.Run(UpdateLoadedBitmaps);
-                await Task.Delay(20);
+                await Task.Delay(50);
             }
         }
 

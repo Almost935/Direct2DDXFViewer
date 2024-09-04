@@ -70,7 +70,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
             {
                 bool fileInUse = FileHelpers.IsFileInUse(_filepath);
 
-                if (fileInUse) { return; }
+                if (fileInUse)
+                {
+                    Debug.WriteLine($"File in use: ZoomStep: {ZoomStep}");
+                    return;
+                }
 
                 //if (fileInUse)
                 //{
@@ -88,15 +92,22 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 //    }
                 //}
 
-                using (var imagingFactory = new ImagingFactory())
+                try
                 {
-                    using (var decoder = new BitmapDecoder(imagingFactory, _filepath, DecodeOptions.CacheOnLoad))
-                    using (var frame = decoder.GetFrame(0))
-                    using (var converter = new FormatConverter(imagingFactory))
+                    using (var imagingFactory = new ImagingFactory())
                     {
-                        converter.Initialize(frame, SharpDX.WIC.PixelFormat.Format32bppPBGRA);
-                        Bitmap = Bitmap.FromWicBitmap(_deviceContext, converter);
+                        using (var decoder = new BitmapDecoder(imagingFactory, _filepath, DecodeOptions.CacheOnLoad))
+                        using (var frame = decoder.GetFrame(0))
+                        using (var converter = new FormatConverter(imagingFactory))
+                        {
+                            converter.Initialize(frame, SharpDX.WIC.PixelFormat.Format32bppPBGRA);
+                            Bitmap = Bitmap.FromWicBitmap(_deviceContext, converter);
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    return;
                 }
             }
         }
