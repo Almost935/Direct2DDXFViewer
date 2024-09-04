@@ -42,7 +42,7 @@ namespace Direct2DDXFViewer
         #region Fields
         private const int _zoomPrecision = 3;
         private const int _numBitmapDivisions = 3;
-        private const int _bitmapReuseFactor = 2;
+        private const int _bitmapReuseFactor = 3;
 
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
@@ -63,7 +63,7 @@ namespace Direct2DDXFViewer
         private BitmapRenderTarget _offscreenRenderTarget;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\SmallDxf.dxf";
+        private string _filePath = @"DXF\LargeDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();

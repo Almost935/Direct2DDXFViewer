@@ -94,7 +94,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     RawMatrix3x2 matrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, 
                         _extentsMatrix.M31 - (float)(destWidth * i), _extentsMatrix.M32 - (float)(destHeight * j));
 
-                    DxfBitmap bitmap = new(_deviceContext, _factory, _layerManager, dest, extents, matrix, ZoomStep, Zoom, _tempFileFolderPath, size, DxfBitmap.Quadrants.TopLeft, _maxBitmapSize);
+                    DxfBitmap bitmap = new(_deviceContext, _factory, _layerManager, dest, extents, matrix, ZoomStep, Zoom, _tempFileFolderPath, size, _maxBitmapSize);
                     Bitmaps.Add(bitmap);
                 }
             }

@@ -192,8 +192,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             int adjustedZoomStep = AdjustZoomStep(zoomStep);
 
-            Debug.WriteLine($"GetBitmap: adjustedZoomStep: {adjustedZoomStep}");
-
             DxfBitmapView bitmapView = _zoomedInLoadedBitmaps.FirstOrDefault(b => b?.ZoomStep == adjustedZoomStep) ??
                                        _zoomedOutLoadedBitmaps.FirstOrDefault(b => b?.ZoomStep == adjustedZoomStep) ??
                                        _createdBitmaps.GetValueOrDefault(adjustedZoomStep) ??

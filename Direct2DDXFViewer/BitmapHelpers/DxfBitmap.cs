@@ -36,17 +36,15 @@ namespace Direct2DDXFViewer.BitmapHelpers
         public float Zoom { get; set; }
         public Size2 Size { get; set; }
         public Bitmap Bitmap { get; set; }
-        public bool BitmapSaved = false;
+        public bool BitmapSaved { get; set; } = false;
         public Rect DestRect { get; set; }
         public Rect Extents { get; set; }
         public Dictionary<(byte r, byte g, byte b, byte a), Brush> Brushes { get; set; } = new();
-        public enum Quadrants { TopRight, TopLeft, BottomRight, BottomLeft }
-        public Quadrants Quadrant { get; set; }
         public bool IsDisposed => _disposed;
         #endregion
 
         #region Constructor
-        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, int zoomStep, float zoom, string tempFileFolder, Size2 size, Quadrants quadrant, int maxBitmapSize)
+        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, int zoomStep, float zoom, string tempFileFolder, Size2 size, int maxBitmapSize)
         {
             _deviceContext = deviceContext;
             _factory = factory;
@@ -58,7 +56,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
             Zoom = zoom;
             _tempFileFolderPath = tempFileFolder;
             Size = size;
-            Quadrant = quadrant;
             _maxBitmapSize = maxBitmapSize;
 
             RenderBitmap();
@@ -113,7 +110,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     throw new InvalidOperationException("Necessary objects are not initialized.");
                 }
 
-                _filepath = Path.Combine(_tempFileFolderPath, $"{Quadrant}.png");
+                _filepath = Path.Combine(_tempFileFolderPath, $"{Guid.NewGuid()}.png");
 
                 using (var stream = new WICStream(_imagingFactory, _filepath, SharpDX.IO.NativeFileAccess.Write))
                 using (var encoder = new PngBitmapEncoder(_imagingFactory, stream))
