@@ -55,7 +55,8 @@ namespace Direct2DDXFViewer.DrawingObjects
         public Factory1 Factory { get; set; }
         public Brush Brush { get; set; }
         public Brush OuterEdgeBrush { get; set; }
-        public StrokeStyle1 StrokeStyle { get; set; }
+        public StrokeStyle1 HairlineStrokeStyle { get; set; }
+        public StrokeStyle1 FixedStrokeStyle { get; set; }
         public float Thickness { get; set; } = 0.25f;
         public ResourceCache ResCache { get; set; }
         public bool IsInView { get; set; } = true;
@@ -76,7 +77,9 @@ namespace Direct2DDXFViewer.DrawingObjects
         public abstract void UpdateGeometry();
 
         public abstract void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush);
+        public abstract void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush, StrokeStyle1 strokeStyle);
         public abstract void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush);
+        public abstract void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush, StrokeStyle1 strokeStyle);
         public abstract bool DrawingObjectIsInRect(Rect rect);
 
         public void UpdateBrush()
@@ -137,8 +140,8 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public void GetStrokeStyle()
         {
-            bool strokeStyleExists = ResCache.StrokeStyles.TryGetValue(ResourceCache.LineType.Solid, value: out StrokeStyle1 strokeStyle);
-            if (!strokeStyleExists)
+            bool hairlineStrokeStyleExists = ResCache.StrokeStyles.TryGetValue(ResourceCache.LineType.Solid_Hairline, value: out StrokeStyle1 hairlineStrokeStyle);
+            if (!hairlineStrokeStyleExists)
             {
                 StrokeStyleProperties1 ssp = new()
                 {
@@ -151,12 +154,34 @@ namespace Direct2DDXFViewer.DrawingObjects
                     DashOffset = 0.0f,
                     TransformType = StrokeTransformType.Hairline
                 };
-                StrokeStyle = new(Factory, ssp);
-                ResCache.StrokeStyles.Add(ResourceCache.LineType.Solid, StrokeStyle);
+                HairlineStrokeStyle = new(Factory, ssp);
+                ResCache.StrokeStyles.Add(ResourceCache.LineType.Solid_Hairline, HairlineStrokeStyle);
             }
             else
             {
-                StrokeStyle = strokeStyle;
+                HairlineStrokeStyle = hairlineStrokeStyle;
+            }
+
+            bool fixedStrokeStyleExists = ResCache.StrokeStyles.TryGetValue(ResourceCache.LineType.Solid_Fixed, value: out StrokeStyle1 fixedStrokeStyle);
+            if (!fixedStrokeStyleExists)
+            {
+                StrokeStyleProperties1 ssp = new()
+                {
+                    StartCap = CapStyle.Round,
+                    EndCap = CapStyle.Round,
+                    DashCap = CapStyle.Flat,
+                    LineJoin = LineJoin.Round,
+                    MiterLimit = 10.0f,
+                    DashStyle = DashStyle.Solid,
+                    DashOffset = 0.0f,
+                    TransformType = StrokeTransformType.Fixed
+                };
+                FixedStrokeStyle = new(Factory, ssp);
+                ResCache.StrokeStyles.Add(ResourceCache.LineType.Solid_Fixed, FixedStrokeStyle);
+            }
+            else
+            {
+                FixedStrokeStyle = fixedStrokeStyle;
             }
         }
         public void GetThickness()
@@ -199,7 +224,7 @@ namespace Direct2DDXFViewer.DrawingObjects
                 // Dispose managed resources
                 Brush?.Dispose();
                 OuterEdgeBrush?.Dispose();
-                StrokeStyle?.Dispose();
+                HairlineStrokeStyle?.Dispose();
                 Geometry?.Dispose();
             }
 

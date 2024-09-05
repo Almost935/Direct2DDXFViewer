@@ -1,12 +1,18 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows;
+using System.Windows.Media;
+using Direct2DControl;
 using Direct2DDXFViewer.DrawingObjects;
 using Direct2DDXFViewer.Helpers;
 using netDxf.Entities;
 using SharpDX;
 using SharpDX.Direct2D1;
+using SharpDX.Direct3D11;
 using SharpDX.Mathematics.Interop;
 using SharpDX.WIC;
 
@@ -26,9 +32,11 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private string _filepath;
         private SharpDX.WIC.Bitmap _wicBitmap;
         private WicRenderTarget _wicRenderTarget;
+        private BitmapRenderTarget _bitmapRenderTarget;
         private ImagingFactory _imagingFactory;
         private bool _disposed = false;
         private int _maxBitmapSize;
+        private StrokeStyle1 _hairlineStrokeStyle;
         #endregion
 
         #region Properties
@@ -76,22 +84,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
                     return;
                 }
 
-                //if (fileInUse)
-                //{
-                //    Stopwatch timer = new();
-                //    timer.Start();
-                //    while (FileHelpers.IsFileInUse(_filepath))
-                //    {
-                //        if (timer.ElapsedMilliseconds > 1000 || !Bitmap.IsDisposed)
-                //        {
-                //            return;
-                //        }
-
-                //        Debug.WriteLine($"File in use. {ZoomStep} {Bitmap.IsDisposed}");
-                //        Thread.Sleep(100);
-                //    }
-                //}
-
                 try
                 {
                     using (var imagingFactory = new ImagingFactory())
@@ -116,6 +108,22 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             if (!BitmapSaved)
             {
+                var size = Bitmap.PixelSize;
+                var width = size.Width;
+                var height = size.Height;
+                var pixelFormat = SharpDX.DXGI.Format.B8G8R8A8_UNorm; // Or your bitmap's pixel format
+                var dataSize = width * height * 4; // Assuming 4 bytes per pixel (BGRA format)
+                var pixelData = new byte[dataSize];
+
+                _filepath = Path.Combine(_tempFileFolderPath, $"{Guid.NewGuid()}.png");
+                File.WriteAllBytes(_filepath, pixelData);
+                
+                // Save the pixel format and dimensions, if needed, in separate metadata for later recreation.
+                var metadata = new { Width = width, Height = height, PixelFormat = pixelFormat };
+                File.WriteAllText(tempFilePath + ".meta", JsonConvert.SerializeObject(metadata));
+
+
+
                 if (_imagingFactory == null || _wicBitmap == null || _tempFileFolderPath == null)
                 {
                     throw new InvalidOperationException("Necessary objects are not initialized.");
@@ -152,27 +160,40 @@ namespace Direct2DDXFViewer.BitmapHelpers
         }
         private void RenderBitmap()
         {
-            _imagingFactory = new();
-            _wicBitmap = new(_imagingFactory, Size.Width, Size.Height, SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
+            Size2F size = new(_deviceContext.Size.Width * Zoom, _deviceContext.Size.Height * Zoom);
 
-            _wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())
+            _bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, size)
             {
-                DotsPerInch = new Size2F(96.0f * Zoom, 96.0f * Zoom),
+                DotsPerInch = new(96 * Zoom, 96 * Zoom),
                 AntialiasMode = AntialiasMode.PerPrimitive
             };
-            _wicRenderTarget.BeginDraw();
-            _wicRenderTarget.Transform = _transform;
+            _bitmapRenderTarget.BeginDraw();
+            _bitmapRenderTarget.Transform = _transform;
+            _bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 0));
+            _layerManager.DrawObjectsToRenderTarget(_bitmapRenderTarget, 1);
+            _bitmapRenderTarget.EndDraw();
 
-            foreach (var layer in _layerManager.Layers.Values)
-            {
-                foreach (var drawingObject in layer.DrawingObjects)
-                {
-                    drawingObject.DrawToRenderTarget(_wicRenderTarget, drawingObject.Thickness, GetDrawingObjectBrush(drawingObject.Entity, _wicRenderTarget));
-                }
-            }
-            _wicRenderTarget.EndDraw();
 
-            Bitmap = Bitmap.FromWicBitmap(_deviceContext, _wicBitmap);
+            //_imagingFactory = new();
+            //_wicBitmap = new(_imagingFactory, Size.Width, Size.Height, SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
+            //_wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())
+            //{
+            //    DotsPerInch = new Size2F(96.0f * Zoom, 96.0f * Zoom),
+            //    AntialiasMode = AntialiasMode.PerPrimitive
+            //};
+            //_wicRenderTarget.BeginDraw();
+            //_wicRenderTarget.Transform = _transform;
+            
+            //foreach (var layer in _layerManager.Layers.Values)
+            //{
+            //    foreach (var drawingObject in layer.DrawingObjects)
+            //    {
+            //        drawingObject.DrawToRenderTarget(_wicRenderTarget, drawingObject.Thickness, GetDrawingObjectBrush(drawingObject.Entity, _wicRenderTarget), drawingObject.HairlineStrokeStyle);
+            //    }
+            //}
+            //_wicRenderTarget.EndDraw();
+
+            //Bitmap = Bitmap.FromWicBitmap(_deviceContext, _wicBitmap);
         }
         private Brush GetDrawingObjectBrush(EntityObject entity, WicRenderTarget target)
         {

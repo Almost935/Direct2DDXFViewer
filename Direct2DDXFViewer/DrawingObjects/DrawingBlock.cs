@@ -62,11 +62,25 @@ namespace Direct2DDXFViewer.DrawingObjects
                 obj.DrawToDeviceContext(deviceContext, thickness, brush);
             }
         }
+        public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush, StrokeStyle1 strokeStyle)
+        {
+            foreach (var obj in DrawingObjects)
+            {
+                obj.DrawToDeviceContext(deviceContext, thickness, brush, strokeStyle);
+            }
+        }
         public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush)
         {
             foreach (var obj in DrawingObjects)
             {
                 obj.DrawToRenderTarget(target, thickness, brush);
+            }
+        }
+        public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush, StrokeStyle1 strokeStyle)
+        {
+            foreach (var obj in DrawingObjects)
+            {
+                obj.DrawToRenderTarget(target, thickness, brush, strokeStyle);
             }
         }
         public override bool DrawingObjectIsInRect(Rect rect)

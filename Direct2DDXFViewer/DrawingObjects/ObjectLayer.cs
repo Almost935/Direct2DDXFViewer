@@ -73,7 +73,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 if (drawingObject.IsInView)
                 {
-                    drawingObject.DrawToDeviceContext(deviceContext, thickness, drawingObject.Brush);
+                    drawingObject.DrawToDeviceContext(deviceContext, thickness, drawingObject.Brush, drawingObject.HairlineStrokeStyle);
                 }
             }
         }
@@ -84,7 +84,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 if (drawingObject.IsInView)
                 {
-                    drawingObject.DrawToRenderTarget(renderTarget, thickness, drawingObject.Brush);
+                    drawingObject.DrawToRenderTarget(renderTarget, thickness, drawingObject.Brush, drawingObject.HairlineStrokeStyle);
                 }
             }
         }
@@ -95,7 +95,7 @@ namespace Direct2DDXFViewer.DrawingObjects
 
             foreach (var drawingObject in DrawingObjects)
             {
-                drawingObject.DrawToDeviceContext(deviceContext, thickness, drawingObject.Brush);
+                drawingObject.DrawToDeviceContext(deviceContext, thickness, drawingObject.Brush, drawingObject.HairlineStrokeStyle);
             }
         }
         public void DrawObjectsToRenderTarget(RenderTarget renderTarget, float thickness)
@@ -104,7 +104,7 @@ namespace Direct2DDXFViewer.DrawingObjects
 
             foreach (var drawingObject in DrawingObjects)
             {
-                drawingObject.DrawToRenderTarget(renderTarget, thickness, new SolidColorBrush(renderTarget, new SharpDX.Mathematics.Interop.RawColor4(0, 0, 0, 1)));
+                drawingObject.DrawToRenderTarget(renderTarget, thickness, new SolidColorBrush(renderTarget, new SharpDX.Mathematics.Interop.RawColor4(0, 0, 0, 1)), drawingObject.HairlineStrokeStyle);
             }
         }
 

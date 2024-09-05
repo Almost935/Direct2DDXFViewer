@@ -76,7 +76,21 @@ namespace Direct2DDXFViewer.DrawingObjects
             deviceContext.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, (float)DxfMtext.Position.Y), _textLayout, brush);
             //deviceContext.DrawText(DxfMtext.PlainText(), _textFormat, new RawRectangleF((float)Bounds.Left, (float)Bounds.Top, (float)Bounds.Right, (float)Bounds.Bottom), Brush);
         }
+        public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush, StrokeStyle1 strokeStyle)
+        {
+            deviceContext.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, (float)DxfMtext.Position.Y), _textLayout, brush);
+            //deviceContext.DrawText(DxfMtext.PlainText(), _textFormat, new RawRectangleF((float)Bounds.Left, (float)Bounds.Top, (float)Bounds.Right, (float)Bounds.Bottom), Brush);
+        }
         public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush)
+        {
+            var transform = target.Transform;
+            transform.M22 *= -1;
+            target.Transform = transform;
+            target.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, -(float)DxfMtext.Position.Y), _textLayout, brush);
+            transform.M22 *= -1;
+            target.Transform = transform;
+        }
+        public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush, StrokeStyle1 strokeStyle)
         {
             var transform = target.Transform;
             transform.M22 *= -1;

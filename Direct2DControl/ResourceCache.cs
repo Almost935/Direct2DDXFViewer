@@ -58,7 +58,9 @@ namespace Direct2DControl
         public Brush HighlightedOuterEdgeBrush { get; set; }
         public Dictionary<(byte r, byte g, byte b, byte a), Brush> Brushes { get; set; } = new();
 
-        public enum LineType { Solid, Dash };
+        public Effect SnappedEffect { get; set; }
+
+        public enum LineType { Solid_Hairline, Solid_Fixed, Dash };
         public Dictionary<LineType, StrokeStyle1> StrokeStyles { get; set; } = new();
 
         public Dictionary<string, TextFormat1> TextFormats { get; set; } = new();
