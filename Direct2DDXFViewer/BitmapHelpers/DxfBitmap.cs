@@ -5,14 +5,12 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
-using System.Windows.Media;
 using Direct2DControl;
 using Direct2DDXFViewer.DrawingObjects;
 using Direct2DDXFViewer.Helpers;
 using netDxf.Entities;
 using SharpDX;
 using SharpDX.Direct2D1;
-using SharpDX.Direct3D11;
 using SharpDX.Mathematics.Interop;
 using SharpDX.WIC;
 
@@ -42,7 +40,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Properties
         public int ZoomStep { get; set; }
         public float Zoom { get; set; }
-        public Size2 Size { get; set; }
+        public Size2F Size { get; set; }
         public Bitmap Bitmap { get; set; }
         public bool BitmapSaved { get; set; } = false;
         public Rect DestRect { get; set; }
@@ -52,7 +50,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #endregion
 
         #region Constructor
-        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, int zoomStep, float zoom, string tempFileFolder, Size2 size, int maxBitmapSize)
+        public DxfBitmap(DeviceContext1 deviceContext, Factory1 factory, ObjectLayerManager layerManager, Rect destRect, Rect extents, RawMatrix3x2 extentsMatrix, int zoomStep, float zoom, string tempFileFolder, Size2F size, int maxBitmapSize)
         {
             _deviceContext = deviceContext;
             _factory = factory;
@@ -74,33 +72,24 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Methods
         private void LoadBitmapFromFile()
         {
-            if (BitmapSaved && Bitmap.IsDisposed)
+            if (BitmapSaved && (Bitmap == null || Bitmap.IsDisposed))
             {
-                bool fileInUse = FileHelpers.IsFileInUse(_filepath);
+                var loadedPixelData = File.ReadAllBytes(_filepath);
+                BitmapData bitmapData = JsonSerializer.Deserialize<BitmapData>(File.ReadAllText(_filepath + ".meta"));
+                var width = bitmapData.Width;
+                var height = bitmapData.Height;
+                var pixelFormat = bitmapData.PixelFormat;
 
-                if (fileInUse)
-                {
-                    Debug.WriteLine($"File in use: ZoomStep: {ZoomStep}");
-                    return;
-                }
+                var bitmapProperties = new BitmapProperties(new SharpDX.Direct2D1.PixelFormat(pixelFormat, AlphaMode.Premultiplied));
 
-                try
-                {
-                    using (var imagingFactory = new ImagingFactory())
-                    {
-                        using (var decoder = new BitmapDecoder(imagingFactory, _filepath, DecodeOptions.CacheOnLoad))
-                        using (var frame = decoder.GetFrame(0))
-                        using (var converter = new FormatConverter(imagingFactory))
-                        {
-                            converter.Initialize(frame, SharpDX.WIC.PixelFormat.Format32bppPBGRA);
-                            Bitmap = Bitmap.FromWicBitmap(_deviceContext, converter);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    return;
-                }
+                // Recreate the bitmap
+                var recreatedBitmap = new Bitmap(_deviceContext, new Size2(width, height), bitmapProperties);
+
+                // Ensure the stride is correctly calculated
+                int stride = width * 4; // Assuming 4 bytes per pixel (BGRA format)
+                recreatedBitmap.CopyFromMemory(loadedPixelData);
+
+                Bitmap = recreatedBitmap;
             }
         }
 
@@ -108,47 +97,71 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             if (!BitmapSaved)
             {
-                var size = Bitmap.PixelSize;
-                var width = size.Width;
-                var height = size.Height;
-                var pixelFormat = SharpDX.DXGI.Format.B8G8R8A8_UNorm; // Or your bitmap's pixel format
+                Size2 size = Bitmap.PixelSize;
+                int width = size.Width;
+                int height = size.Height;
+                var pixelFormat = Bitmap.PixelFormat.Format; // Use the original bitmap's pixel format
                 var dataSize = width * height * 4; // Assuming 4 bytes per pixel (BGRA format)
                 var pixelData = new byte[dataSize];
 
+                var bitmapProperties = new BitmapProperties1
+                {
+                    BitmapOptions = BitmapOptions.CannotDraw | BitmapOptions.CpuRead,
+                    PixelFormat = new SharpDX.Direct2D1.PixelFormat(pixelFormat, AlphaMode.Premultiplied)
+                };
+                Bitmap1 bitmap = new(_deviceContext, size, bitmapProperties);
+                try
+                {
+                    bitmap.CopyFromBitmap(Bitmap);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error copying from bitmap: {ex.Message}");
+                    throw;
+                }
+               
+                var dataRect = bitmap.Map(MapOptions.Read);
+                System.Runtime.InteropServices.Marshal.Copy(dataRect.DataPointer, pixelData, 0, dataSize);
+
                 _filepath = Path.Combine(_tempFileFolderPath, $"{Guid.NewGuid()}.png");
                 File.WriteAllBytes(_filepath, pixelData);
-                
+
                 // Save the pixel format and dimensions, if needed, in separate metadata for later recreation.
-                var metadata = new { Width = width, Height = height, PixelFormat = pixelFormat };
-                File.WriteAllText(tempFilePath + ".meta", JsonConvert.SerializeObject(metadata));
-
-
-
-                if (_imagingFactory == null || _wicBitmap == null || _tempFileFolderPath == null)
-                {
-                    throw new InvalidOperationException("Necessary objects are not initialized.");
-                }
-
-                _filepath = Path.Combine(_tempFileFolderPath, $"{Guid.NewGuid()}.png");
-
-                using (var stream = new WICStream(_imagingFactory, _filepath, SharpDX.IO.NativeFileAccess.Write))
-                using (var encoder = new PngBitmapEncoder(_imagingFactory, stream))
-                using (var frame = new BitmapFrameEncode(encoder))
-                {
-                    frame.Initialize();
-                    frame.SetSize(_wicBitmap.Size.Width, _wicBitmap.Size.Height);
-                    var guid = SharpDX.WIC.PixelFormat.Format32bppPBGRA;
-                    frame.SetPixelFormat(ref guid);
-                    frame.WriteSource(_wicBitmap);
-                    frame.Commit();
-                    encoder.Commit();
-                }
-                _wicBitmap.Dispose();
-                _imagingFactory.Dispose();
+                BitmapData bitmapdata = new() { Width = width, Height = height, PixelFormat = pixelFormat };
+                File.WriteAllText(_filepath + ".meta", JsonSerializer.Serialize(bitmapdata));
 
                 BitmapSaved = true;
             }
+
+
+            //if (!BitmapSaved)
+            //{
+            //    if (_imagingFactory == null || _wicBitmap == null || _tempFileFolderPath == null)
+            //    {
+            //        throw new InvalidOperationException("Necessary objects are not initialized.");
+            //    }
+
+            //    _filepath = Path.Combine(_tempFileFolderPath, $"{Guid.NewGuid()}.png");
+
+            //    using (var stream = new WICStream(_imagingFactory, _filepath, SharpDX.IO.NativeFileAccess.Write))
+            //    using (var encoder = new PngBitmapEncoder(_imagingFactory, stream))
+            //    using (var frame = new BitmapFrameEncode(encoder))
+            //    {
+            //        frame.Initialize();
+            //        frame.SetSize(_wicBitmap.Size.Width, _wicBitmap.Size.Height);
+            //        var guid = SharpDX.WIC.PixelFormat.Format32bppPBGRA;
+            //        frame.SetPixelFormat(ref guid);
+            //        frame.WriteSource(_wicBitmap);
+            //        frame.Commit();
+            //        encoder.Commit();
+            //    }
+            //    _wicBitmap.Dispose();
+            //    _imagingFactory.Dispose();
+
+            //    BitmapSaved = true;
+            //}
         }
+
         public bool BitmapInView(Rect view)
         {
             if (DestRect.IntersectsWith(view) || view.Contains(DestRect))
@@ -160,9 +173,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         }
         private void RenderBitmap()
         {
-            Size2F size = new(_deviceContext.Size.Width * Zoom, _deviceContext.Size.Height * Zoom);
-
-            _bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, size)
+            _bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, Size)
             {
                 DotsPerInch = new(96 * Zoom, 96 * Zoom),
                 AntialiasMode = AntialiasMode.PerPrimitive
@@ -170,12 +181,22 @@ namespace Direct2DDXFViewer.BitmapHelpers
             _bitmapRenderTarget.BeginDraw();
             _bitmapRenderTarget.Transform = _transform;
             _bitmapRenderTarget.Clear(new RawColor4(1.0f, 1.0f, 1.0f, 0));
-            _layerManager.DrawObjectsToRenderTarget(_bitmapRenderTarget, 1);
+
+            foreach (var layer in _layerManager.Layers.Values)
+            {
+                foreach (var drawingObject in layer.DrawingObjects)
+                {
+                    drawingObject.DrawToRenderTarget(_bitmapRenderTarget, drawingObject.Thickness, drawingObject.Brush, drawingObject.HairlineStrokeStyle);
+                }
+            }
+
             _bitmapRenderTarget.EndDraw();
+            Bitmap = _bitmapRenderTarget.Bitmap;
+            _bitmapRenderTarget.Dispose();
 
 
             //_imagingFactory = new();
-            //_wicBitmap = new(_imagingFactory, Size.Width, Size.Height, SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
+            //_wicBitmap = new(_imagingFactory, (int)Size.Width, (int)Size.Height, SharpDX.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
             //_wicRenderTarget = new(_factory, _wicBitmap, new RenderTargetProperties())
             //{
             //    DotsPerInch = new Size2F(96.0f * Zoom, 96.0f * Zoom),
@@ -183,7 +204,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             //};
             //_wicRenderTarget.BeginDraw();
             //_wicRenderTarget.Transform = _transform;
-            
+
             //foreach (var layer in _layerManager.Layers.Values)
             //{
             //    foreach (var drawingObject in layer.DrawingObjects)
@@ -272,6 +293,13 @@ namespace Direct2DDXFViewer.BitmapHelpers
         {
             Dispose(false);
         }
+        #endregion
     }
-    #endregion
+
+    public class BitmapData
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public SharpDX.DXGI.Format PixelFormat { get; set; }
+    }
 }

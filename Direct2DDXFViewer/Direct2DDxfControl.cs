@@ -323,13 +323,6 @@ namespace Direct2DDXFViewer
                 destRect.Transform(_transformMatrix);
                 if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) { continue; }
                 var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
-                //deviceContext.Transform = new RawMatrix3x2((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-
-                //var extentsRect = dxfBitmap.Extents;
-                //extentsRect.Transform(_overallMatrix);
-                ////if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) { continue; }
-                //var extentsRawRect = new RawRectangleF((float)extentsRect.Left, (float)extentsRect.Top, (float)extentsRect.Right, (float)extentsRect.Bottom);
-                ////deviceContext.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
 
                 deviceContext.DrawBitmap(dxfBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
             }

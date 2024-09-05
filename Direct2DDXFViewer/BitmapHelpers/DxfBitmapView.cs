@@ -72,7 +72,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             Size overallSize = new(Zoom * _deviceContext.Size.Width, Zoom * _deviceContext.Size.Height);
             double width = overallSize.Width / _numOfDivisions;
             double height = overallSize.Height / _numOfDivisions;
-            Size2 size = new((int)(width), (int)(height));
+            Size2F size = new((float)(width), (float)(height));
             double destWidth = _deviceContext.Size.Width / _numOfDivisions;
             double destHeight = _deviceContext.Size.Height / _numOfDivisions;
             double extentsWidth = _extents.Width / _numOfDivisions;
