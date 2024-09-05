@@ -9,10 +9,8 @@ using System.Windows.Media;
 using Direct2DControl;
 using Direct2DDXFViewer.DrawingObjects;
 using Direct2DDXFViewer.Helpers;
-using netDxf.Entities;
 using SharpDX;
 using SharpDX.Direct2D1;
-using SharpDX.Direct3D11;
 using SharpDX.Mathematics.Interop;
 using SharpDX.WIC;
 
@@ -114,7 +112,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 var pixelFormat = SharpDX.DXGI.Format.B8G8R8A8_UNorm; // Or your bitmap's pixel format
                 var dataSize = width * height * 4; // Assuming 4 bytes per pixel (BGRA format)
                 var pixelData = new byte[dataSize];
-
+                
                 _filepath = Path.Combine(_tempFileFolderPath, $"{Guid.NewGuid()}.png");
                 File.WriteAllBytes(_filepath, pixelData);
                 
