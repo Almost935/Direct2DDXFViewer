@@ -46,6 +46,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush)
         {
+            Debug.WriteLine($"DrawingPolyline thickness: {thickness}");
             foreach (var segment in DrawingSegments)
             {
                 segment.DrawToRenderTarget(target, thickness, brush);
@@ -64,6 +65,17 @@ namespace Direct2DDXFViewer.DrawingObjects
             foreach (var segment in DrawingSegments)
             {
                 if (segment.DrawingObjectIsInRect(rect))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        public override bool Hittest(RawVector2 p, float thickness)
+        {
+            foreach(var segment in DrawingSegments)
+            {
+                if (segment.Hittest(p, thickness))
                 {
                     return true;
                 }

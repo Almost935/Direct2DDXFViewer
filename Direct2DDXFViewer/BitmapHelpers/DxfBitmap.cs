@@ -29,13 +29,9 @@ namespace Direct2DDXFViewer.BitmapHelpers
         private RawMatrix3x2 _transform;
         private readonly string _tempFileFolderPath;
         private string _filepath;
-        private SharpDX.WIC.Bitmap _wicBitmap;
-        private WicRenderTarget _wicRenderTarget;
         private BitmapRenderTarget _bitmapRenderTarget;
-        private ImagingFactory _imagingFactory;
         private bool _disposed = false;
         private int _maxBitmapSize;
-        private StrokeStyle1 _hairlineStrokeStyle;
         private DataRectangle _dataRectangle;
         #endregion
 
@@ -244,9 +240,6 @@ namespace Direct2DDXFViewer.BitmapHelpers
             {
                 if (disposing)
                 {
-                    _wicBitmap?.Dispose();
-                    _wicRenderTarget?.Dispose();
-                    _imagingFactory?.Dispose();
                     Bitmap?.Dispose();
                 }
                 _disposed = true;

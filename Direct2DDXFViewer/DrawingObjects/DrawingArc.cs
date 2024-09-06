@@ -116,6 +116,10 @@ namespace Direct2DDXFViewer.DrawingObjects
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
             }
         }
+        public override bool Hittest(RawVector2 p, float thickness)
+        {
+            return Geometry.StrokeContainsPoint(p, thickness);
+        }
         #endregion
     }
 }

@@ -45,8 +45,8 @@ namespace Direct2DDXFViewer
         private const int _zoomPrecision = 3;
         private const int _numBitmapDivisions = 3;
         private const int _bitmapReuseFactor = 3;
-        private const float _snappedThickness = 7;
-        private const float _snappedOpacity = 0.25f;
+        private const float _snappedThickness = 5;
+        private const float _snappedOpacity = 0.35f;
 
 
         private Matrix _transformMatrix = new();
@@ -358,7 +358,7 @@ namespace Direct2DDXFViewer
                 renderTarget.BeginDraw();
                 renderTarget.Clear(new RawColor4(1, 1, 1, 0));
                 renderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
-                //resCache.SnappedEffect.SetInput(0, renderTarget.Bitmap, true);
+                resCache.SnappedEffect.SetInput(0, renderTarget.Bitmap, true);
                 SnappedObject.DrawToRenderTarget(renderTarget, _snappedThickness, SnappedObject.Brush, SnappedObject.FixedStrokeStyle);
                 renderTarget.EndDraw();
                 deviceContext.DrawBitmap(renderTarget.Bitmap, _snappedOpacity, InterpolationMode.Linear);
@@ -475,14 +475,13 @@ namespace Direct2DDXFViewer
         {
             if (LayerManager is null) { return; }
 
-            float thickness = (float)(2 * _transformMatrix.M11);
+            float thickness = (float)(0.5 / _transformMatrix.M11);
 
             // Check if mouse is still over the same object
             if (SnappedObject is not null)
             {
-                if (SnappedObject.Geometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), 1, SnappedObject.HairlineStrokeStyle))
+                if (SnappedObject.Hittest(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness))
                 {
-                    Debug.WriteLine($"Still over snapped object");
                     return;
                 }
                 else
@@ -493,20 +492,21 @@ namespace Direct2DDXFViewer
                 }
             }
 
-            if (_visibleDrawingObjects.Count == 0) { return; }
-
-            var drawingObjectsCopy = _visibleDrawingObjects.ToList();
-            foreach (var obj in drawingObjectsCopy)
+            if (_visibleDrawingObjects.Count > 0)
             {
-                if (obj.Layer.IsVisible && obj.Geometry is not null)
+                var drawingObjectsCopy = _visibleDrawingObjects.ToList();
+                foreach (var obj in drawingObjectsCopy)
                 {
-                    if (obj.Geometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness, obj.HairlineStrokeStyle))
+                    if (obj.Layer.IsVisible)
                     {
-                        SnappedObject = obj;
-                        SnappedObject.IsSnapped = true;
-                        _deviceContextIsDirty = true;
+                        if (obj.Hittest(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness))
+                        {
+                            SnappedObject = obj;
+                            SnappedObject.IsSnapped = true;
+                            _deviceContextIsDirty = true;
 
-                        return;
+                            return;
+                        }
                     }
                 }
             }

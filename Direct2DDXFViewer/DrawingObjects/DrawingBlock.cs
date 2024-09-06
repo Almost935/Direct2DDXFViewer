@@ -107,6 +107,17 @@ namespace Direct2DDXFViewer.DrawingObjects
                 }
             }
         }
+        public override bool Hittest(RawVector2 p, float thickness)
+        {
+            foreach (var obj in DrawingObjects)
+            {
+                if (obj.Hittest(p, thickness))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
         #endregion
     }
 }

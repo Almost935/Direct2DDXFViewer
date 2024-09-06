@@ -196,6 +196,10 @@ namespace Direct2DDXFViewer.DrawingObjects
                 return ellipseGeometry;
             }
         }
+        public override bool Hittest(RawVector2 p, float thickness)
+        {
+            return Geometry.StrokeContainsPoint(p, thickness);
+        }
         #endregion
     }
 }

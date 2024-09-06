@@ -32,8 +32,10 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         private Factory1 _factoryWrite;
         private TextFormat _textFormat;
-        private Matrix _transform;
+        private RawMatrix3x2 _transform;
         private TextLayout _textLayout;
+        private TextMetrics _textMetrics;
+        private Point _topLeft;
         #endregion
 
         #region Properties
@@ -74,17 +76,18 @@ namespace Direct2DDXFViewer.DrawingObjects
         public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush)
         {
             deviceContext.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, (float)DxfMtext.Position.Y), _textLayout, brush);
-            //deviceContext.DrawText(DxfMtext.PlainText(), _textFormat, new RawRectangleF((float)Bounds.Left, (float)Bounds.Top, (float)Bounds.Right, (float)Bounds.Bottom), Brush);
         }
         public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush, StrokeStyle1 strokeStyle)
         {
-            deviceContext.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, (float)DxfMtext.Position.Y), _textLayout, brush);
+            //    var transform = deviceContext.Transform;
+            //    deviceContext.Transform = _transform;
+            deviceContext.DrawTextLayout(new RawVector2((float)_topLeft.X, (float)_topLeft.Y), _textLayout, brush);
             //deviceContext.DrawText(DxfMtext.PlainText(), _textFormat, new RawRectangleF((float)Bounds.Left, (float)Bounds.Top, (float)Bounds.Right, (float)Bounds.Bottom), Brush);
         }
         public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush)
         {
             var transform = target.Transform;
-            transform.M22 *= -1;
+            transform *= _transform;
             target.Transform = transform;
             target.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, -(float)DxfMtext.Position.Y), _textLayout, brush);
             transform.M22 *= -1;
@@ -113,13 +116,87 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public void GetTransform()
         {
-            _transform = new();
-            _transform.ScaleAt(-1, -1, DxfMtext.Position.X, DxfMtext.Position.Y);
+            _topLeft = GetTextOrigin(DxfMtext, Bounds, new Point(DxfMtext.Position.X, DxfMtext.Position.Y));
+            Matrix matrix = new();
+            matrix.ScaleAt(-1, -1, _topLeft.X, _topLeft.Y);
+            matrix.RotateAt(-(float)DxfMtext.Rotation, (float)_topLeft.X, (float)_topLeft.Y);
+            _transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22, (float)matrix.OffsetX, (float)matrix.OffsetY);
+            Debug.WriteLine($"DxfMtext.PlainText(): {DxfMtext.PlainText()} DxfMtext.Rotation {DxfMtext.Rotation}");
         }
         public void GetTextLayout()
         {
-            RawMatrix3x2 transform = new((float)_transform.M11, (float)_transform.M12, (float)_transform.M21, (float)_transform.M22, (float)_transform.OffsetX, (float)_transform.OffsetY);
-            _textLayout = new(_factoryWrite, DxfMtext.PlainText(), _textFormat, (float)Bounds.Width, (float)Bounds.Height, 96, transform, true);
+            //RawMatrix3x2 transform = new((float)_transform.M11, (float)_transform.M12, (float)_transform.M21, (float)_transform.M22, (float)_transform.OffsetX, (float)_transform.OffsetY);
+            _textLayout = new(_factoryWrite, DxfMtext.PlainText(), _textFormat, (float)Bounds.Width, (float)Bounds.Height);
+            _textMetrics = _textLayout.Metrics;
+        }
+        public override bool Hittest(RawVector2 p, float thickness)
+        {
+            return Bounds.Contains(p.X, p.Y);
+        }
+
+        /// <summary>
+        /// Gets the upper left point of the MText.
+        /// </summary>
+        /// <param name="mText"></param>
+        /// <param name="rect"></param>
+        /// <param name="position"></param>
+        /// <returns></returns>
+        public Point GetTextOrigin(MText mText, Rect rect, Point position)
+        {
+            Point adjustedPos = new();
+
+            switch (mText.AttachmentPoint)
+            {
+                case MTextAttachmentPoint.TopLeft:
+                    adjustedPos = position;
+                    break;
+
+                case MTextAttachmentPoint.TopCenter:
+                    adjustedPos = new Point(position.X - (rect.Width) / 2,
+                        position.Y);
+                    break;
+
+                case MTextAttachmentPoint.TopRight:
+                    adjustedPos = new Point(position.X - (rect.Width),
+                        position.Y);
+                    break;
+
+                case MTextAttachmentPoint.MiddleLeft:
+                    adjustedPos = new Point(position.X,
+                        position.Y - (rect.Height / 2));
+                    break;
+
+                case MTextAttachmentPoint.MiddleCenter:
+                    adjustedPos = new Point(position.X - (rect.Width) / 2,
+                        position.Y - (rect.Height / 2));
+                    break;
+
+                case MTextAttachmentPoint.MiddleRight:
+                    adjustedPos = new Point(position.X - (rect.Width),
+                        position.Y - (rect.Height / 2));
+                    break;
+
+                case MTextAttachmentPoint.BottomLeft:
+                    adjustedPos = new Point(position.X,
+                        position.Y - (rect.Height));
+                    break;
+
+                case MTextAttachmentPoint.BottomCenter:
+                    adjustedPos = new Point(position.X - (rect.Width) / 2,
+                        position.Y - (rect.Height));
+                    break;
+
+                case MTextAttachmentPoint.BottomRight:
+                    adjustedPos = new Point(position.X - (rect.Width),
+                        position.Y - (rect.Height));
+                    break;
+
+                default:
+                    adjustedPos = position;
+                    break;
+            }
+
+            return adjustedPos;
         }
         #endregion
     }

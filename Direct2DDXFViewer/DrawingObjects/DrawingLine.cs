@@ -69,6 +69,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush)
         {
+            Debug.WriteLine($"DrawingLine thickness: {thickness}");
             target.DrawLine(StartPoint, EndPoint, brush, thickness);
         }
         public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush, StrokeStyle1 strokeStyle)
@@ -93,6 +94,10 @@ namespace Direct2DDXFViewer.DrawingObjects
                 var bounds = Geometry.GetBounds();
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
             }
+        }
+        public override bool Hittest(RawVector2 p, float thickness)
+        {
+            return Geometry.StrokeContainsPoint(p, thickness);
         }
         #endregion
     }
