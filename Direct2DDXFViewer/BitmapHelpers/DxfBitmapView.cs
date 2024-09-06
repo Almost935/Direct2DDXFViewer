@@ -72,7 +72,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             Size overallSize = new(Zoom * _deviceContext.Size.Width, Zoom * _deviceContext.Size.Height);
             double width = overallSize.Width / _numOfDivisions;
             double height = overallSize.Height / _numOfDivisions;
-            Size2 size = new((int)(width), (int)(height));
+            Size2F size = new((float)(width), (float)(height));
             double destWidth = _deviceContext.Size.Width / _numOfDivisions;
             double destHeight = _deviceContext.Size.Height / _numOfDivisions;
             double extentsWidth = _extents.Width / _numOfDivisions;
@@ -83,7 +83,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 for (int j = 0; j < _numOfDivisions; j++) // Height increment corresponds to j in this loop
                 {
                     Rect extents = new(extentsWidth * i, extentsHeight * j, extentsWidth, extentsHeight);
-                    Rect dest = new((int)(destWidth * i), (int)(destHeight * j), destWidth, destHeight);
+                    Rect dest = new((float)(destWidth * i), (float)(destHeight * j), destWidth, destHeight);
 
                     RawMatrix3x2 matrix = new(_extentsMatrix.M11, _extentsMatrix.M12, _extentsMatrix.M21, _extentsMatrix.M22, 
                         _extentsMatrix.M31 - (float)(destWidth * i), _extentsMatrix.M32 - (float)(destHeight * j));

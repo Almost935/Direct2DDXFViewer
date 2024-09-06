@@ -45,8 +45,9 @@ namespace Direct2DDXFViewer
         private const int _zoomPrecision = 3;
         private const int _numBitmapDivisions = 3;
         private const int _bitmapReuseFactor = 3;
-        private const float _snappedThickness = 5;
-        private const float _snappedOpacity = 0.5f;
+        private const float _snappedThickness = 7;
+        private const float _snappedOpacity = 0.25f;
+
 
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
@@ -317,22 +318,18 @@ namespace Direct2DDXFViewer
         private void RenderBitmaps(DeviceContext1 deviceContext)
         {
             var rect = new Rect(0, 0, this.ActualWidth, this.ActualHeight);
+            Brush brush = new SolidColorBrush(deviceContext, new RawColor4(1, 0, 0, 1));
             foreach (var dxfBitmap in _bitmapCache.CurrentBitmap.Bitmaps)
             {
                 var destRect = dxfBitmap.DestRect;
                 destRect.Transform(_transformMatrix);
                 if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) { continue; }
                 var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
-                //deviceContext.Transform = new RawMatrix3x2((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-
-                //var extentsRect = dxfBitmap.Extents;
-                //extentsRect.Transform(_overallMatrix);
-                ////if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) { continue; }
-                //var extentsRawRect = new RawRectangleF((float)extentsRect.Left, (float)extentsRect.Top, (float)extentsRect.Right, (float)extentsRect.Bottom);
-                ////deviceContext.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
 
                 deviceContext.DrawBitmap(dxfBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+                deviceContext.DrawRectangle(destRawRect, brush);
             }
+            brush.Dispose();
         }
         private void RenderVisibleObjectsToBitmap(RenderTarget renderTarget)
         {
@@ -342,7 +339,6 @@ namespace Direct2DDXFViewer
             renderTarget.BeginDraw();
             renderTarget.Clear(new RawColor4(1, 1, 1, 0));
             renderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
-            Debug.WriteLine($"renderTarget.Transform: {renderTarget.Transform.M11} {renderTarget.Transform.M12} {renderTarget.Transform.M31} {renderTarget.Transform.M32}");
             if (_visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum) { renderTarget.AntialiasMode = AntialiasMode.Aliased; }
             else { renderTarget.AntialiasMode = AntialiasMode.PerPrimitive; }
 
@@ -479,13 +475,14 @@ namespace Direct2DDXFViewer
         {
             if (LayerManager is null) { return; }
 
-            float thickness = (float)(2 / _transformMatrix.M11);
+            float thickness = (float)(2 * _transformMatrix.M11);
 
             // Check if mouse is still over the same object
             if (SnappedObject is not null)
             {
-                if (SnappedObject.Geometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness, SnappedObject.HairlineStrokeStyle))
+                if (SnappedObject.Geometry.StrokeContainsPoint(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), 1, SnappedObject.HairlineStrokeStyle))
                 {
+                    Debug.WriteLine($"Still over snapped object");
                     return;
                 }
                 else
@@ -495,6 +492,8 @@ namespace Direct2DDXFViewer
                     _deviceContextIsDirty = true;
                 }
             }
+
+            if (_visibleDrawingObjects.Count == 0) { return; }
 
             var drawingObjectsCopy = _visibleDrawingObjects.ToList();
             foreach (var obj in drawingObjectsCopy)

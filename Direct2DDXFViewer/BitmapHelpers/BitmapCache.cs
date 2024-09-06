@@ -247,8 +247,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 newZoomedOutLoadedBitmaps[i] = GetBitmap(currentZoomStep - _bitmapReuseFactor * (i + 1), true);
             }
 
-            DisposeUnusedBitmaps(_zoomedInLoadedBitmaps);
-            DisposeUnusedBitmaps(_zoomedOutLoadedBitmaps);
+            //DisposeUnusedBitmaps(_zoomedInLoadedBitmaps);
+            //DisposeUnusedBitmaps(_zoomedOutLoadedBitmaps);
 
             _lastUpdatedBitmap = CurrentBitmap;
             _zoomedInLoadedBitmaps = newZoomedInLoadedBitmaps;
