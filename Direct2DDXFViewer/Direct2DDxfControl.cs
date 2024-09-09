@@ -45,7 +45,7 @@ namespace Direct2DDXFViewer
         #region Fields
         private const int _zoomPrecision = 3;
         private const int _numBitmapDivisions = 3;
-        private const int _bitmapReuseFactor = 3;
+        private const int _bitmapReuseFactor = 2;
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
 
@@ -285,7 +285,9 @@ namespace Direct2DDXFViewer
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 0));
 
-                    if (CurrentZoomStep > _bitmapCache.MaxBitmapZoomStep)
+                    bool bitmapAvailable = _bitmapCache.TryUpdateCurrentDxfBitmap(CurrentZoomStep, out DxfBitmapView bitmapView);
+                    //Debug.WriteLine($"bitmapAvailable: {bitmapAvailable} CurrentZoomStep: {CurrentZoomStep}");
+                    if (!bitmapAvailable)
                     {
                         if (_visibleObjectsDirty)
                         {
@@ -297,7 +299,7 @@ namespace Direct2DDXFViewer
                     }
                     else
                     {
-                        RenderBitmaps(deviceContext);
+                        RenderBitmaps(deviceContext, bitmapView);
                     }
 
                     DrawInteractiveObjects(deviceContext, _interactiveRenderTarget);
@@ -318,10 +320,10 @@ namespace Direct2DDXFViewer
             }
         }
 
-        private void RenderBitmaps(DeviceContext1 deviceContext)
+        private void RenderBitmaps(DeviceContext1 deviceContext, DxfBitmapView bitmapView)
         {
             var rect = new Rect(0, 0, this.ActualWidth, this.ActualHeight);
-            foreach (var dxfBitmap in _bitmapCache.CurrentBitmap.Bitmaps)
+            foreach (var dxfBitmap in bitmapView.Bitmaps)
             {
                 var destRect = dxfBitmap.DestRect;
                 destRect.Transform(_transformMatrix);
@@ -333,54 +335,25 @@ namespace Direct2DDXFViewer
         }
         private void RenderIntersectingViewsToBitmap(RenderTarget renderTarget)
         {
-            //Stopwatch stopwatch = Stopwatch.StartNew();
-
-            //renderTarget.BeginDraw();
-            //renderTarget.Clear(new RawColor4(1, 1, 1, 0));
-            //renderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
-            //if (_visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum) { renderTarget.AntialiasMode = AntialiasMode.Aliased; }
-            //else { renderTarget.AntialiasMode = AntialiasMode.PerPrimitive; }
-
-            //var copy = _visibleDrawingObjects.ToList();
-            //foreach (var obj in copy)
-            //{
-            //    if (obj.Layer.IsVisible)
-            //    {
-            //        obj.DrawToRenderTarget(renderTarget, 1, obj.Brush, obj.HairlineStrokeStyle);
-            //    }
-            //}
-
-            //renderTarget.EndDraw();
+            Stopwatch stopwatch = Stopwatch.StartNew();
 
             renderTarget.BeginDraw();
             renderTarget.Clear(new RawColor4(1, 1, 1, 0));
             renderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
+            if (_visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum) { renderTarget.AntialiasMode = AntialiasMode.Aliased; }
+            else { renderTarget.AntialiasMode = AntialiasMode.PerPrimitive; }
 
-            // Set antialiasing mode based on object count
-            renderTarget.AntialiasMode = _visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum ? AntialiasMode.Aliased : AntialiasMode.PerPrimitive;
-
-            // Use a local variable to avoid repeated property access
-            var visibleObjects = _visibleDrawingObjects.ToList();
-
-            // Use a lock object to synchronize access to the render target
-            object lockObj = new object();
-
-            // Parallel processing of drawing objects
-            Parallel.ForEach(visibleObjects, obj =>
+            var copy = _visibleDrawingObjects.ToList();
+            foreach (var obj in copy)
             {
                 if (obj.Layer.IsVisible)
                 {
-                    lock (lockObj)
-                    {
-                        obj.DrawToRenderTarget(renderTarget, 1, obj.Brush, obj.HairlineStrokeStyle);
-                    }
+                    obj.DrawToRenderTarget(renderTarget, 1, obj.Brush, obj.HairlineStrokeStyle);
                 }
-            });
-
+            }
+            
             renderTarget.EndDraw();
-
-            //stopwatch.Stop();
-            //Debug.WriteLine($"\nRender Time: {stopwatch.ElapsedMilliseconds}");
+            stopwatch.Stop();
         }
         private void DrawInteractiveObjects(DeviceContext1 deviceContext, BitmapRenderTarget renderTarget)
         {
@@ -636,7 +609,7 @@ namespace Direct2DDXFViewer
 
                 if (CurrentZoomStep <= _bitmapCache.MaxZoomStep)
                 {
-                    _bitmapCache.SetCurrentDxfBitmap(CurrentZoomStep);
+                    _bitmapCache.UpdateCurrentDxfBitmap(CurrentZoomStep);
                 }
             }
         }

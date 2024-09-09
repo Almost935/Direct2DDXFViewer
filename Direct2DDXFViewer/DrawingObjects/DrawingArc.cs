@@ -1,5 +1,6 @@
 ﻿using Direct2DControl;
 using netDxf.Entities;
+using SharpDX;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
 using System;
@@ -96,7 +97,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             using (var sink = pathGeometry.Open())
             {
                 sink.BeginFigure(StartPoint, FigureBegin.Filled);
-                
+
                 ArcSegment arcSegment = new()
                 {
                     Point = EndPoint,
@@ -110,12 +111,22 @@ namespace Direct2DDXFViewer.DrawingObjects
                 sink.EndFigure(FigureEnd.Open);
                 sink.Close();
 
-                Geometry = pathGeometry;
+                var simplifiedGeometry = new PathGeometry(Factory);
+
+                // Open a GeometrySink to store the simplified version of the original geometry
+                using (var geometrySink = simplifiedGeometry.Open())
+                {
+                    // Simplify the geometry, reducing it to line segments
+                    pathGeometry.Simplify(GeometrySimplificationOption.CubicsAndLines, 0.25f, geometrySink);
+                    geometrySink.Close();
+                }
+                Geometry = simplifiedGeometry;
 
                 var bounds = Geometry.GetBounds();
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
             }
         }
+
         public override bool Hittest(RawVector2 p, float thickness)
         {
             return Geometry.StrokeContainsPoint(p, thickness);
