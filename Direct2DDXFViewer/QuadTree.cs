@@ -1,5 +1,7 @@
 ﻿using Direct2DControl;
 using Direct2DDXFViewer.BitmapHelpers;
+using Direct2DDXFViewer.DrawingObjects;
+using netDxf.Tables;
 using SharpDX;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
@@ -14,114 +16,57 @@ using System.Windows.Media;
 
 namespace Direct2DDXFViewer
 {
-    public class QuadTree : IDisposable
+    public class QuadTree
     {
         #region Fields
-        private RenderTarget _renderTarget;
-        private float _maxBitmapSize;
-        private bool _disposed = false;
+        ObjectLayerManager _layerManager;
         #endregion
 
         #region Properties
-        public Bitmap OverallBitmap { get; set; }
-        public Rect TreeBounds { get; set; }
-        public Rect DestRect { get; set; }
-        public QuadTreeNode Root { get; private set; }
-        public float Zoom { get; private set; }
-        public int Levels { get; private set; }
-        public Size2F Size { get; set; }
-        public Size2F Dpi { get; set; }
+        public List<DrawingObject> DrawingObjects { get; set; } = new();
+        public Rect Bounds { get; set; }
+        public int Levels { get; set; }
+        public QuadTreeNode Root { get; set; }
         #endregion
 
         #region Constructors
-        public QuadTree(RenderTarget renderTarget, Bitmap overallBitmap, float zoom, float maxBitmapSize, Size2F dpi, Rect treeBounds, Rect destRect)
+        public QuadTree(ObjectLayerManager layerManager, Rect bounds, int levels)
         {
-            OverallBitmap = overallBitmap;
-            _renderTarget = renderTarget;
-            Zoom = zoom;
-            _maxBitmapSize = maxBitmapSize;
-            Dpi = dpi;
-            GetLevels(_maxBitmapSize, OverallBitmap.Size);
+            _layerManager = layerManager;
+            Bounds = bounds;
+            Levels = levels;
 
-            TreeBounds = new Rect(0, 0, OverallBitmap.Size.Width, OverallBitmap.Size.Height);
-            //DestRect = new(0, 0, renderTarget.Size.Width, renderTarget.Size.Height);
-            //TreeBounds = treeBounds;
-            DestRect = destRect;
-
-            Root = new QuadTreeNode(TreeBounds, DestRect, OverallBitmap, Zoom, Dpi, _maxBitmapSize);
-            Root.Subdivide(_renderTarget, Levels);
+            Initialize();
         }
         #endregion
 
         #region Methods
-
-        private void GetLevels(double maxSize, Size2F renderTargetSize)
+        private void Initialize()
         {
-            if (renderTargetSize.Width > renderTargetSize.Height)
+            GetDrawingObjects();
+            Root = new(DrawingObjects, Bounds, Levels); 
+        }
+        private void GetDrawingObjects()
+        {
+            foreach (var layer in _layerManager.Layers.Values)
             {
-                if (renderTargetSize.Width < maxSize) { Levels = 1; return; }
-
-                Levels = 0;
-                float size = renderTargetSize.Width;
-                while (size > maxSize)
-                {
-                    Levels++;
-                    size /= 2;
-                }
-                return;
-            }
-            else
-            {
-                if (renderTargetSize.Height < maxSize) { Levels = 1; return; }
-
-                Levels = 0;
-                float size = renderTargetSize.Height;
-                while (size > maxSize)
-                {
-                    Levels++;
-                    size /= 2;
-                }
-                return;
+                DrawingObjects.AddRange(layer.DrawingObjects);
             }
         }
-
-        public List<QuadTreeNode> GetQuadTreeView(Rect view)
+        public List<QuadTreeNode> GetIntersectingNodes(Rect view)
         {
-            List<QuadTreeNode> quadTreeNodes = new();
+            List<QuadTreeNode> quadTreeNodes = [];
+
             quadTreeNodes.AddRange(Root.GetIntersectingQuadTreeNodes(view));
 
             return quadTreeNodes;
         }
-
-        public void Dispose()
+        public List<QuadTreeNode> GetIntersectingNodes(Point p)
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    // Dispose managed state (managed objects).
-                    OverallBitmap?.Dispose();
-                    Root?.Dispose();
-                }
+            List<QuadTreeNode> quadTreeNodes = [];
+            quadTreeNodes.AddRange(Root.GetNodeAtPoint(p));
 
-                // Free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // Set large fields to null.
-                _renderTarget = null;
-                OverallBitmap = null;
-                Root = null;
-
-                _disposed = true;
-            }
-        }
-        ~QuadTree()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(false);
+            return quadTreeNodes;
         }
         #endregion
     }

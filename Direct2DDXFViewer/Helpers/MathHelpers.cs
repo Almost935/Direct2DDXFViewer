@@ -34,7 +34,7 @@ namespace Direct2DDXFViewer.Helpers
             {
                 return true;
             }
-            
+
             // Check if the line intersects any of the rectangle's sides
             return LineIntersectsRect(rect, startPoint, endPoint);
         }
@@ -77,6 +77,15 @@ namespace Direct2DDXFViewer.Helpers
         public static float GetZoom(float zoomFactor, int zoomStep, int numOfDigits)
         {
             return (float)Math.Round(Math.Pow(zoomFactor, zoomStep), numOfDigits);
+        }
+
+        public static bool RectsIntersect(Rect rect1, Rect rect2)
+        {
+            if (rect1.IntersectsWith(rect2) || rect1.Contains(rect2) || rect2.Contains(rect1))
+            {
+                return true;
+            }
+            return false;
         }
     }
 }

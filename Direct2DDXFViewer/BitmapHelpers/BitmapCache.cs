@@ -47,6 +47,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
         #region Properties
         public DxfBitmapView CurrentBitmap { get; set; }
         public int MaxZoomStep { get; private set; }
+        public int MaxBitmapZoomStep { get; set; }
         public int MinZoomStep => -1 * MaxZoomStep;
         #endregion
 
@@ -135,6 +136,8 @@ namespace Direct2DDXFViewer.BitmapHelpers
             });
 
             _bitmapsInitialized = true;
+            MaxBitmapZoomStep = _createdBitmaps.Keys.Max() + 2; 
+
             overallStopwatch.Stop();
             Debug.WriteLine($"Bitmaps initialized in {overallStopwatch.ElapsedMilliseconds} ms");
         }

@@ -69,7 +69,6 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush)
         {
-            Debug.WriteLine($"DrawingLine thickness: {thickness}");
             target.DrawLine(StartPoint, EndPoint, brush, thickness);
         }
         public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush, StrokeStyle1 strokeStyle)

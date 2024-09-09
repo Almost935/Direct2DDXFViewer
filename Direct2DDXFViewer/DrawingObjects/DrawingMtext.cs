@@ -32,10 +32,9 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         private Factory1 _factoryWrite;
         private TextFormat _textFormat;
-        private RawMatrix3x2 _transform;
+        private Matrix _transform;
         private TextLayout _textLayout;
-        private TextMetrics _textMetrics;
-        private Point _topLeft;
+        private Point _adjustedPos;
         #endregion
 
         #region Properties
@@ -76,18 +75,17 @@ namespace Direct2DDXFViewer.DrawingObjects
         public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush)
         {
             deviceContext.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, (float)DxfMtext.Position.Y), _textLayout, brush);
+            //deviceContext.DrawText(DxfMtext.PlainText(), _textFormat, new RawRectangleF((float)Bounds.Left, (float)Bounds.Top, (float)Bounds.Right, (float)Bounds.Bottom), Brush);
         }
         public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush, StrokeStyle1 strokeStyle)
         {
-            //    var transform = deviceContext.Transform;
-            //    deviceContext.Transform = _transform;
-            deviceContext.DrawTextLayout(new RawVector2((float)_topLeft.X, (float)_topLeft.Y), _textLayout, brush);
+            deviceContext.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, (float)DxfMtext.Position.Y), _textLayout, brush);
             //deviceContext.DrawText(DxfMtext.PlainText(), _textFormat, new RawRectangleF((float)Bounds.Left, (float)Bounds.Top, (float)Bounds.Right, (float)Bounds.Bottom), Brush);
         }
         public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush)
         {
             var transform = target.Transform;
-            transform *= _transform;
+            transform.M22 *= -1;
             target.Transform = transform;
             target.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, -(float)DxfMtext.Position.Y), _textLayout, brush);
             transform.M22 *= -1;
@@ -96,10 +94,14 @@ namespace Direct2DDXFViewer.DrawingObjects
         public override void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush, StrokeStyle1 strokeStyle)
         {
             var transform = target.Transform;
-            transform.M22 *= -1;
-            target.Transform = transform;
-            target.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, -(float)DxfMtext.Position.Y), _textLayout, brush);
-            transform.M22 *= -1;
+
+            Matrix matrix = new(transform.M11, transform.M12, transform.M21, -transform.M22, transform.M31, transform.M32);
+            matrix.RotateAtPrepend(-(float)DxfMtext.Rotation, _adjustedPos.X, -_adjustedPos.Y);
+            RawMatrix3x2 newTransform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22, (float)matrix.OffsetX, (float)matrix.OffsetY);
+
+            target.Transform = newTransform;
+            target.DrawTextLayout(new RawVector2((float)_adjustedPos.X, -(float)_adjustedPos.Y), _textLayout, brush);
+
             target.Transform = transform;
         }
         public override bool DrawingObjectIsInRect(Rect rect)
@@ -108,26 +110,22 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public override void UpdateGeometry()
         {
-            Bounds = new(DxfMtext.Position.X, DxfMtext.Position.Y, DxfMtext.RectangleWidth, DxfMtext.Height);
+            Bounds = new(DxfMtext.Position.X, DxfMtext.Position.Y, DxfMtext.RectangleWidth * 2, DxfMtext.Height * 2);
         }
         public void GetTextFormat()
         {
-            _textFormat = new(_factoryWrite, DxfMtext.Style.FontFamilyName, (float)(DxfMtext.Height));
+            _textFormat = new(_factoryWrite, DxfMtext.Style.FontFamilyName, (float)(DxfMtext.Height * 1.25));
         }
         public void GetTransform()
         {
-            _topLeft = GetTextOrigin(DxfMtext, Bounds, new Point(DxfMtext.Position.X, DxfMtext.Position.Y));
-            Matrix matrix = new();
-            matrix.ScaleAt(-1, -1, _topLeft.X, _topLeft.Y);
-            matrix.RotateAt(-(float)DxfMtext.Rotation, (float)_topLeft.X, (float)_topLeft.Y);
-            _transform = new((float)matrix.M11, (float)matrix.M12, (float)matrix.M21, (float)matrix.M22, (float)matrix.OffsetX, (float)matrix.OffsetY);
-            Debug.WriteLine($"DxfMtext.PlainText(): {DxfMtext.PlainText()} DxfMtext.Rotation {DxfMtext.Rotation}");
+            _transform = new();
+            _transform.ScaleAt(-1, -1, DxfMtext.Position.X, DxfMtext.Position.Y);
         }
         public void GetTextLayout()
         {
-            //RawMatrix3x2 transform = new((float)_transform.M11, (float)_transform.M12, (float)_transform.M21, (float)_transform.M22, (float)_transform.OffsetX, (float)_transform.OffsetY);
-            _textLayout = new(_factoryWrite, DxfMtext.PlainText(), _textFormat, (float)Bounds.Width, (float)Bounds.Height);
-            _textMetrics = _textLayout.Metrics;
+            _adjustedPos = GetTextOrigin(DxfMtext, Bounds, new Point(DxfMtext.Position.X, DxfMtext.Position.Y));
+            RawMatrix3x2 transform = new((float)_transform.M11, (float)_transform.M12, (float)_transform.M21, (float)_transform.M22, (float)_transform.OffsetX, (float)_transform.OffsetY);
+            _textLayout = new(_factoryWrite, DxfMtext.PlainText(), _textFormat, (float)Bounds.Width, (float)Bounds.Height, 96, transform, true);
         }
         public override bool Hittest(RawVector2 p, float thickness)
         {

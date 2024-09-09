@@ -11,98 +11,48 @@ using System.Diagnostics;
 using Direct2DControl;
 using System.Xml.Linq;
 using System.Windows.Media;
+using Direct2DDXFViewer.DrawingObjects;
+using SharpDX.Direct3D11;
+using netDxf;
+using Direct2DDXFViewer.Helpers;
+using netDxf.Tables;
 
 namespace Direct2DDXFViewer
 {
-    public class QuadTreeNode : IDisposable
+    public class QuadTreeNode
     {
         #region Fields
-        private float _maxBitmapSize;
-        private bool _disposed = false;
         #endregion
 
         #region Properties
-        public Rect Bounds { get; private set; }
-        public Rect DestRect { get; private set; }
-        public Bitmap Bitmap { get; private set; }
-        public List<QuadTreeNode> ChildNodes { get; private set; }
-        public float Zoom { get; private set; }
-        public Size2F Dpi { get; private set; }
+        public List<DrawingObject> DrawingObjects { get; set; } = [];
+        public Rect Bounds { get; set; }
+        public int Level { get; set; }
+        public QuadTreeNode[] ChildNodes { get; set; }
         #endregion
 
         #region Constructors
-        public QuadTreeNode(Rect bounds, Rect destRect, Bitmap? bitmap, float zoom, Size2F dpi, float maxBitmapSize)
+        public QuadTreeNode(List<DrawingObject> drawingObjects, Rect bounds, int level)
         {
+            DrawingObjects = drawingObjects;
             Bounds = bounds;
-            DestRect = destRect;
-            Zoom = zoom;
-            ChildNodes = new();
-            Dpi = dpi;
-
-            if (bitmap != null)
-            {
-                Bitmap = bitmap;
-            }
-            _maxBitmapSize = maxBitmapSize;
+            Level = level;
+            Subdivide();
         }
         #endregion
 
         #region Methods
-        public void Subdivide(RenderTarget renderTarget, int level)
+        public bool NodeIntersects(Rect view)
         {
-            if (level > 0)
-            {
-                double halfWidth = Math.Abs((Bounds.Right - Bounds.Left) / 2);
-                double halfHeight = Math.Abs((Bounds.Bottom - Bounds.Top) / 2);
-                Rect rect1 = new(new Point(Bounds.Left, Bounds.Top), new Point((Bounds.Left + halfWidth), (Bounds.Top + halfHeight)));
-                Rect rect2 = new(new Point((Bounds.Left + halfWidth), Bounds.Top), new Point(Bounds.Right, (Bounds.Top + halfHeight)));
-                Rect rect3 = new(new Point(Bounds.Left, (Bounds.Top + halfHeight)), new Point((Bounds.Left + halfWidth), Bounds.Bottom));
-                Rect rect4 = new(new Point((Bounds.Left + halfWidth), (Bounds.Top + halfHeight)), new Point(Bounds.Right, Bounds.Bottom));
-
-                double destHalfWidth = Math.Abs((DestRect.Right - DestRect.Left) / 2);
-                double destHalfHeight = Math.Abs((DestRect.Bottom - DestRect.Top) / 2);
-                Rect destRect1 = new(new Point(DestRect.Left, DestRect.Top), new Point((DestRect.Left + destHalfWidth), (DestRect.Top + destHalfHeight)));
-                Rect destRect2 = new(new Point((DestRect.Left + destHalfWidth), DestRect.Top), new Point(DestRect.Right, (DestRect.Top + destHalfHeight)));
-                Rect destRect3 = new(new Point(DestRect.Left, (DestRect.Top + destHalfHeight)), new Point((DestRect.Left + destHalfWidth), DestRect.Bottom));
-                Rect destRect4 = new(new Point((DestRect.Left + destHalfWidth), (DestRect.Top + destHalfHeight)), new Point(DestRect.Right, DestRect.Bottom));
-
-                var childBounds = new[]
-                { rect1, rect2, rect3, rect4 };
-                var destChildBounds = new[]
-                { destRect1, destRect2, destRect3, destRect4 };
-
-                for (int i = 0; i < childBounds.Count(); i++)
-                {
-                    using (var childRenderTarget = new BitmapRenderTarget(renderTarget, CompatibleRenderTargetOptions.None, new Size2F((float)halfWidth, (float)halfHeight)))
-                    {
-                        childRenderTarget.DotsPerInch = Dpi;
-                        childRenderTarget.AntialiasMode = AntialiasMode.PerPrimitive;
-                        childRenderTarget.BeginDraw();
-
-                        RawRectangleF destRect = new((float)(childBounds[i].Left), (float)(childBounds[i].Top), (float)(childBounds[i].Right), (float)(childBounds[i].Bottom));
-                        RawRectangleF sourceRect = new((float)childBounds[i].Left, (float)childBounds[i].Top, (float)childBounds[i].Right, (float)childBounds[i].Bottom);
-
-                        childRenderTarget.DrawBitmap(Bitmap, destRect, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
-                        childRenderTarget.EndDraw();
-
-                        ChildNodes.Add(new QuadTreeNode(childBounds[i], destChildBounds[i], childRenderTarget.Bitmap, Zoom, Dpi, _maxBitmapSize));
-                    }
-                }
-
-                foreach (var child in ChildNodes)
-                {
-                    child.Subdivide(renderTarget, level - 1);
-                }
-            }
+            return MathHelpers.RectsIntersect(Bounds, view);
         }
-
         public List<QuadTreeNode> GetIntersectingQuadTreeNodes(Rect view)
         {
             List<QuadTreeNode> intersectingNodes = new();
 
-            if (view.Contains(DestRect) || view.IntersectsWith(DestRect))
+            if (MathHelpers.RectsIntersect(view, Bounds))
             {
-                if (ChildNodes.Count == 0)
+                if (ChildNodes is null)
                 {
                     intersectingNodes.Add(this);
                 }
@@ -114,41 +64,73 @@ namespace Direct2DDXFViewer
                     }
                 }
             }
-
             return intersectingNodes;
         }
-
-        public void Dispose()
+        public List<QuadTreeNode> GetNodeAtPoint(Point p)
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+            List<QuadTreeNode> nodes = new();
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
+            if (Bounds.Contains(p))
             {
-                if (disposing)
+                if (Level == 0)
                 {
-                    // Dispose managed state (managed objects).
-                    Bitmap?.Dispose();
+                    nodes.Add(this);
+                }
+                else
+                {
                     foreach (var child in ChildNodes)
                     {
-                        child.Dispose();
+                        nodes.AddRange(child.GetNodeAtPoint(p));
+                    }
+                }
+            }
+            return nodes;
+        }
+        private void Subdivide()
+        {
+            if (Level > 0)
+            {
+                ChildNodes = new QuadTreeNode[4];
+                double halfWidth = Bounds.Width / 2;
+                double halfHeight = Bounds.Height / 2;
+
+                Rect bounds1 = new(Bounds.Left, Bounds.Top, halfWidth, halfHeight);
+                Rect bounds2 = new(Bounds.Left + halfWidth, Bounds.Top, halfWidth, halfHeight);
+                Rect bounds3 = new(Bounds.Left, Bounds.Top + halfHeight, halfWidth, halfHeight);
+                Rect bounds4 = new(Bounds.Left + halfWidth, Bounds.Top + halfHeight, halfWidth, halfHeight);
+
+                List<DrawingObject> objects1 = [];
+                List<DrawingObject> objects2 = [];
+                List<DrawingObject> objects3 = [];
+                List<DrawingObject> objects4 = [];
+
+                foreach (var drawingObject in DrawingObjects)
+                {
+                    if (drawingObject.DrawingObjectIsInRect(bounds1))
+                    {
+                        objects1.Add(drawingObject);
+                    }
+                    if (drawingObject.DrawingObjectIsInRect(bounds2))
+                    {
+                        objects2.Add(drawingObject);
+                    }
+                    if (drawingObject.DrawingObjectIsInRect(bounds3))
+                    {
+                        objects3.Add(drawingObject);
+                    }
+                    if (drawingObject.DrawingObjectIsInRect(bounds4))
+                    {
+                        objects4.Add(drawingObject);
                     }
                 }
 
-                // Free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // Set large fields to null.
-                ChildNodes.Clear();
-                _disposed = true;
+                ChildNodes[0] = new QuadTreeNode(objects1, bounds1, Level - 1);
+                ChildNodes[1] = new QuadTreeNode(objects2, bounds2, Level - 1);
+                ChildNodes[2] = new QuadTreeNode(objects3, bounds3, Level - 1);
+                ChildNodes[3] = new QuadTreeNode(objects4, bounds4, Level - 1);
             }
-        }
-
-        ~QuadTreeNode()
-        {
-            Dispose(false);
         }
         #endregion
     }
 }
+
