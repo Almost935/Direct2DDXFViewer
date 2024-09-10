@@ -15,12 +15,14 @@ using Direct2DDXFViewer.DrawingObjects;
 using netDxf;
 using Direct2DDXFViewer.Helpers;
 using netDxf.Tables;
+using Direct2DDXFViewer.BitmapHelpers;
 
 namespace Direct2DDXFViewer
 {
     public class QuadTreeNode
     {
         #region Fields
+        private Factory1 _factory;
         private DeviceContext1 _deviceContext;
         #endregion
 
@@ -28,6 +30,7 @@ namespace Direct2DDXFViewer
         public Bitmap Bitmap { get; set; }
         public List<DrawingObject> DrawingObjects { get; set; } = [];
         public RawMatrix3x2 ExtentsMatrix { get; set; }
+        public Rect Bounds { get; set; }
         public Rect DestRect { get; set; }
         public Size2F Size { get; set; }
         public int Level { get; set; }
@@ -35,11 +38,13 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTreeNode(DeviceContext1 deviceContext, List<DrawingObject> drawingObjects, RawMatrix3x2 extentsMatrix, Rect destRect, Size2F size, int level)
+        public QuadTreeNode(Factory1 factory, DeviceContext1 deviceContext, List<DrawingObject> drawingObjects, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, Size2F size, int level)
         {
+            _factory = factory;
             _deviceContext = deviceContext;
             DrawingObjects = drawingObjects;
             ExtentsMatrix = extentsMatrix;
+            Bounds = bounds;
             DestRect = destRect;
             Size = size;
             Level = level;
@@ -49,10 +54,6 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Methods
-        public bool NodeIntersects(Rect view)
-        {
-            return MathHelpers.RectsIntersect(Bounds, view);
-        }
         public List<QuadTreeNode> GetIntersectingQuadTreeNodes(Rect view)
         {
             List<QuadTreeNode> intersectingNodes = new();
@@ -123,6 +124,9 @@ namespace Direct2DDXFViewer
                 Rect destRect3 = new(DestRect.Left, DestRect.Top + halfDestRectSize.Height, halfDestRectSize.Width, halfDestRectSize.Height);
                 Rect destRect4 = new(DestRect.Left + halfDestRectSize.Width, DestRect.Top + halfDestRectSize.Height, halfDestRectSize.Width, halfDestRectSize.Height);
 
+                RawMatrix3x2 m1 = new(ExtentsMatrix.M11, ExtentsMatrix.M12, ExtentsMatrix.M21, ExtentsMatrix.M22,
+                            ExtentsMatrix.M31 - (float)(quadrantDestSize.Width * i), ExtentsMatrix.M32 - (float)(quadrantDestSize.Height * j));
+
                 List<DrawingObject> objects1 = [];
                 List<DrawingObject> objects2 = [];
                 List<DrawingObject> objects3 = [];
@@ -148,10 +152,10 @@ namespace Direct2DDXFViewer
                     }
                 }
 
-                ChildNodes[0] = new(_deviceContext, objects1, bounds1, destRect1, Level - 1);
-                ChildNodes[1] = new(_deviceContext, objects2, bounds2, destRect1, Level - 1);
-                ChildNodes[2] = new(_deviceContext, objects3, bounds3, destRect1, Level - 1);
-                ChildNodes[3] = new(_deviceContext, objects4, bounds4, destRect1, Level - 1);
+                ChildNodes[0] = new(_factory, _deviceContext, objects1, bounds1, destRect1, Level - 1);
+                ChildNodes[1] = new(_factory, _deviceContext, objects2, bounds2, destRect1, Level - 1);
+                ChildNodes[2] = new(_factory, _deviceContext, objects3, bounds3, destRect1, Level - 1);
+                ChildNodes[3] = new(_factory, _deviceContext, objects4, bounds4, destRect1, Level - 1);
             }
             else // if Level == 0, this means the node is the final leaf node and thus will be used to draw
             {

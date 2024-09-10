@@ -20,6 +20,7 @@ namespace Direct2DDXFViewer
     public class QuadTree
     {
         #region Fields
+        private Factory1 _factory;
         private DeviceContext1 _deviceContext;
         private ObjectLayerManager _layerManager;
         #endregion
@@ -27,6 +28,7 @@ namespace Direct2DDXFViewer
         #region Properties
         public List<DrawingObject> DrawingObjects { get; set; } = new();
         public RawMatrix3x2 ExtentsMatrix { get; set; }
+        public Rect Bounds { get; set; }
         public Rect DestRect { get; set; }
         public Size2F OverallSize { get; set; }
         public int Levels { get; set; }
@@ -36,12 +38,14 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTree(DeviceContext1 deviceContext, ObjectLayerManager layerManager, Size2F overallSize, RawMatrix3x2 extentsMatrix, Rect destRect, int levels, int zoomStep, float zoom)
+        public QuadTree(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, Size2F overallSize, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, int levels, int zoomStep, float zoom)
         {
+            _factory = factory;
             _deviceContext = deviceContext;
             _layerManager = layerManager;
             OverallSize = overallSize;
             ExtentsMatrix = extentsMatrix;
+            Bounds = bounds;
             DestRect = destRect;
             Levels = levels;
             ZoomStep = zoomStep;
@@ -55,7 +59,7 @@ namespace Direct2DDXFViewer
         private void Initialize()
         {
             GetDrawingObjects();
-            Root = new(_deviceContext, DrawingObjects, ExtentsMatrix, DestRect, OverallSize, Levels); 
+            Root = new(_deviceContext, DrawingObjects, ExtentsMatrix, Bounds, DestRect, OverallSize, Levels); 
         }
         private void GetDrawingObjects()
         {

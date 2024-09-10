@@ -15,6 +15,7 @@ namespace Direct2DDXFViewer
     public class QuadTreeCache
     {
         #region Fields
+        private Factory1 _factory;
         private DeviceContext1 _deviceContext;
         private ObjectLayerManager _layerManager;
         #endregion
@@ -40,13 +41,15 @@ namespace Direct2DDXFViewer
         public float ZoomFactor { get; set; }
         public int ZoomPrecision { get; set; }
         public RawMatrix3x2 ExtentsMatrix { get; set; }
-        public Rect DestRect { get; set; }
+        public Rect OverallBounds { get; set; }
+        public Rect OverallDestRect { get; set; }
         public int Levels { get; set; }
         #endregion
 
         #region Constructors
-        public QuadTreeCache(DeviceContext1 deviceContext, int zoomStepUpperLimit, int zoomStepLowerLimit, float sizeLimit, int bitmapReuseFactor, float zoomFactor, int zoomPrecision, RawMatrix3x2 extentsMatrix, int levels)
+        public QuadTreeCache(Factory1 factory, DeviceContext1 deviceContext, int zoomStepUpperLimit, int zoomStepLowerLimit, float sizeLimit, int bitmapReuseFactor, float zoomFactor, int zoomPrecision, RawMatrix3x2 extentsMatrix, Rect overallBounds, int levels)
         {
+            _factory = factory;
             _deviceContext = deviceContext;
             ZoomStepUpperLimit = zoomStepUpperLimit;
             ZoomStepLowerLimit = zoomStepLowerLimit;
@@ -55,7 +58,8 @@ namespace Direct2DDXFViewer
             ZoomFactor = zoomFactor;
             ZoomPrecision = zoomPrecision;
             ExtentsMatrix = extentsMatrix;
-            DestRect = new(0, 0, _deviceContext.Size.Width, _deviceContext.Size.Height);
+            OverallBounds = overallBounds;
+            OverallDestRect = new(0, 0, _deviceContext.Size.Width, _deviceContext.Size.Height);
             Levels = levels;
 
             InitializeQuadTrees();
@@ -73,7 +77,7 @@ namespace Direct2DDXFViewer
         {
             float zoom = MathHelpers.GetZoom(ZoomFactor, zoomStep, ZoomPrecision);
             Size2F size = new((float)(_deviceContext.Size.Width * zoom), (float)(_deviceContext.Size.Height * zoom));
-            QuadTree quadTree = new(_deviceContext, _layerManager, size, ExtentsMatrix, DestRect, Levels, zoomStep, zoom);
+            QuadTree quadTree = new(_deviceContext, _layerManager, size, ExtentsMatrix, OverallBounds, OverallDestRect, Levels, zoomStep, zoom);
             QuadTrees.Add(zoomStep, quadTree);
         }
         #endregion

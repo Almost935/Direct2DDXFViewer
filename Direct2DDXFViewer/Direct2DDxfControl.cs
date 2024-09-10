@@ -244,7 +244,7 @@ namespace Direct2DDXFViewer
             _bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _zoomPrecision, resCache.MaxBitmapSize, _numBitmapDivisions, _bitmapReuseFactor);
 
             _quadTreeLevels = CalculateQuadTreeLevels(_dxfObjectCount, 50);
-            _quadTreeCache = new(deviceContext, _quadtreeUpperZoomStepLimit, _quadtreeLowerZoomStepLimit, _maxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, _quadTreeLevels);
+            _quadTreeCache = new(deviceContext, _quadtreeUpperZoomStepLimit, _quadtreeLowerZoomStepLimit, _maxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView, _quadTreeLevels);
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
