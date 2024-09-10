@@ -48,7 +48,9 @@ namespace Direct2DDXFViewer
         private const int _bitmapReuseFactor = 2;
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
-
+        private const int _quadtreeUpperZoomStepLimit = 16;
+        private const int _quadtreeLowerZoomStepLimit = 0;
+        private const int _maxBitmapSize = 1000;
 
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
@@ -59,9 +61,9 @@ namespace Direct2DDXFViewer
         private bool _deviceContextIsDirty = true;
         private Point _lastTranslatePos = new();
         private bool _dxfLoaded = false;
+        private int _dxfObjectCount;
         private Rect _currentDxfView;
         private bool _bitmapLoaded = false;
-        private bool _disposed = false;
         private List<DrawingObject> _visibleDrawingObjects = new();
         private bool _visibleObjectsDirty = true;
         private int _objectDetailLevelTransitionNum = 500;
@@ -69,6 +71,7 @@ namespace Direct2DDXFViewer
         private BitmapRenderTarget _interactiveRenderTarget;
         private int _quadTreeLevels;
         private QuadTree _quadTree;
+        private QuadTreeCache _quadTreeCache;
 
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\LargeDxf.dxf";
@@ -191,10 +194,7 @@ namespace Direct2DDXFViewer
                 Extents = DxfHelpers.GetExtentsFromHeader(DxfDoc);
                 LayerManager = DxfHelpers.GetLayers(DxfDoc);
 
-                int count = DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, deviceContext, resCache);
-                _quadTreeLevels = CalculateQuadTreeLevels(count, 50);
-
-                _quadTree = new(LayerManager, Extents, _quadTreeLevels);
+                _dxfObjectCount = DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, deviceContext, resCache);
             }
         }
 
@@ -240,7 +240,11 @@ namespace Direct2DDXFViewer
         public void InitializeBitmapCache(DeviceContext1 deviceContext, Factory1 factory)
         {
             RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
+            
             _bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _zoomPrecision, resCache.MaxBitmapSize, _numBitmapDivisions, _bitmapReuseFactor);
+
+            _quadTreeLevels = CalculateQuadTreeLevels(_dxfObjectCount, 50);
+            _quadTreeCache = new(deviceContext, _quadtreeUpperZoomStepLimit, _quadtreeLowerZoomStepLimit, _maxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, _quadTreeLevels);
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
