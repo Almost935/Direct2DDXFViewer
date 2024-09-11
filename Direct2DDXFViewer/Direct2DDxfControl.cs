@@ -70,11 +70,11 @@ namespace Direct2DDXFViewer
         private BitmapRenderTarget _offscreenRenderTarget;
         private BitmapRenderTarget _interactiveRenderTarget;
         private int _quadTreeLevels;
-        private QuadTree _quadTree;
+        private QuadTree _baseQuadTree;
         private QuadTreeCache _quadTreeCache;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\LargeDxf.dxf";
+        private string _filePath = @"DXF\SmallDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -240,11 +240,12 @@ namespace Direct2DDXFViewer
         public void InitializeBitmapCache(DeviceContext1 deviceContext, Factory1 factory)
         {
             RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
-            
-            _bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _zoomPrecision, resCache.MaxBitmapSize, _numBitmapDivisions, _bitmapReuseFactor);
+
+            //_bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _zoomPrecision, resCache.MaxBitmapSize, _numBitmapDivisions, _bitmapReuseFactor);
 
             _quadTreeLevels = CalculateQuadTreeLevels(_dxfObjectCount, 50);
-            _quadTreeCache = new(deviceContext, _quadtreeUpperZoomStepLimit, _quadtreeLowerZoomStepLimit, _maxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView, _quadTreeLevels);
+            _quadTreeCache = new(factory, deviceContext, _layerManager, _quadtreeUpperZoomStepLimit, _quadtreeLowerZoomStepLimit, _maxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView, _quadTreeLevels);
+            _baseQuadTree = _quadTreeCache.BaseQuadTree;
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
@@ -289,9 +290,11 @@ namespace Direct2DDXFViewer
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 0));
 
-                    bool bitmapAvailable = _bitmapCache.TryUpdateCurrentDxfBitmap(CurrentZoomStep, out DxfBitmapView bitmapView);
-                    //Debug.WriteLine($"bitmapAvailable: {bitmapAvailable} CurrentZoomStep: {CurrentZoomStep}");
-                    if (!bitmapAvailable)
+                    if (_quadTreeCache.TryGetQuadTree(CurrentZoomStep, out QuadTree _quadTree))
+                    {
+                        RenderBitmaps(deviceContext, _quadTree);
+                    }
+                    else
                     {
                         if (_visibleObjectsDirty)
                         {
@@ -301,10 +304,23 @@ namespace Direct2DDXFViewer
                         RenderIntersectingViewsToBitmap(_offscreenRenderTarget);
                         deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
                     }
-                    else
-                    {
-                        RenderBitmaps(deviceContext, bitmapView);
-                    }
+
+                    //bool bitmapAvailable = _bitmapCache.TryUpdateCurrentDxfBitmap(CurrentZoomStep, out DxfBitmapView bitmapView);
+
+                    //if (!bitmapAvailable)
+                    //{
+                    //    if (_visibleObjectsDirty)
+                    //    {
+                    //        GetVisibleObjects();
+                    //    }
+
+                    //    RenderIntersectingViewsToBitmap(_offscreenRenderTarget);
+                    //    deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
+                    //}
+                    //else
+                    //{
+                    //    RenderBitmaps(deviceContext, bitmapView);
+                    //}
 
                     DrawInteractiveObjects(deviceContext, _interactiveRenderTarget);
 
@@ -324,18 +340,30 @@ namespace Direct2DDXFViewer
             }
         }
 
-        private void RenderBitmaps(DeviceContext1 deviceContext, DxfBitmapView bitmapView)
+        private void RenderBitmaps(DeviceContext1 deviceContext, QuadTree quadTree)
         {
-            var rect = new Rect(0, 0, this.ActualWidth, this.ActualHeight);
-            foreach (var dxfBitmap in bitmapView.Bitmaps)
-            {
-                var destRect = dxfBitmap.DestRect;
-                destRect.Transform(_transformMatrix);
-                if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) { continue; }
-                var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
+            var nodes = quadTree.GetIntersectingNodes(_currentDxfView);
 
-                deviceContext.DrawBitmap(dxfBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+            Debug.WriteLine($"nodes.Count: {nodes.Count}");
+
+            foreach (var node in nodes)
+            {
+                var destRect = node.DestRect;
+                destRect.Transform(_transformMatrix);
+                var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
+                deviceContext.DrawBitmap(node.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
             }
+
+            //var rect = new Rect(0, 0, this.ActualWidth, this.ActualHeight);
+            //foreach (var dxfBitmap in bitmapView.Bitmaps)
+            //{
+            //    var destRect = dxfBitmap.DestRect;
+            //    destRect.Transform(_transformMatrix);
+            //    if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) { continue; }
+            //    var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
+
+            //    deviceContext.DrawBitmap(dxfBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+            //}
         }
         private void RenderIntersectingViewsToBitmap(RenderTarget renderTarget)
         {
@@ -355,7 +383,7 @@ namespace Direct2DDXFViewer
                     obj.DrawToRenderTarget(renderTarget, 1, obj.Brush, obj.HairlineStrokeStyle);
                 }
             }
-            
+
             renderTarget.EndDraw();
             stopwatch.Stop();
         }
@@ -501,7 +529,7 @@ namespace Direct2DDXFViewer
                 }
             }
 
-            var views = _quadTree.GetIntersectingNodes(DxfPointerCoords);
+            var views = _baseQuadTree.GetIntersectingNodes(DxfPointerCoords);
 
             foreach (var view in views)
             {
@@ -539,7 +567,7 @@ namespace Direct2DDXFViewer
             Stopwatch stopwatch = Stopwatch.StartNew();
 
 
-            if (LayerManager is not null && _visibleObjectsDirty)
+            if (LayerManager is not null && _visibleObjectsDirty && _baseQuadTree is not null)
             {
                 //_visibleDrawingObjects.Clear();
 
@@ -567,7 +595,7 @@ namespace Direct2DDXFViewer
                 //stopwatch.Restart();
 
                 _visibleDrawingObjects.Clear();
-                var views = _quadTree.GetIntersectingNodes(_currentDxfView);
+                var views = _baseQuadTree.GetIntersectingNodes(_currentDxfView);
                 foreach (var view in views)
                 {
                     foreach (var obj in view.DrawingObjects)
