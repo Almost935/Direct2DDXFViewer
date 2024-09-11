@@ -18,6 +18,7 @@ namespace Direct2DDXFViewer
         private Factory1 _factory;
         private DeviceContext1 _deviceContext;
         private ObjectLayerManager _layerManager;
+        private int _bitmapReuseFactor;
         #endregion
 
         #region Properties
@@ -37,7 +38,6 @@ namespace Direct2DDXFViewer
         /// The largets dimensions any one side of a QuadTreeNode can be.
         /// </summary>
         public float SizeLimit { get; set; }
-        public int BitmapReuseFactor { get; set; }
         public float ZoomFactor { get; set; }
         public int ZoomPrecision { get; set; }
         public RawMatrix3x2 ExtentsMatrix { get; set; }
@@ -56,7 +56,7 @@ namespace Direct2DDXFViewer
             ZoomStepUpperLimit = zoomStepUpperLimit;
             ZoomStepLowerLimit = zoomStepLowerLimit;
             SizeLimit = sizeLimit;
-            BitmapReuseFactor = bitmapReuseFactor;
+            _bitmapReuseFactor = bitmapReuseFactor;
             ZoomFactor = zoomFactor;
             ZoomPrecision = zoomPrecision;
             ExtentsMatrix = extentsMatrix;
@@ -74,24 +74,44 @@ namespace Direct2DDXFViewer
             // Initialize base view first
             BaseQuadTree = AddQuadTree(0);
 
-            Parallel.For(0, ZoomStepUpperLimit, i =>
+            //Parallel.For(0, ZoomStepUpperLimit, i =>
+            //{
+            //    AddQuadTree(i + 1);
+            //});
+
+            for (int i = 0; i < ZoomStepUpperLimit; i++)
             {
-                AddQuadTree(i + 1);
-            });
+                if ((i + 1) % _bitmapReuseFactor == 0)
+                {
+                    AddQuadTree(i + 1);
+                }
+            }
         }
 
-        public QuadTree AddQuadTree(int zoomStep)
+        private QuadTree AddQuadTree(int zoomStep)
         {
             float zoom = MathHelpers.GetZoom(ZoomFactor, zoomStep, ZoomPrecision);
             Size2F size = new((float)(_deviceContext.Size.Width * zoom), (float)(_deviceContext.Size.Height * zoom));
             QuadTree quadTree = new(_factory, _deviceContext, _layerManager, size, ExtentsMatrix, OverallBounds, OverallDestRect, Levels, zoomStep, zoom);
             QuadTrees.TryAdd(zoomStep, quadTree);
+            
             return quadTree;
         }
 
         public bool TryGetQuadTree(int zoomStep, out QuadTree quadTree)
         {
+            zoomStep = AdjustZoomStep(zoomStep);
+
             return QuadTrees.TryGetValue(zoomStep, out quadTree);
+        }
+
+        private int AdjustZoomStep(int zoomStep)
+        {
+            while (zoomStep % _bitmapReuseFactor != 0)
+            {
+                zoomStep -= 1;
+            }
+            return zoomStep;
         }
         #endregion
     }

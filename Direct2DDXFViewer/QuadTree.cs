@@ -59,7 +59,7 @@ namespace Direct2DDXFViewer
         private void Initialize()
         {
             GetDrawingObjects();
-            Root = new(_factory, _deviceContext, DrawingObjects, ExtentsMatrix, Bounds, DestRect, OverallSize, Levels); 
+            Root = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, ExtentsMatrix, Bounds, DestRect, OverallSize, Levels); 
         }
         private void GetDrawingObjects()
         {

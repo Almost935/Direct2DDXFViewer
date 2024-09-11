@@ -44,11 +44,10 @@ namespace Direct2DDXFViewer
     {
         #region Fields
         private const int _zoomPrecision = 3;
-        private const int _numBitmapDivisions = 3;
         private const int _bitmapReuseFactor = 2;
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
-        private const int _quadtreeUpperZoomStepLimit = 16;
+        private const int _quadtreeUpperZoomStepLimit = 10;
         private const int _quadtreeLowerZoomStepLimit = 0;
         private const int _maxBitmapSize = 1000;
 
@@ -57,7 +56,7 @@ namespace Direct2DDXFViewer
         private readonly float _zoomFactor = 1.25f;
         private bool _isPanning = false;
         private bool _isRendering = false;
-        private BitmapCache _bitmapCache;
+        //private BitmapCache _bitmapCache;
         private bool _deviceContextIsDirty = true;
         private Point _lastTranslatePos = new();
         private bool _dxfLoaded = false;
@@ -72,6 +71,7 @@ namespace Direct2DDXFViewer
         private int _quadTreeLevels;
         private QuadTree _baseQuadTree;
         private QuadTreeCache _quadTreeCache;
+        private QuadTree _currentQuadTree;
 
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\SmallDxf.dxf";
@@ -246,6 +246,7 @@ namespace Direct2DDXFViewer
             _quadTreeLevels = CalculateQuadTreeLevels(_dxfObjectCount, 50);
             _quadTreeCache = new(factory, deviceContext, _layerManager, _quadtreeUpperZoomStepLimit, _quadtreeLowerZoomStepLimit, _maxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView, _quadTreeLevels);
             _baseQuadTree = _quadTreeCache.BaseQuadTree;
+            _currentQuadTree = _quadTreeCache.BaseQuadTree;
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
@@ -290,9 +291,9 @@ namespace Direct2DDXFViewer
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 0));
 
-                    if (_quadTreeCache.TryGetQuadTree(CurrentZoomStep, out QuadTree _quadTree))
+                    if (_currentQuadTree is not null)
                     {
-                        RenderBitmaps(deviceContext, _quadTree);
+                        RenderQuadTree(deviceContext, _currentQuadTree);
                     }
                     else
                     {
@@ -340,18 +341,22 @@ namespace Direct2DDXFViewer
             }
         }
 
-        private void RenderBitmaps(DeviceContext1 deviceContext, QuadTree quadTree)
+        private void RenderQuadTree(DeviceContext1 deviceContext, QuadTree quadTree)
         {
             var nodes = quadTree.GetIntersectingNodes(_currentDxfView);
 
-            Debug.WriteLine($"nodes.Count: {nodes.Count}");
+            Debug.WriteLine($"\nnodes.Count: {nodes.Count} \nquadTree.ZoomStep: {quadTree.ZoomStep}");
+
+            Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
 
             foreach (var node in nodes)
             {
+                //Debug.WriteLine($"{}")
                 var destRect = node.DestRect;
                 destRect.Transform(_transformMatrix);
                 var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
                 deviceContext.DrawBitmap(node.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+                deviceContext.DrawRectangle(destRawRect, brush);
             }
 
             //var rect = new Rect(0, 0, this.ActualWidth, this.ActualHeight);
@@ -639,10 +644,13 @@ namespace Direct2DDXFViewer
                 _visibleObjectsDirty = true;
                 _deviceContextIsDirty = true;
 
-                if (CurrentZoomStep <= _bitmapCache.MaxZoomStep)
-                {
-                    _bitmapCache.UpdateCurrentDxfBitmap(CurrentZoomStep);
-                }
+                //if (CurrentZoomStep <= _bitmapCache.MaxZoomStep)
+                //{
+                //    _bitmapCache.UpdateCurrentDxfBitmap(CurrentZoomStep);
+                //}
+
+                bool isCreated = _quadTreeCache.TryGetQuadTree(CurrentZoomStep, out QuadTree quadTree);
+                if (isCreated) { _currentQuadTree = quadTree; }
             }
         }
         private void UpdateTranslate(Vector translate)

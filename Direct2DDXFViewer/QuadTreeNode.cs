@@ -29,6 +29,8 @@ namespace Direct2DDXFViewer
         #region Properties
         public Bitmap Bitmap { get; set; }
         public List<DrawingObject> DrawingObjects { get; set; } = [];
+        public int ZoomStep { get; set; }
+        public float Zoom { get; set; }
         public RawMatrix3x2 ExtentsMatrix { get; set; }
         public Rect Bounds { get; set; }
         public Rect DestRect { get; set; }
@@ -38,11 +40,13 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTreeNode(Factory1 factory, DeviceContext1 deviceContext, List<DrawingObject> drawingObjects, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, Size2F size, int level)
+        public QuadTreeNode(Factory1 factory, DeviceContext1 deviceContext, List<DrawingObject> drawingObjects, int zoomStep, float zoom, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, Size2F size, int level)
         {
             _factory = factory;
             _deviceContext = deviceContext;
             DrawingObjects = drawingObjects;
+            ZoomStep = zoomStep;
+            Zoom = zoom;
             ExtentsMatrix = extentsMatrix;
             Bounds = bounds;
             DestRect = destRect;
@@ -96,9 +100,16 @@ namespace Direct2DDXFViewer
         }
         public void DrawBitmap()
         {
-            BitmapRenderTarget bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, new Size2F((float)Bounds.Width, (float)Bounds.Height));
+            BitmapRenderTarget bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, Size) 
+            {
+                DotsPerInch = new(96 * Zoom, 96 * Zoom),
+                AntialiasMode = AntialiasMode.PerPrimitive
+            };
+
             bitmapRenderTarget.BeginDraw();
             bitmapRenderTarget.Clear(new RawColor4());
+            bitmapRenderTarget.Transform = ExtentsMatrix;
+
             foreach (var drawingObject in DrawingObjects)
             {
                 drawingObject.DrawToRenderTarget(bitmapRenderTarget, 1, drawingObject.Brush, drawingObject.HairlineStrokeStyle);
@@ -128,19 +139,25 @@ namespace Direct2DDXFViewer
 
                 // Represents the destination rectangle of each quadrant.
                 Size halfDestRectSize = new(DestRect.Width / 2, DestRect.Height / 2);
+
                 Rect destRect1 = new(DestRect.Left + (halfDestRectSize.Width * factor1.X), DestRect.Top + (halfDestRectSize.Height * factor1.Y), halfDestRectSize.Width, halfDestRectSize.Height);
                 Rect destRect2 = new(DestRect.Left + (halfDestRectSize.Width * factor2.X), DestRect.Top + (halfDestRectSize.Height * factor2.Y), halfDestRectSize.Width, halfDestRectSize.Height);
                 Rect destRect3 = new(DestRect.Left + (halfDestRectSize.Width * factor3.X), DestRect.Top + (halfDestRectSize.Height * factor3.Y), halfDestRectSize.Width, halfDestRectSize.Height);
                 Rect destRect4 = new(DestRect.Left + (halfDestRectSize.Width * factor4.X), DestRect.Top + (halfDestRectSize.Height * factor4.Y), halfDestRectSize.Width, halfDestRectSize.Height);
+                //Rect destRect1 = new(DestRect.Left + (halfBoundsSize.Width * factor1.X), DestRect.Top + (halfBoundsSize.Height * factor1.Y), halfBoundsSize.Width, halfBoundsSize.Height);
+                //Rect destRect2 = new(DestRect.Left + (halfBoundsSize.Width * factor2.X), DestRect.Top + (halfBoundsSize.Height * factor2.Y), halfBoundsSize.Width, halfBoundsSize.Height);
+                //Rect destRect3 = new(DestRect.Left + (halfBoundsSize.Width * factor3.X), DestRect.Top + (halfBoundsSize.Height * factor3.Y), halfBoundsSize.Width, halfBoundsSize.Height);
+                //Rect destRect4 = new(DestRect.Left + (halfBoundsSize.Width * factor4.X), DestRect.Top + (halfBoundsSize.Height * factor4.Y), halfBoundsSize.Width, halfBoundsSize.Height);
 
+                // Matrices to make each quadrant's drawing objects appear in the correct location
                 RawMatrix3x2 m1 = new(ExtentsMatrix.M11, ExtentsMatrix.M12, ExtentsMatrix.M21, ExtentsMatrix.M22,
-                            ExtentsMatrix.M31 - (float)(halfBoundsSize.Width * factor1.X), ExtentsMatrix.M32 - (float)(halfBoundsSize.Height * factor1.Y));
+                            ExtentsMatrix.M31 - (float)(halfDestRectSize.Width * factor1.X), ExtentsMatrix.M32 - (float)(halfDestRectSize.Height * factor1.Y));
                 RawMatrix3x2 m2 = new(ExtentsMatrix.M11, ExtentsMatrix.M12, ExtentsMatrix.M21, ExtentsMatrix.M22,
-                            ExtentsMatrix.M31 - (float)(halfBoundsSize.Width * factor2.X), ExtentsMatrix.M32 - (float)(halfBoundsSize.Height * factor2.Y));
+                            ExtentsMatrix.M31 - (float)(halfDestRectSize.Width * factor2.X), ExtentsMatrix.M32 - (float)(halfDestRectSize.Height * factor2.Y));
                 RawMatrix3x2 m3 = new(ExtentsMatrix.M11, ExtentsMatrix.M12, ExtentsMatrix.M21, ExtentsMatrix.M22,
-                            ExtentsMatrix.M31 - (float)(halfBoundsSize.Width * factor3.X), ExtentsMatrix.M32 - (float)(halfBoundsSize.Height * factor3.Y));
+                            ExtentsMatrix.M31 - (float)(halfDestRectSize.Width * factor3.X), ExtentsMatrix.M32 - (float)(halfDestRectSize.Height * factor3.Y));
                 RawMatrix3x2 m4 = new(ExtentsMatrix.M11, ExtentsMatrix.M12, ExtentsMatrix.M21, ExtentsMatrix.M22,
-                            ExtentsMatrix.M31 - (float)(halfBoundsSize.Width * factor4.X), ExtentsMatrix.M32 - (float)(halfBoundsSize.Height * factor4.Y));
+                            ExtentsMatrix.M31 - (float)(halfDestRectSize.Width * factor4.X), ExtentsMatrix.M32 - (float)(halfDestRectSize.Height * factor4.Y));
 
                 List<DrawingObject> objects1 = [];
                 List<DrawingObject> objects2 = [];
@@ -169,10 +186,10 @@ namespace Direct2DDXFViewer
 
                 Size2F size = new(Size.Width / 2, Size.Height / 2);
 
-                ChildNodes[0] = new(_factory, _deviceContext, objects1, m1, bounds1, destRect1, size, Level - 1);
-                ChildNodes[1] = new(_factory, _deviceContext, objects2, m2, bounds2, destRect1, size, Level - 1);
-                ChildNodes[2] = new(_factory, _deviceContext, objects3, m3, bounds3, destRect1, size, Level - 1);
-                ChildNodes[3] = new(_factory, _deviceContext, objects4, m4, bounds4, destRect1, size, Level - 1);
+                ChildNodes[0] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m1, bounds1, destRect1, size, Level - 1);
+                ChildNodes[1] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m2, bounds2, destRect2, size, Level - 1);
+                ChildNodes[2] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m3, bounds3, destRect3, size, Level - 1);
+                ChildNodes[3] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m4, bounds4, destRect4, size, Level - 1);
             }
             else // if Level == 0, this means the node is the final leaf node and thus will be used to draw
             {
