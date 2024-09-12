@@ -42,6 +42,9 @@ namespace Direct2DDXFViewer
         #region Constructors
         public QuadTreeNode(Factory1 factory, DeviceContext1 deviceContext, List<DrawingObject> drawingObjects, int zoomStep, float zoom, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, Size2F size, int level)
         {
+            //Stopwatch stopwatch = Stopwatch.StartNew();
+            //Debug.WriteLine($"\nQuadTreeNode Begin: ZoomStep: {zoomStep} Level: {Level}");
+
             _factory = factory;
             _deviceContext = deviceContext;
             DrawingObjects = drawingObjects;
@@ -54,15 +57,18 @@ namespace Direct2DDXFViewer
             Level = level;
 
             Subdivide();
+
+            //stopwatch.Stop();
+            //Debug.WriteLine($"QuadTreeNode End: ZoomStep: {zoomStep} Level: {Level} time: {stopwatch.ElapsedMilliseconds} ms");
         }
         #endregion
 
         #region Methods
         public List<QuadTreeNode> GetIntersectingQuadTreeNodes(Rect view)
         {
-            List<QuadTreeNode> intersectingNodes = new();
+            List<QuadTreeNode> intersectingNodes = [];
 
-            if (MathHelpers.RectsIntersect(view, Bounds))
+            if (MathHelpers.RectsIntersect(view, DestRect))
             {
                 if (ChildNodes is null)
                 {
@@ -100,6 +106,9 @@ namespace Direct2DDXFViewer
         }
         public void DrawBitmap()
         {
+            //Stopwatch stopwatch = Stopwatch.StartNew();
+            //Debug.WriteLine($"\nDrawBitmap Begin: ZoomStep: {ZoomStep}");
+
             BitmapRenderTarget bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, Size) 
             {
                 DotsPerInch = new(96 * Zoom, 96 * Zoom),
@@ -117,6 +126,9 @@ namespace Direct2DDXFViewer
             Bitmap = bitmapRenderTarget.Bitmap;
             bitmapRenderTarget.EndDraw();
             bitmapRenderTarget.Dispose();
+
+            //stopwatch.Stop();
+            //Debug.WriteLine($"DrawBitmap End: ZoomStep: {ZoomStep} time: {stopwatch.ElapsedMilliseconds} ms");
         }
         private void Subdivide()
         {
@@ -144,10 +156,6 @@ namespace Direct2DDXFViewer
                 Rect destRect2 = new(DestRect.Left + (halfDestRectSize.Width * factor2.X), DestRect.Top + (halfDestRectSize.Height * factor2.Y), halfDestRectSize.Width, halfDestRectSize.Height);
                 Rect destRect3 = new(DestRect.Left + (halfDestRectSize.Width * factor3.X), DestRect.Top + (halfDestRectSize.Height * factor3.Y), halfDestRectSize.Width, halfDestRectSize.Height);
                 Rect destRect4 = new(DestRect.Left + (halfDestRectSize.Width * factor4.X), DestRect.Top + (halfDestRectSize.Height * factor4.Y), halfDestRectSize.Width, halfDestRectSize.Height);
-                //Rect destRect1 = new(DestRect.Left + (halfBoundsSize.Width * factor1.X), DestRect.Top + (halfBoundsSize.Height * factor1.Y), halfBoundsSize.Width, halfBoundsSize.Height);
-                //Rect destRect2 = new(DestRect.Left + (halfBoundsSize.Width * factor2.X), DestRect.Top + (halfBoundsSize.Height * factor2.Y), halfBoundsSize.Width, halfBoundsSize.Height);
-                //Rect destRect3 = new(DestRect.Left + (halfBoundsSize.Width * factor3.X), DestRect.Top + (halfBoundsSize.Height * factor3.Y), halfBoundsSize.Width, halfBoundsSize.Height);
-                //Rect destRect4 = new(DestRect.Left + (halfBoundsSize.Width * factor4.X), DestRect.Top + (halfBoundsSize.Height * factor4.Y), halfBoundsSize.Width, halfBoundsSize.Height);
 
                 // Matrices to make each quadrant's drawing objects appear in the correct location
                 RawMatrix3x2 m1 = new(ExtentsMatrix.M11, ExtentsMatrix.M12, ExtentsMatrix.M21, ExtentsMatrix.M22,
@@ -163,6 +171,9 @@ namespace Direct2DDXFViewer
                 List<DrawingObject> objects2 = [];
                 List<DrawingObject> objects3 = [];
                 List<DrawingObject> objects4 = [];
+
+                //Stopwatch stopwatch = Stopwatch.StartNew();
+                //Debug.WriteLine($"\nDrawingObject Seperation Begin: ZoomStep: {ZoomStep} Level: {Level}");
 
                 foreach (var drawingObject in DrawingObjects)
                 {
@@ -183,6 +194,9 @@ namespace Direct2DDXFViewer
                         objects4.Add(drawingObject);
                     }
                 }
+
+                //stopwatch.Stop();
+                //Debug.WriteLine($"DrawingObject Seperation End: ZoomStep: {ZoomStep} time: {stopwatch.ElapsedMilliseconds} ms");
 
                 Size2F size = new(Size.Width / 2, Size.Height / 2);
 

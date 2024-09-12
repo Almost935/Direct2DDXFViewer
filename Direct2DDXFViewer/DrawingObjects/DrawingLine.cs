@@ -77,7 +77,6 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public override bool DrawingObjectIsInRect(Rect rect)
         {
-            //Debug.WriteLine()
             return Bounds.IntersectsWith(rect) || Bounds.Contains(rect);
         }
         public override void UpdateGeometry()

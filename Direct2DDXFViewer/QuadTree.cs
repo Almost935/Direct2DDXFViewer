@@ -23,10 +23,12 @@ namespace Direct2DDXFViewer
         private Factory1 _factory;
         private DeviceContext1 _deviceContext;
         private ObjectLayerManager _layerManager;
+        private int _maxBitmapSize;
         #endregion
 
         #region Properties
         public List<DrawingObject> DrawingObjects { get; set; } = new();
+        public List<Bitmap> OverallBitmaps { get; set; } = new();
         public RawMatrix3x2 ExtentsMatrix { get; set; }
         public Rect Bounds { get; set; }
         public Rect DestRect { get; set; }
@@ -38,7 +40,7 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTree(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, Size2F overallSize, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, int levels, int zoomStep, float zoom)
+        public QuadTree(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, Size2F overallSize, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, int levels, int zoomStep, float zoom, int maxBitmapSize)
         {
             _factory = factory;
             _deviceContext = deviceContext;
@@ -49,8 +51,10 @@ namespace Direct2DDXFViewer
             DestRect = destRect;
             Levels = levels;
             ZoomStep = zoomStep;
-            
+            Zoom = zoom;
+            _maxBitmapSize = maxBitmapSize;
 
+            GetOverallBitmap();
             Initialize();
         }
         #endregion
@@ -60,6 +64,34 @@ namespace Direct2DDXFViewer
         {
             GetDrawingObjects();
             Root = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, ExtentsMatrix, Bounds, DestRect, OverallSize, Levels); 
+        }
+        public void GetOverallBitmap()
+        {
+            float limitingDim = Math.Max(OverallSize.Width, OverallSize.Height);
+            int bitmapSplit = 0;
+            while (limitingDim > _maxBitmapSize)
+            {
+                limitingDim /= 2;
+                bitmapSplit++;
+            }
+
+            int divisions = (int)(Math.Pow(2, bitmapSplit));
+            float bitmapWidth = (float)(OverallSize.Width / divisions);
+            float bitmapHeight = (float)(OverallSize.Height / divisions);
+
+            BitmapRenderTarget target = new(_deviceContext, CompatibleRenderTargetOptions.None, new Size2F(bitmapWidth, bitmapHeight)) 
+            {
+                DotsPerInch = new(96 * Zoom, 96 * Zoom),
+                AntialiasMode = AntialiasMode.PerPrimitive
+            };
+
+            for (int w = 1; w <= divisions; w++)
+            {
+                for (int h = 1; h <= divisions; h++)
+                {
+                    RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.M31, (float)ExtentsMatrix.M32);
+                }
+            }
         }
         private void GetDrawingObjects()
         {

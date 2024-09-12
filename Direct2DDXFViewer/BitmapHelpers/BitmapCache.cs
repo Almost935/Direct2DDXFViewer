@@ -149,17 +149,17 @@ namespace Direct2DDXFViewer.BitmapHelpers
             MaxBitmapZoomStep = _createdBitmaps.Keys.Max() + (_bitmapReuseFactor - 1); 
 
             overallStopwatch.Stop();
-            Debug.WriteLine($"Bitmaps initialized in {overallStopwatch.ElapsedMilliseconds} ms");
+            //Debug.WriteLine($"Bitmaps initialized in {overallStopwatch.ElapsedMilliseconds} ms");
         }
 
         private void CreateAndAddBitmapView(int zoomStep)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
+            //Stopwatch stopwatch = Stopwatch.StartNew();
 
             DxfBitmapView bitmapView = new(_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, zoomStep, _zoomFactor, _zoomPrecision, _tempFolderPath, _maxBitmapSize, _numOfDivisions);
 
-            stopwatch.Stop();
-            Debug.WriteLine($"bitmapView.ZoomStep: {bitmapView.ZoomStep} created in {stopwatch.ElapsedMilliseconds} ms");
+            //stopwatch.Stop();
+            //Debug.WriteLine($"bitmapView.ZoomStep: {bitmapView.ZoomStep} created in {stopwatch.ElapsedMilliseconds} ms");
 
             if (!_createdBitmaps.TryAdd(bitmapView.ZoomStep, bitmapView))
             {
@@ -173,7 +173,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
             DxfBitmapView bitmapView = new DxfBitmapView(_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, zoomStep, _zoomFactor, _zoomPrecision, _tempFolderPath, _maxBitmapSize, _numOfDivisions);
 
             stopwatch.Stop();
-            Debug.WriteLine($"bitmapView.ZoomStep: {bitmapView.ZoomStep} created in {stopwatch.ElapsedMilliseconds} ms");
+            //Debug.WriteLine($"bitmapView.ZoomStep: {bitmapView.ZoomStep} created in {stopwatch.ElapsedMilliseconds} ms");
 
             if (_createdBitmaps.TryAdd(bitmapView.ZoomStep, bitmapView))
             {

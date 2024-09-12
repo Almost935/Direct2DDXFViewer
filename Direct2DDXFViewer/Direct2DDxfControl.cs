@@ -49,7 +49,6 @@ namespace Direct2DDXFViewer
         private const float _snappedOpacity = 0.35f;
         private const int _quadtreeUpperZoomStepLimit = 10;
         private const int _quadtreeLowerZoomStepLimit = 0;
-        private const int _maxBitmapSize = 1000;
 
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
@@ -61,6 +60,7 @@ namespace Direct2DDXFViewer
         private Point _lastTranslatePos = new();
         private bool _dxfLoaded = false;
         private int _dxfObjectCount;
+        private Rect _currentView;
         private Rect _currentDxfView;
         private bool _bitmapLoaded = false;
         private List<DrawingObject> _visibleDrawingObjects = new();
@@ -236,15 +236,17 @@ namespace Direct2DDXFViewer
 
             InitialView = new(centerX - 0.5 * scaledWidth, centerY - 0.5 * scaledHeight, scaledWidth, scaledHeight);
             _currentDxfView = InitialView;
+            _currentView = new(0, 0, ActualWidth, ActualHeight);
         }
         public void InitializeBitmapCache(DeviceContext1 deviceContext, Factory1 factory)
         {
             RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
 
             //_bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _zoomPrecision, resCache.MaxBitmapSize, _numBitmapDivisions, _bitmapReuseFactor);
-
-            _quadTreeLevels = CalculateQuadTreeLevels(_dxfObjectCount, 50);
-            _quadTreeCache = new(factory, deviceContext, _layerManager, _quadtreeUpperZoomStepLimit, _quadtreeLowerZoomStepLimit, _maxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView, _quadTreeLevels);
+            
+            _quadTreeLevels = CalculateQuadTreeLevels(_dxfObjectCount, 100);
+            //_quadTreeLevels = 2;
+            _quadTreeCache = new(factory, deviceContext, _layerManager, _quadtreeUpperZoomStepLimit, _quadtreeLowerZoomStepLimit, resCache.MaxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView, _quadTreeLevels);
             _baseQuadTree = _quadTreeCache.BaseQuadTree;
             _currentQuadTree = _quadTreeCache.BaseQuadTree;
         }
@@ -343,32 +345,15 @@ namespace Direct2DDXFViewer
 
         private void RenderQuadTree(DeviceContext1 deviceContext, QuadTree quadTree)
         {
-            var nodes = quadTree.GetIntersectingNodes(_currentDxfView);
-
-            Debug.WriteLine($"\nnodes.Count: {nodes.Count} \nquadTree.ZoomStep: {quadTree.ZoomStep}");
-
-            Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
+            var nodes = quadTree.GetIntersectingNodes(_currentView);
 
             foreach (var node in nodes)
             {
-                //Debug.WriteLine($"{}")
                 var destRect = node.DestRect;
                 destRect.Transform(_transformMatrix);
                 var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
                 deviceContext.DrawBitmap(node.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-                deviceContext.DrawRectangle(destRawRect, brush);
             }
-
-            //var rect = new Rect(0, 0, this.ActualWidth, this.ActualHeight);
-            //foreach (var dxfBitmap in bitmapView.Bitmaps)
-            //{
-            //    var destRect = dxfBitmap.DestRect;
-            //    destRect.Transform(_transformMatrix);
-            //    if (!rect.Contains(destRect) && !rect.IntersectsWith(destRect)) { continue; }
-            //    var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
-
-            //    deviceContext.DrawBitmap(dxfBitmap.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-            //}
         }
         private void RenderIntersectingViewsToBitmap(RenderTarget renderTarget)
         {
@@ -666,10 +651,17 @@ namespace Direct2DDXFViewer
         {
             if (resCache.RenderTarget is not null)
             {
+                // Get the current view in dxf coordinates
                 _currentDxfView = new(0, 0, this.ActualWidth, this.ActualHeight);
-                var matrix = _overallMatrix;
-                matrix.Invert();
-                _currentDxfView.Transform(matrix);
+                var overallMatrix = _overallMatrix;
+                overallMatrix.Invert();
+                _currentDxfView.Transform(overallMatrix);
+
+                // Get the current view in screen coordinates
+                _currentView = new(0, 0, this.ActualWidth, this.ActualHeight);
+                var transformMatrix = _transformMatrix;
+                transformMatrix.Invert();
+                _currentView.Transform(transformMatrix);
             }
         }
         private void GetResources(DeviceContext1 deviceContext)

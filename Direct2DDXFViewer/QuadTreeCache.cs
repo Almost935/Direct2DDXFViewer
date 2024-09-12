@@ -5,6 +5,7 @@ using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,6 +20,7 @@ namespace Direct2DDXFViewer
         private DeviceContext1 _deviceContext;
         private ObjectLayerManager _layerManager;
         private int _bitmapReuseFactor;
+        private int _maxBitmapSize;
         #endregion
 
         #region Properties
@@ -37,7 +39,6 @@ namespace Direct2DDXFViewer
         /// <summary>
         /// The largets dimensions any one side of a QuadTreeNode can be.
         /// </summary>
-        public float SizeLimit { get; set; }
         public float ZoomFactor { get; set; }
         public int ZoomPrecision { get; set; }
         public RawMatrix3x2 ExtentsMatrix { get; set; }
@@ -48,14 +49,14 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTreeCache(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, int zoomStepUpperLimit, int zoomStepLowerLimit, float sizeLimit, int bitmapReuseFactor, float zoomFactor, int zoomPrecision, RawMatrix3x2 extentsMatrix, Rect overallBounds, int levels)
+        public QuadTreeCache(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, int zoomStepUpperLimit, int zoomStepLowerLimit, int maxBitmapSize, int bitmapReuseFactor, float zoomFactor, int zoomPrecision, RawMatrix3x2 extentsMatrix, Rect overallBounds, int levels)
         {
             _factory = factory;
             _deviceContext = deviceContext;
             _layerManager = layerManager;
             ZoomStepUpperLimit = zoomStepUpperLimit;
             ZoomStepLowerLimit = zoomStepLowerLimit;
-            SizeLimit = sizeLimit;
+            _maxBitmapSize = maxBitmapSize;
             _bitmapReuseFactor = bitmapReuseFactor;
             ZoomFactor = zoomFactor;
             ZoomPrecision = zoomPrecision;
@@ -71,13 +72,10 @@ namespace Direct2DDXFViewer
         #region Methods
         public void InitializeQuadTrees()
         {
+            var stopwatch = Stopwatch.StartNew();
+
             // Initialize base view first
             BaseQuadTree = AddQuadTree(0);
-
-            //Parallel.For(0, ZoomStepUpperLimit, i =>
-            //{
-            //    AddQuadTree(i + 1);
-            //});
 
             for (int i = 0; i < ZoomStepUpperLimit; i++)
             {
@@ -86,15 +84,23 @@ namespace Direct2DDXFViewer
                     AddQuadTree(i + 1);
                 }
             }
+
+            stopwatch.Stop();
+            Debug.WriteLine($"InitializeQuadTrees took {stopwatch.ElapsedMilliseconds} ms");
         }
 
         private QuadTree AddQuadTree(int zoomStep)
         {
+            var stopwatch = Stopwatch.StartNew();
+
             float zoom = MathHelpers.GetZoom(ZoomFactor, zoomStep, ZoomPrecision);
             Size2F size = new((float)(_deviceContext.Size.Width * zoom), (float)(_deviceContext.Size.Height * zoom));
-            QuadTree quadTree = new(_factory, _deviceContext, _layerManager, size, ExtentsMatrix, OverallBounds, OverallDestRect, Levels, zoomStep, zoom);
+            QuadTree quadTree = new(_factory, _deviceContext, _layerManager, size, ExtentsMatrix, OverallBounds, OverallDestRect, Levels, zoomStep, zoom, _maxBitmapSize);
             QuadTrees.TryAdd(zoomStep, quadTree);
-            
+
+            stopwatch.Stop();
+            Debug.WriteLine($"AddQuadTree for zoomStep {zoomStep} took {stopwatch.ElapsedMilliseconds} ms");
+
             return quadTree;
         }
 
