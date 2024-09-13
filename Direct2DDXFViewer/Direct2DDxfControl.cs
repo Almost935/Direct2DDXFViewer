@@ -346,14 +346,25 @@ namespace Direct2DDXFViewer
         private void RenderQuadTree(DeviceContext1 deviceContext, QuadTree quadTree)
         {
             var nodes = quadTree.GetIntersectingNodes(_currentView);
-
+            Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
             foreach (var node in nodes)
             {
                 var destRect = node.DestRect;
                 destRect.Transform(_transformMatrix);
                 var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
                 deviceContext.DrawBitmap(node.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+                deviceContext.DrawRectangle(destRawRect, brush, 1.0f);
             }
+            brush.Dispose();
+
+
+            //foreach (var tup in quadTree.OverallBitmapTups)
+            //{
+            //    var destRect = tup.destRect;
+            //    destRect.Transform(_transformMatrix);
+            //    var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
+            //    deviceContext.DrawBitmap(tup.bitmap, destRawRect, 1, BitmapInterpolationMode.Linear);
+            //}
         }
         private void RenderIntersectingViewsToBitmap(RenderTarget renderTarget)
         {

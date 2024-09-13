@@ -28,7 +28,7 @@ namespace Direct2DDXFViewer
 
         #region Properties
         public List<DrawingObject> DrawingObjects { get; set; } = new();
-        public List<(Bitmap, Rect)> OverallBitmaps { get; set; } = new();
+        public List<(Bitmap bitmap, Rect destRect)> OverallBitmapTups { get; set; } = new();
         public RawMatrix3x2 ExtentsMatrix { get; set; }
         public Rect Bounds { get; set; }
         public Rect DestRect { get; set; }
@@ -54,7 +54,6 @@ namespace Direct2DDXFViewer
             Zoom = zoom;
             _maxBitmapSize = maxBitmapSize;
 
-            GetOverallBitmap();
             Initialize();
         }
         #endregion
@@ -63,7 +62,8 @@ namespace Direct2DDXFViewer
         private void Initialize()
         {
             GetDrawingObjects();
-            Root = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, ExtentsMatrix, Bounds, DestRect, OverallSize, Levels); 
+            GetOverallBitmap();
+            Root = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, ExtentsMatrix, Bounds, DestRect, OverallSize, Levels, OverallBitmapTups); 
         }
         public void GetOverallBitmap()
         {
@@ -82,9 +82,9 @@ namespace Direct2DDXFViewer
             double destHeight = DestRect.Height / divisions; 
 
 
-            for (int w = 1; w <= divisions; w++) // width
+            for (int w = 0; w < divisions; w++) // width
             {
-                for (int h = 1; h <= divisions; h++) // height
+                for (int h = 0; h < divisions; h++) // height
                 {
                     BitmapRenderTarget target = new(_deviceContext, CompatibleRenderTargetOptions.None, new Size2F(bitmapWidth, bitmapHeight))
                     {
@@ -92,7 +92,7 @@ namespace Direct2DDXFViewer
                         AntialiasMode = AntialiasMode.PerPrimitive
                     };
                     Rect destRect = new(destWidth * w, destHeight * h, destWidth, destHeight);
-                    RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)(ExtentsMatrix.M31 - destWidth * w), (float)(ExtentsMatrix.M32 - destHeight * h));
+                    RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)(ExtentsMatrix.M31 - bitmapWidth * w), (float)(ExtentsMatrix.M32 - bitmapHeight * h));
                     target.BeginDraw();
                     target.Transform = matrix;
                     foreach (var obj in DrawingObjects)
@@ -100,11 +100,10 @@ namespace Direct2DDXFViewer
                         obj.DrawToRenderTarget(target, 1, obj.Brush, obj.HairlineStrokeStyle);
                     }
                     target.EndDraw();
-                    OverallBitmaps.Add((target.Bitmap, destRect));
+                    OverallBitmapTups.Add((target.Bitmap, destRect));
                     target.Dispose();
                 }
             }
-            Debug.WriteLine($"")
         }
         private void GetDrawingObjects()
         {

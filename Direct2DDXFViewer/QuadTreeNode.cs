@@ -24,6 +24,7 @@ namespace Direct2DDXFViewer
         #region Fields
         private Factory1 _factory;
         private DeviceContext1 _deviceContext;
+        private List<(Bitmap bitmap, Rect destRect)> _overallBitmapTups;
         #endregion
 
         #region Properties
@@ -40,7 +41,7 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTreeNode(Factory1 factory, DeviceContext1 deviceContext, List<DrawingObject> drawingObjects, int zoomStep, float zoom, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, Size2F size, int level)
+        public QuadTreeNode(Factory1 factory, DeviceContext1 deviceContext, List<DrawingObject> drawingObjects, int zoomStep, float zoom, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, Size2F size, int level, List<(Bitmap, Rect)> overallBitmapTups)
         {
             //Stopwatch stopwatch = Stopwatch.StartNew();
             //Debug.WriteLine($"\nQuadTreeNode Begin: ZoomStep: {zoomStep} Level: {Level}");
@@ -55,6 +56,7 @@ namespace Direct2DDXFViewer
             DestRect = destRect;
             Size = size;
             Level = level;
+            _overallBitmapTups = overallBitmapTups;
 
             Subdivide();
 
@@ -117,12 +119,21 @@ namespace Direct2DDXFViewer
 
             bitmapRenderTarget.BeginDraw();
             bitmapRenderTarget.Clear(new RawColor4());
-            bitmapRenderTarget.Transform = ExtentsMatrix;
+            //bitmapRenderTarget.Transform = ExtentsMatrix;
 
-            foreach (var drawingObject in DrawingObjects)
+            //foreach (var drawingObject in DrawingObjects)
+            //{
+            //    drawingObject.DrawToRenderTarget(bitmapRenderTarget, 1, drawingObject.Brush, drawingObject.HairlineStrokeStyle);
+            //}
+
+            foreach (var tup in _overallBitmapTups)
             {
-                drawingObject.DrawToRenderTarget(bitmapRenderTarget, 1, drawingObject.Brush, drawingObject.HairlineStrokeStyle);
+                RawRectangleF rect = new((float)(tup.destRect.Left - DestRect.Left), (float)(tup.destRect.Top - DestRect.Top), (float)(tup.destRect.Right - DestRect.Right), (float)(tup.destRect.Bottom - DestRect.Bottom));
+                RawRectangleF sourceRect = new((float)DestRect.Left, (float)DestRect.Top, (float)DestRect.Right, (float)DestRect.Bottom);
+                RawRectangleF testSourceRect = new(0, 0, 10000, 10000);
+                bitmapRenderTarget.DrawBitmap(tup.bitmap, rect, 1, BitmapInterpolationMode.Linear);
             }
+
             Bitmap = bitmapRenderTarget.Bitmap;
             bitmapRenderTarget.EndDraw();
             bitmapRenderTarget.Dispose();
@@ -200,10 +211,10 @@ namespace Direct2DDXFViewer
 
                 Size2F size = new(Size.Width / 2, Size.Height / 2);
 
-                ChildNodes[0] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m1, bounds1, destRect1, size, Level - 1);
-                ChildNodes[1] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m2, bounds2, destRect2, size, Level - 1);
-                ChildNodes[2] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m3, bounds3, destRect3, size, Level - 1);
-                ChildNodes[3] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m4, bounds4, destRect4, size, Level - 1);
+                ChildNodes[0] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m1, bounds1, destRect1, size, Level - 1, _overallBitmapTups);
+                ChildNodes[1] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m2, bounds2, destRect2, size, Level - 1, _overallBitmapTups);
+                ChildNodes[2] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m3, bounds3, destRect3, size, Level - 1, _overallBitmapTups);
+                ChildNodes[3] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m4, bounds4, destRect4, size, Level - 1, _overallBitmapTups);
             }
             else // if Level == 0, this means the node is the final leaf node and thus will be used to draw
             {
