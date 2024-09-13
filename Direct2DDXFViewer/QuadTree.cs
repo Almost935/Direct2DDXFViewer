@@ -28,7 +28,7 @@ namespace Direct2DDXFViewer
 
         #region Properties
         public List<DrawingObject> DrawingObjects { get; set; } = new();
-        public List<Bitmap> OverallBitmaps { get; set; } = new();
+        public List<(Bitmap, Rect)> OverallBitmaps { get; set; } = new();
         public RawMatrix3x2 ExtentsMatrix { get; set; }
         public Rect Bounds { get; set; }
         public Rect DestRect { get; set; }
@@ -78,20 +78,33 @@ namespace Direct2DDXFViewer
             int divisions = (int)(Math.Pow(2, bitmapSplit));
             float bitmapWidth = (float)(OverallSize.Width / divisions);
             float bitmapHeight = (float)(OverallSize.Height / divisions);
+            double destWidth = DestRect.Width / divisions;
+            double destHeight = DestRect.Height / divisions; 
 
-            BitmapRenderTarget target = new(_deviceContext, CompatibleRenderTargetOptions.None, new Size2F(bitmapWidth, bitmapHeight)) 
-            {
-                DotsPerInch = new(96 * Zoom, 96 * Zoom),
-                AntialiasMode = AntialiasMode.PerPrimitive
-            };
 
-            for (int w = 1; w <= divisions; w++)
+            for (int w = 1; w <= divisions; w++) // width
             {
-                for (int h = 1; h <= divisions; h++)
+                for (int h = 1; h <= divisions; h++) // height
                 {
-                    RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.M31, (float)ExtentsMatrix.M32);
+                    BitmapRenderTarget target = new(_deviceContext, CompatibleRenderTargetOptions.None, new Size2F(bitmapWidth, bitmapHeight))
+                    {
+                        DotsPerInch = new(96 * Zoom, 96 * Zoom),
+                        AntialiasMode = AntialiasMode.PerPrimitive
+                    };
+                    Rect destRect = new(destWidth * w, destHeight * h, destWidth, destHeight);
+                    RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)(ExtentsMatrix.M31 - destWidth * w), (float)(ExtentsMatrix.M32 - destHeight * h));
+                    target.BeginDraw();
+                    target.Transform = matrix;
+                    foreach (var obj in DrawingObjects)
+                    {
+                        obj.DrawToRenderTarget(target, 1, obj.Brush, obj.HairlineStrokeStyle);
+                    }
+                    target.EndDraw();
+                    OverallBitmaps.Add((target.Bitmap, destRect));
+                    target.Dispose();
                 }
             }
+            Debug.WriteLine($"")
         }
         private void GetDrawingObjects()
         {
