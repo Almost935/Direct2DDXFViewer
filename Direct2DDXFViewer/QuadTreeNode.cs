@@ -24,7 +24,7 @@ namespace Direct2DDXFViewer
         #region Fields
         private Factory1 _factory;
         private DeviceContext1 _deviceContext;
-        private List<(Bitmap bitmap, Rect destRect)> _overallBitmapTups;
+        //private List<(Bitmap bitmap, Rect destRect)> _overallBitmapTups;
         #endregion
 
         #region Properties
@@ -41,7 +41,7 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTreeNode(Factory1 factory, DeviceContext1 deviceContext, List<DrawingObject> drawingObjects, int zoomStep, float zoom, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, Size2F size, int level, List<(Bitmap, Rect)> overallBitmapTups)
+        public QuadTreeNode(Factory1 factory, DeviceContext1 deviceContext, List<DrawingObject> drawingObjects, int zoomStep, float zoom, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, Size2F size, int level, Bitmap bitmap)
         {
             //Stopwatch stopwatch = Stopwatch.StartNew();
             //Debug.WriteLine($"\nQuadTreeNode Begin: ZoomStep: {zoomStep} Level: {Level}");
@@ -56,7 +56,8 @@ namespace Direct2DDXFViewer
             DestRect = destRect;
             Size = size;
             Level = level;
-            _overallBitmapTups = overallBitmapTups;
+            Bitmap = bitmap;
+            //_overallBitmapTups = overallBitmapTups;
 
             Subdivide();
 
@@ -106,41 +107,42 @@ namespace Direct2DDXFViewer
             }
             return nodes;
         }
-        public void DrawBitmap()
-        {
-            //Stopwatch stopwatch = Stopwatch.StartNew();
-            //Debug.WriteLine($"\nDrawBitmap Begin: ZoomStep: {ZoomStep}");
+        //public void DrawBitmap()
+        //{
+        //    //Stopwatch stopwatch = Stopwatch.StartNew();
+        //    //Debug.WriteLine($"\nDrawBitmap Begin: ZoomStep: {ZoomStep}");
 
-            BitmapRenderTarget bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, Size) 
-            {
-                DotsPerInch = new(96 * Zoom, 96 * Zoom),
-                AntialiasMode = AntialiasMode.PerPrimitive
-            };
+        //    BitmapRenderTarget bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, Size) 
+        //    {
+        //        DotsPerInch = new(96 * Zoom, 96 * Zoom),
+        //        AntialiasMode = AntialiasMode.PerPrimitive
+        //    };
 
-            bitmapRenderTarget.BeginDraw();
-            bitmapRenderTarget.Clear(new RawColor4());
-            //bitmapRenderTarget.Transform = ExtentsMatrix;
+        //    bitmapRenderTarget.BeginDraw();
+        //    bitmapRenderTarget.Clear(new RawColor4());
+        //    //bitmapRenderTarget.Transform = ExtentsMatrix;
 
-            //foreach (var drawingObject in DrawingObjects)
-            //{
-            //    drawingObject.DrawToRenderTarget(bitmapRenderTarget, 1, drawingObject.Brush, drawingObject.HairlineStrokeStyle);
-            //}
+        //    //foreach (var drawingObject in DrawingObjects)
+        //    //{
+        //    //    drawingObject.DrawToRenderTarget(bitmapRenderTarget, 1, drawingObject.Brush, drawingObject.HairlineStrokeStyle);
+        //    //}
 
-            foreach (var tup in _overallBitmapTups)
-            {
-                RawRectangleF rect = new((float)(tup.destRect.Left - DestRect.Left), (float)(tup.destRect.Top - DestRect.Top), (float)(tup.destRect.Right - DestRect.Right), (float)(tup.destRect.Bottom - DestRect.Bottom));
-                RawRectangleF sourceRect = new((float)DestRect.Left, (float)DestRect.Top, (float)DestRect.Right, (float)DestRect.Bottom);
-                RawRectangleF testSourceRect = new(0, 0, 10000, 10000);
-                bitmapRenderTarget.DrawBitmap(tup.bitmap, rect, 1, BitmapInterpolationMode.Linear);
-            }
+        //    foreach (var tup in _overallBitmapTups)
+        //    {
+        //        RawRectangleF rect = new((float)(tup.destRect.Left), (float)(tup.destRect.Top), (float)(tup.destRect.Right), (float)(tup.destRect.Bottom));
+        //        RawRectangleF sourceRect = new((float)DestRect.Left, (float)DestRect.Top, (float)DestRect.Right, (float)DestRect.Bottom);
+        //        RawRectangleF testSourceRect = new(0, 0, 10000, 10000);
 
-            Bitmap = bitmapRenderTarget.Bitmap;
-            bitmapRenderTarget.EndDraw();
-            bitmapRenderTarget.Dispose();
+        //        bitmapRenderTarget.DrawBitmap(tup.bitmap, rect, 1, BitmapInterpolationMode.Linear);
+        //    }
 
-            //stopwatch.Stop();
-            //Debug.WriteLine($"DrawBitmap End: ZoomStep: {ZoomStep} time: {stopwatch.ElapsedMilliseconds} ms");
-        }
+        //    Bitmap = bitmapRenderTarget.Bitmap;
+        //    bitmapRenderTarget.EndDraw();
+        //    bitmapRenderTarget.Dispose();
+
+        //    //stopwatch.Stop();
+        //    //Debug.WriteLine($"DrawBitmap End: ZoomStep: {ZoomStep} time: {stopwatch.ElapsedMilliseconds} ms");
+        //}
         private void Subdivide()
         {
             if (Level > 0)

@@ -28,7 +28,7 @@ namespace Direct2DDXFViewer
 
         #region Properties
         public List<DrawingObject> DrawingObjects { get; set; } = new();
-        public List<(Bitmap bitmap, Rect destRect)> OverallBitmapTups { get; set; } = new();
+        //public List<(Bitmap bitmap, Rect destRect)> OverallBitmapTups { get; set; } = new();
         public RawMatrix3x2 ExtentsMatrix { get; set; }
         public Rect Bounds { get; set; }
         public Rect DestRect { get; set; }
@@ -65,6 +65,7 @@ namespace Direct2DDXFViewer
             GetOverallBitmap();
             Root = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, ExtentsMatrix, Bounds, DestRect, OverallSize, Levels, OverallBitmapTups); 
         }
+        
         public void GetOverallBitmap()
         {
             float limitingDim = Math.Max(OverallSize.Width, OverallSize.Height);
@@ -79,8 +80,9 @@ namespace Direct2DDXFViewer
             float bitmapWidth = (float)(OverallSize.Width / divisions);
             float bitmapHeight = (float)(OverallSize.Height / divisions);
             double destWidth = DestRect.Width / divisions;
-            double destHeight = DestRect.Height / divisions; 
+            double destHeight = DestRect.Height / divisions;
 
+            Debug.WriteLine($"\nQuadtree: ZoomStep: {ZoomStep} bitmapWidth: {bitmapWidth} bitmapHeight: {bitmapHeight}");
 
             for (int w = 0; w < divisions; w++) // width
             {
