@@ -61,6 +61,22 @@ namespace Direct2DDXFViewer.DrawingObjects
             }
         }
 
+        public List<DrawingObject> GetDrawingObjectsinRect(Rect rect)
+        {
+            List<DrawingObject> drawingObjects = [];
+            foreach (var layer in Layers.Values)
+            {
+                foreach (var obj in layer.DrawingObjects)
+                {
+                    if (obj.DrawingObjectIsInRect(rect))
+                    {
+                        drawingObjects.Add(obj);
+                    }
+                }
+            }
+            return drawingObjects;
+        }
+
         public void Dispose()
         {
             Dispose(true);

@@ -27,14 +27,13 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Properties
-        public List<DrawingObject> DrawingObjects { get; set; } = new();
-        //public List<(Bitmap bitmap, Rect destRect)> OverallBitmapTups { get; set; } = new();
+        public List<DrawingObject> DrawingObjects { get; set; } = [];
         public RawMatrix3x2 ExtentsMatrix { get; set; }
         public Rect Bounds { get; set; }
         public Rect DestRect { get; set; }
         public Size2F OverallSize { get; set; }
         public int Levels { get; set; }
-        public QuadTreeNode Root { get; set; }
+        public List<QuadTreeNode> Roots { get; set; } = [];
         public int ZoomStep { get; set; }
         public float Zoom { get; set; }
         #endregion
@@ -61,12 +60,10 @@ namespace Direct2DDXFViewer
         #region Methods
         private void Initialize()
         {
-            GetDrawingObjects();
-            GetOverallBitmap();
-            Root = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, ExtentsMatrix, Bounds, DestRect, OverallSize, Levels, OverallBitmapTups); 
+            GetRoots();
+            //Root = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, ExtentsMatrix, Bounds, DestRect, OverallSize, Levels, OverallBitmapTups); 
         }
-        
-        public void GetOverallBitmap()
+        public void GetRoots()
         {
             float limitingDim = Math.Max(OverallSize.Width, OverallSize.Height);
             int bitmapSplit = 0;
@@ -80,9 +77,10 @@ namespace Direct2DDXFViewer
             float bitmapWidth = (float)(OverallSize.Width / divisions);
             float bitmapHeight = (float)(OverallSize.Height / divisions);
             double destWidth = DestRect.Width / divisions;
-            double destHeight = DestRect.Height / divisions;
+            double destHeight = DestRect.Height / divisions; 
 
-            Debug.WriteLine($"\nQuadtree: ZoomStep: {ZoomStep} bitmapWidth: {bitmapWidth} bitmapHeight: {bitmapHeight}");
+            double boundsWidth = Bounds.Width / divisions;
+            double boundsHeight = Bounds.Height / divisions;
 
             for (int w = 0; w < divisions; w++) // width
             {
@@ -93,16 +91,25 @@ namespace Direct2DDXFViewer
                         DotsPerInch = new(96 * Zoom, 96 * Zoom),
                         AntialiasMode = AntialiasMode.PerPrimitive
                     };
-                    Rect destRect = new(destWidth * w, destHeight * h, destWidth, destHeight);
+                    Rect destRect = new(DestRect.Left + destWidth * w, DestRect.Top + destHeight * h, destWidth, destHeight);
+                    Rect srcRect = new(bitmapWidth * w, bitmapHeight * h, bitmapWidth, bitmapHeight);
+                    Rect bounds = new(Bounds.Left + boundsWidth * w, Bounds.Top + boundsHeight * h, boundsWidth, boundsHeight);
+
+                    List<DrawingObject> objects = _layerManager.GetDrawingObjectsinRect(bounds);
+
                     RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)(ExtentsMatrix.M31 - bitmapWidth * w), (float)(ExtentsMatrix.M32 - bitmapHeight * h));
                     target.BeginDraw();
                     target.Transform = matrix;
-                    foreach (var obj in DrawingObjects)
+                    foreach (var obj in objects)
                     {
                         obj.DrawToRenderTarget(target, 1, obj.Brush, obj.HairlineStrokeStyle);
                     }
                     target.EndDraw();
-                    OverallBitmapTups.Add((target.Bitmap, destRect));
+
+                    QuadTreeNode node = new(_factory, _deviceContext, objects, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, OverallSize, Levels, target.Bitmap, srcRect);
+
+                    Roots.Add(node);
+
                     target.Dispose();
                 }
             }
@@ -118,14 +125,21 @@ namespace Direct2DDXFViewer
         {
             List<QuadTreeNode> quadTreeNodes = [];
 
-            quadTreeNodes.AddRange(Root.GetIntersectingQuadTreeNodes(view));
+            foreach (var root in Roots)
+            {
+                quadTreeNodes.AddRange(root.GetIntersectingQuadTreeNodes(view));
+            }
 
             return quadTreeNodes;
         }
         public List<QuadTreeNode> GetIntersectingNodes(Point p)
         {
             List<QuadTreeNode> quadTreeNodes = [];
-            quadTreeNodes.AddRange(Root.GetNodeAtPoint(p));
+
+            foreach (var root in Roots)
+            {
+                quadTreeNodes.AddRange(root.GetNodeAtPoint(p));
+            }
 
             return quadTreeNodes;
         }

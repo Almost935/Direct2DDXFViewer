@@ -24,24 +24,26 @@ namespace Direct2DDXFViewer
         #region Fields
         private Factory1 _factory;
         private DeviceContext1 _deviceContext;
-        //private List<(Bitmap bitmap, Rect destRect)> _overallBitmapTups;
+        //private List<(Bitmap bitmap, Rect srcRect)> _overallBitmapTups;
         #endregion
 
         #region Properties
         public Bitmap Bitmap { get; set; }
+        public Bitmap RootBitmap { get; set; }
         public List<DrawingObject> DrawingObjects { get; set; } = [];
         public int ZoomStep { get; set; }
         public float Zoom { get; set; }
         public RawMatrix3x2 ExtentsMatrix { get; set; }
         public Rect Bounds { get; set; }
         public Rect DestRect { get; set; }
+        public Rect SourceRect { get; set; }
         public Size2F Size { get; set; }
         public int Level { get; set; }
         public QuadTreeNode[] ChildNodes { get; set; }
         #endregion
 
         #region Constructors
-        public QuadTreeNode(Factory1 factory, DeviceContext1 deviceContext, List<DrawingObject> drawingObjects, int zoomStep, float zoom, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, Size2F size, int level, Bitmap bitmap)
+        public QuadTreeNode(Factory1 factory, DeviceContext1 deviceContext, List<DrawingObject> drawingObjects, int zoomStep, float zoom, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, Size2F size, int level, Bitmap rootBitmap, Rect srcRect)
         {
             //Stopwatch stopwatch = Stopwatch.StartNew();
             //Debug.WriteLine($"\nQuadTreeNode Begin: ZoomStep: {zoomStep} Level: {Level}");
@@ -56,8 +58,8 @@ namespace Direct2DDXFViewer
             DestRect = destRect;
             Size = size;
             Level = level;
-            Bitmap = bitmap;
-            //_overallBitmapTups = overallBitmapTups;
+            RootBitmap = rootBitmap;
+            SourceRect = srcRect;
 
             Subdivide();
 
@@ -107,42 +109,37 @@ namespace Direct2DDXFViewer
             }
             return nodes;
         }
-        //public void DrawBitmap()
-        //{
-        //    //Stopwatch stopwatch = Stopwatch.StartNew();
-        //    //Debug.WriteLine($"\nDrawBitmap Begin: ZoomStep: {ZoomStep}");
+        public void DrawBitmap()
+        {
+            //Stopwatch stopwatch = Stopwatch.StartNew();
+            //Debug.WriteLine($"\nDrawBitmap Begin: ZoomStep: {ZoomStep}");
 
-        //    BitmapRenderTarget bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, Size) 
-        //    {
-        //        DotsPerInch = new(96 * Zoom, 96 * Zoom),
-        //        AntialiasMode = AntialiasMode.PerPrimitive
-        //    };
+            BitmapRenderTarget bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, Size)
+            {
+                AntialiasMode = AntialiasMode.PerPrimitive
+            };
 
-        //    bitmapRenderTarget.BeginDraw();
-        //    bitmapRenderTarget.Clear(new RawColor4());
-        //    //bitmapRenderTarget.Transform = ExtentsMatrix;
+            bitmapRenderTarget.BeginDraw();
+            bitmapRenderTarget.Clear(new RawColor4());
+            //bitmapRenderTarget.Transform = ExtentsMatrix;
 
-        //    //foreach (var drawingObject in DrawingObjects)
-        //    //{
-        //    //    drawingObject.DrawToRenderTarget(bitmapRenderTarget, 1, drawingObject.Brush, drawingObject.HairlineStrokeStyle);
-        //    //}
+            //foreach (var drawingObject in DrawingObjects)
+            //{
+            //    drawingObject.DrawToRenderTarget(bitmapRenderTarget, 1, drawingObject.Brush, drawingObject.HairlineStrokeStyle);
+            //}
 
-        //    foreach (var tup in _overallBitmapTups)
-        //    {
-        //        RawRectangleF rect = new((float)(tup.destRect.Left), (float)(tup.destRect.Top), (float)(tup.destRect.Right), (float)(tup.destRect.Bottom));
-        //        RawRectangleF sourceRect = new((float)DestRect.Left, (float)DestRect.Top, (float)DestRect.Right, (float)DestRect.Bottom);
-        //        RawRectangleF testSourceRect = new(0, 0, 10000, 10000);
+            RawRectangleF sourceRect = new((float)SourceRect.Left, (float)SourceRect.Top, (float)SourceRect.Right, (float)SourceRect.Bottom);
+            bitmapRenderTarget.DrawBitmap(RootBitmap, 1, BitmapInterpolationMode.Linear, sourceRect);
 
-        //        bitmapRenderTarget.DrawBitmap(tup.bitmap, rect, 1, BitmapInterpolationMode.Linear);
-        //    }
+            //Debug.WriteLineIf(ZoomStep == 0, $"QuadTree: {SourceRect} {DestRect}");
 
-        //    Bitmap = bitmapRenderTarget.Bitmap;
-        //    bitmapRenderTarget.EndDraw();
-        //    bitmapRenderTarget.Dispose();
+            Bitmap = bitmapRenderTarget.Bitmap;
+            bitmapRenderTarget.EndDraw();
+            bitmapRenderTarget.Dispose();
 
-        //    //stopwatch.Stop();
-        //    //Debug.WriteLine($"DrawBitmap End: ZoomStep: {ZoomStep} time: {stopwatch.ElapsedMilliseconds} ms");
-        //}
+            //stopwatch.Stop();
+            //Debug.WriteLine($"DrawBitmap End: ZoomStep: {ZoomStep} time: {stopwatch.ElapsedMilliseconds} ms");
+        }
         private void Subdivide()
         {
             if (Level > 0)
@@ -164,11 +161,18 @@ namespace Direct2DDXFViewer
 
                 // Represents the destination rectangle of each quadrant.
                 Size halfDestRectSize = new(DestRect.Width / 2, DestRect.Height / 2);
-
                 Rect destRect1 = new(DestRect.Left + (halfDestRectSize.Width * factor1.X), DestRect.Top + (halfDestRectSize.Height * factor1.Y), halfDestRectSize.Width, halfDestRectSize.Height);
                 Rect destRect2 = new(DestRect.Left + (halfDestRectSize.Width * factor2.X), DestRect.Top + (halfDestRectSize.Height * factor2.Y), halfDestRectSize.Width, halfDestRectSize.Height);
                 Rect destRect3 = new(DestRect.Left + (halfDestRectSize.Width * factor3.X), DestRect.Top + (halfDestRectSize.Height * factor3.Y), halfDestRectSize.Width, halfDestRectSize.Height);
                 Rect destRect4 = new(DestRect.Left + (halfDestRectSize.Width * factor4.X), DestRect.Top + (halfDestRectSize.Height * factor4.Y), halfDestRectSize.Width, halfDestRectSize.Height);
+
+                // Represents the source rectangle of each quadrant4
+                Size bitmapSize = new(RootBitmap.Size.Width, RootBitmap.Size.Height);
+                Size halfSrcSize = new(SourceRect.Width / 2, SourceRect.Height / 2);
+                Rect srcRect1 = new(SourceRect.Left + (halfSrcSize.Width * factor1.X), SourceRect.Top + (halfSrcSize.Height * factor1.Y), halfSrcSize.Width, halfSrcSize.Height);
+                Rect srcRect2 = new(SourceRect.Left + (halfSrcSize.Width * factor2.X), SourceRect.Top + (halfSrcSize.Height * factor2.Y), halfSrcSize.Width, halfSrcSize.Height);
+                Rect srcRect3 = new(SourceRect.Left + (halfSrcSize.Width * factor3.X), SourceRect.Top + (halfSrcSize.Height * factor3.Y), halfSrcSize.Width, halfSrcSize.Height);
+                Rect srcRect4 = new(SourceRect.Left + (halfSrcSize.Width * factor4.X), SourceRect.Top + (halfSrcSize.Height * factor4.Y), halfSrcSize.Width, halfSrcSize.Height);
 
                 // Matrices to make each quadrant's drawing objects appear in the correct location
                 RawMatrix3x2 m1 = new(ExtentsMatrix.M11, ExtentsMatrix.M12, ExtentsMatrix.M21, ExtentsMatrix.M22,
@@ -213,10 +217,10 @@ namespace Direct2DDXFViewer
 
                 Size2F size = new(Size.Width / 2, Size.Height / 2);
 
-                ChildNodes[0] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m1, bounds1, destRect1, size, Level - 1, _overallBitmapTups);
-                ChildNodes[1] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m2, bounds2, destRect2, size, Level - 1, _overallBitmapTups);
-                ChildNodes[2] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m3, bounds3, destRect3, size, Level - 1, _overallBitmapTups);
-                ChildNodes[3] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m4, bounds4, destRect4, size, Level - 1, _overallBitmapTups);
+                ChildNodes[0] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m1, bounds1, destRect1, size, Level - 1, RootBitmap, srcRect1);
+                ChildNodes[1] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m2, bounds2, destRect2, size, Level - 1, RootBitmap, srcRect2);
+                ChildNodes[2] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m3, bounds3, destRect3, size, Level - 1, RootBitmap, srcRect3);
+                ChildNodes[3] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m4, bounds4, destRect4, size, Level - 1, RootBitmap, srcRect4);
             }
             else // if Level == 0, this means the node is the final leaf node and thus will be used to draw
             {
