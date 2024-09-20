@@ -19,6 +19,13 @@
   <ItemGroup>
     <Compile Remove="BitmapHelpers\InteractiveBitmap.cs" />
     <Compile Remove="BitmapHelpers\ZoomBitmap.cs" />
+    <Compile Remove="TestQuadTree.cs" />
+    <Compile Remove="TestQuadTreeCache.cs" />
+    <Compile Remove="TestQuadTreeNode.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Remove="5.xaml" />
   </ItemGroup>
 
   <ItemGroup>

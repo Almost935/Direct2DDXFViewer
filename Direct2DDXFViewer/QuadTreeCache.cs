@@ -6,6 +6,7 @@ using SharpDX.Mathematics.Interop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,11 +17,12 @@ namespace Direct2DDXFViewer
     public class QuadTreeCache
     {
         #region Fields
-        private Factory1 _factory;
-        private DeviceContext1 _deviceContext;
-        private ObjectLayerManager _layerManager;
-        private int _bitmapReuseFactor;
-        private int _maxBitmapSize;
+        private readonly Factory1 _factory;
+        private readonly DeviceContext1 _deviceContext;
+        private readonly ObjectLayerManager _layerManager;
+        private readonly int _bitmapReuseFactor;
+        private readonly int _maxBitmapSize;
+        private string _tempFolderPath;
         #endregion
 
         #region Properties
@@ -44,12 +46,11 @@ namespace Direct2DDXFViewer
         public RawMatrix3x2 ExtentsMatrix { get; set; }
         public Rect OverallBounds { get; set; }
         public Rect OverallDestRect { get; set; }
-        public int Levels { get; set; }
         public QuadTree BaseQuadTree { get; set; }
         #endregion
 
         #region Constructors
-        public QuadTreeCache(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, int zoomStepUpperLimit, int zoomStepLowerLimit, int maxBitmapSize, int bitmapReuseFactor, float zoomFactor, int zoomPrecision, RawMatrix3x2 extentsMatrix, Rect overallBounds, int levels)
+        public QuadTreeCache(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, int zoomStepUpperLimit, int zoomStepLowerLimit, int maxBitmapSize, int bitmapReuseFactor, float zoomFactor, int zoomPrecision, RawMatrix3x2 extentsMatrix, Rect overallBounds)
         {
             _factory = factory;
             _deviceContext = deviceContext;
@@ -63,8 +64,8 @@ namespace Direct2DDXFViewer
             ExtentsMatrix = extentsMatrix;
             OverallBounds = overallBounds;
             OverallDestRect = new(0, 0, _deviceContext.Size.Width, _deviceContext.Size.Height);
-            Levels = levels;
 
+            CreateTempFolder();     
             InitializeQuadTrees();
         }
         #endregion
@@ -95,7 +96,7 @@ namespace Direct2DDXFViewer
 
             float zoom = MathHelpers.GetZoom(ZoomFactor, zoomStep, ZoomPrecision);
             Size2F size = new((float)(_deviceContext.Size.Width * zoom), (float)(_deviceContext.Size.Height * zoom));
-            QuadTree quadTree = new(_factory, _deviceContext, _layerManager, size, ExtentsMatrix, OverallBounds, OverallDestRect, Levels, zoomStep, zoom, _maxBitmapSize);
+            QuadTree quadTree = new(_factory, _deviceContext, _layerManager, size, ExtentsMatrix, OverallBounds, OverallDestRect, zoomStep, zoom, _maxBitmapSize, _tempFolderPath);
             QuadTrees.TryAdd(zoomStep, quadTree);
 
             stopwatch.Stop();
@@ -118,6 +119,17 @@ namespace Direct2DDXFViewer
                 zoomStep -= 1;
             }
             return zoomStep;
+        }
+
+        private void CreateTempFolder()
+        {
+            _tempFolderPath = Path.Combine(Path.GetTempPath(), "CadViewer");
+
+            if (Directory.Exists(_tempFolderPath))
+            {
+                Directory.Delete(_tempFolderPath, true);
+            }
+            Directory.CreateDirectory(_tempFolderPath);
         }
         #endregion
     }

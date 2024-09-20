@@ -47,7 +47,7 @@ namespace Direct2DDXFViewer
         private const int _bitmapReuseFactor = 2;
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
-        private const int _quadtreeUpperZoomStepLimit = 10;
+        private const int _quadtreeUpperZoomStepLimit = 12;
         private const int _quadtreeLowerZoomStepLimit = 0;
 
         private Matrix _transformMatrix = new();
@@ -69,13 +69,12 @@ namespace Direct2DDXFViewer
         private BitmapRenderTarget _offscreenRenderTarget;
         private BitmapRenderTarget _interactiveRenderTarget;
         private int _quadTreeLevels;
-        private QuadTree _baseQuadTree;
         private QuadTreeCache _quadTreeCache;
-        private TestQuadTreeCache _testQuadTreeCache;
         private QuadTree _currentQuadTree;
+        private DrawingObjectTree _drawingObjectTree;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\LargeDxf.dxf";
+        private string _filePath = @"DXF\SmallDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
@@ -248,12 +247,12 @@ namespace Direct2DDXFViewer
 
             //_bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _zoomPrecision, resCache.MaxBitmapSize, _numBitmapDivisions, _bitmapReuseFactor);
 
-            _quadTreeLevels = CalculateQuadTreeLevels(_dxfObjectCount, 100);
             //_quadTreeLevels = 2;
-            _quadTreeCache = new(factory, deviceContext, _layerManager, _quadtreeUpperZoomStepLimit, _quadtreeLowerZoomStepLimit, resCache.MaxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView, _quadTreeLevels);
-            //_testQuadTreeCache = new(deviceContext, factory, _layerManager, _extents, ExtentsMatrix, resCache, _zoomFactor);
-            _baseQuadTree = _quadTreeCache.BaseQuadTree;
+            _quadTreeCache = new(factory, deviceContext, _layerManager, _quadtreeUpperZoomStepLimit, _quadtreeLowerZoomStepLimit, resCache.MaxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView);
             _currentQuadTree = _quadTreeCache.BaseQuadTree;
+
+            _quadTreeLevels = CalculateQuadTreeLevels(_dxfObjectCount, 100);
+            _drawingObjectTree = new(_layerManager, Extents, 3);
         }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
@@ -355,7 +354,7 @@ namespace Direct2DDXFViewer
             var nodes = quadTree.GetIntersectingNodes(_currentView);
 
             stopwatch.Stop();
-            Debug.WriteLine($"\nFind Nodes: {stopwatch.ElapsedMilliseconds}");
+            //Debug.WriteLine($"\nFind Nodes: {stopwatch.ElapsedMilliseconds}");
 
             stopwatch.Restart();
             Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
@@ -371,7 +370,7 @@ namespace Direct2DDXFViewer
             brush.Dispose();
 
             stopwatch.Stop();
-            Debug.WriteLine($"Draw nodes: {stopwatch.ElapsedMilliseconds}");
+            //Debug.WriteLine($"Draw nodes: {stopwatch.ElapsedMilliseconds}");
         }
         private void RenderIntersectingViewsToBitmap(RenderTarget renderTarget)
         {
@@ -537,12 +536,15 @@ namespace Direct2DDXFViewer
                 }
             }
 
-            var views = _baseQuadTree.GetIntersectingNodes(DxfPointerCoords);
+            var views = _drawingObjectTree.GetIntersectingNodes(DxfPointerCoords);
+
+            int count = 0;
 
             foreach (var view in views)
             {
                 foreach (var obj in view.DrawingObjects)
                 {
+                    count++;
                     if (obj.Layer.IsVisible)
                     {
                         if (obj.Hittest(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness))
@@ -551,11 +553,15 @@ namespace Direct2DDXFViewer
                             SnappedObject.IsSnapped = true;
                             _deviceContextIsDirty = true;
 
+                            Debug.WriteLine($"SnappedObject found, count = {count}");
+
                             return;
                         }
                     }
                 }
             }
+
+            Debug.WriteLine($"No objects found, count = {count}");
         }
         private void HitTestPoints()
         {
@@ -575,35 +581,10 @@ namespace Direct2DDXFViewer
             Stopwatch stopwatch = Stopwatch.StartNew();
 
 
-            if (LayerManager is not null && _visibleObjectsDirty && _baseQuadTree is not null)
+            if (LayerManager is not null && _visibleObjectsDirty && _drawingObjectTree is not null)
             {
-                //_visibleDrawingObjects.Clear();
-
-                //foreach (var layer in LayerManager.Layers.Values)
-                //{
-                //    if (layer is not null)
-                //    {
-                //        foreach (var obj in layer.DrawingObjects)
-                //        {
-                //            Rect view = _currentDxfView;
-                //            view.Inflate(_currentDxfView.Width * 0.25, _currentDxfView.Height * 0.25);
-                //            obj.IsInView = obj.DrawingObjectIsInRect(_currentDxfView);
-
-                //            if (obj.IsInView)
-                //            {
-                //                _visibleDrawingObjects.Add(obj);
-                //            }
-                //        }
-                //    }
-                //}
-
-                //stopwatch.Stop();
-                //Debug.WriteLine($"Traditional get visibile objects: {stopwatch.ElapsedMilliseconds}");
-
-                //stopwatch.Restart();
-
                 _visibleDrawingObjects.Clear();
-                var views = _baseQuadTree.GetIntersectingNodes(_currentDxfView);
+                var views = _drawingObjectTree.GetIntersectingNodes(_currentDxfView);
                 foreach (var view in views)
                 {
                     foreach (var obj in view.DrawingObjects)
