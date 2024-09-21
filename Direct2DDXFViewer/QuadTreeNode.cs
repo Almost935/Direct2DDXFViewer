@@ -24,6 +24,9 @@ using PixelFormat = SharpDX.Direct2D1.PixelFormat;
 using System.IO;
 using SolidColorBrush = SharpDX.Direct2D1.SolidColorBrush;
 using System.Text.Json;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SharpDX.IO;
 
 namespace Direct2DDXFViewer
 {
@@ -125,30 +128,39 @@ namespace Direct2DDXFViewer
         }
         public void DrawBitmap()
         {
-            //Stopwatch stopwatch = Stopwatch.StartNew();
-            //Debug.WriteLine($"\nDrawBitmap Begin: ZoomStep: {ZoomStep}");
-
-            //BitmapRenderTarget bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, Size)
+            //ImagingFactory imagingFactory = new ImagingFactory();
+            //WicBitmap = new(imagingFactory, (int)Size.Width, (int)Size.Height, SharpDX.WIC.PixelFormat.Format32bppPRGBA, BitmapCreateCacheOption.CacheOnDemand);
+            //RenderTargetProperties properties = new RenderTargetProperties();
+            //WicRenderTarget target = new(_factory, WicBitmap, properties)
             //{
             //    AntialiasMode = AntialiasMode.PerPrimitive
             //};
-
-            //bitmapRenderTarget.BeginDraw();
-            //bitmapRenderTarget.Clear(new RawColor4());
-
+            //target.BeginDraw();
             //RawRectangleF sourceRect = new((float)SourceRect.Left, (float)SourceRect.Top, (float)SourceRect.Right, (float)SourceRect.Bottom);
-            //bitmapRenderTarget.DrawBitmap(RootBitmap, 1, BitmapInterpolationMode.Linear, sourceRect);
 
-            ////Debug.WriteLineIf(ZoomStep == 0, $"QuadTree: {SourceRect} {DestRect}");
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            Debug.WriteLine($"\nDrawBitmap Begin: ZoomStep: {ZoomStep}");
 
-            //Bitmap = bitmapRenderTarget.Bitmap;
-            //bitmapRenderTarget.EndDraw();
-            //bitmapRenderTarget.Dispose();
+            BitmapRenderTarget bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, Size)
+            {
+                AntialiasMode = AntialiasMode.PerPrimitive
+            };
+            bitmapRenderTarget.BeginDraw();
+            bitmapRenderTarget.Clear(new RawColor4());
 
-            //SaveBitmap();
+            RawRectangleF sourceRect = new((float)SourceRect.Left, (float)SourceRect.Top, (float)SourceRect.Right, (float)SourceRect.Bottom);
+            bitmapRenderTarget.DrawBitmap(RootBitmap, 1, BitmapInterpolationMode.Linear, sourceRect);
 
-            //stopwatch.Stop();
-            //Debug.WriteLine($"DrawBitmap End: ZoomStep: {ZoomStep} time: {stopwatch.ElapsedMilliseconds} ms");
+            //Debug.WriteLineIf(ZoomStep == 0, $"QuadTree: {SourceRect} {DestRect}");
+
+            Bitmap = bitmapRenderTarget.Bitmap;
+            bitmapRenderTarget.EndDraw();
+            bitmapRenderTarget.Dispose();
+
+            SaveBitmap();
+
+            stopwatch.Stop();
+            Debug.WriteLine($"DrawBitmap End: ZoomStep: {ZoomStep} time: {stopwatch.ElapsedMilliseconds} ms");
         }
         private void Subdivide()
         {
@@ -239,57 +251,18 @@ namespace Direct2DDXFViewer
         }
         public void SaveBitmap()
         {
-            //Size2 size = Bitmap.PixelSize;
-            //var pixelFormat1 = Bitmap.PixelFormat.Format; // Use the original bitmap's pixel format
-            //var bitmapProperties = new BitmapProperties1
-            //{
-            //    PixelFormat = new PixelFormat(pixelFormat1, AlphaMode.Premultiplied),
-            //    DpiX = 96 * Zoom,
-            //    DpiY = 96 * Zoom
-            //};
-            //Bitmap1 bitmap = new(_deviceContext, size, bitmapProperties);
+            BitmapRenderTarget renderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, new Size2F(Bitmap.PixelSize.Width, Bitmap.Size.Height));
+            renderTarget.BeginDraw();
+            renderTarget.DrawBitmap(Bitmap, 1, BitmapInterpolationMode.Linear);
+            renderTarget.EndDraw();
 
-            //Bitmap1 bitmap1 = new(_deviceContext, Bitmap.PixelSize, bitmapProperties);
-            //int x = 0;
-            //bitmap1.CopyFromBitmap(Bitmap);
+            Bitmap1 bitmap1 = new(_deviceContext, new Size2(Bitmap.PixelSize.Width, Bitmap.PixelSize.Height), new BitmapProperties1(Bitmap.PixelFormat, Bitmap.DotsPerInch.Width, Bitmap.DotsPerInch.Height));
+            bitmap1.CopyFromBitmap(renderTarget.Bitmap);
 
-            var wicFactory = new ImagingFactory();
-            SharpDX.WIC.Bitmap wicBitmap = new(wicFactory, Bitmap.PixelSize.Width, Bitmap.PixelSize.Height,
-                SharpDX.WIC.PixelFormat.Format32bppPRGBA, BitmapCreateCacheOption.CacheOnLoad);
-            var rtp = new RenderTargetProperties(new PixelFormat(SharpDX.DXGI.Format.B8G8R8X8_UNorm, AlphaMode.Premultiplied));
-
-            WicRenderTarget wicRenderTarget = new(_factory, wicBitmap, rtp);
-            wicRenderTarget.BeginDraw();
-            wicRenderTarget.DrawBitmap(Bitmap, 1, BitmapInterpolationMode.Linear);
-            wicRenderTarget.EndDraw();
-
-            MemoryStream memoryStream = new();
-            WICStream wicStream = new(wicFactory, memoryStream);
-
-            BitmapEncoder encoder = new(wicFactory, ContainerFormatGuids.Png, wicStream);
-            encoder.Initialize(wicStream);
-
-            BitmapFrameEncode frameEncoder = new(encoder);
-            frameEncoder.Initialize();
-            frameEncoder.SetSize(Bitmap.PixelSize.Width, Bitmap.PixelSize.Height);
-            var pixelFormat = SharpDX.WIC.PixelFormat.FormatDontCare;
-            frameEncoder.SetPixelFormat(ref pixelFormat);
-
-            frameEncoder.WriteSource(wicBitmap);
-            frameEncoder.Commit();
-            encoder.Commit();
-
-            using (var fileStream = new FileStream(_filePath, FileMode.Create, FileAccess.Write))
-            {
-                memoryStream.CopyTo(fileStream);
-            }
-
-            frameEncoder.Dispose();
-            encoder.Dispose();
-            wicStream.Dispose();
-            wicBitmap.Dispose();
-            wicRenderTarget.Dispose();
-            wicFactory.Dispose();
+            ImagingFactory imagingFactory = new();
+            PngBitmapEncoder encoder = new(imagingFactory);
+            BitmapFrameEncode frameEncode = new(encoder);
+            frameEncode.WriteSource(bitmap1);
         }
         public void LoadBitmap()
         {

@@ -2,6 +2,7 @@
 using Direct2DDXFViewer.BitmapHelpers;
 using Direct2DDXFViewer.DrawingObjects;
 using Direct2DDXFViewer.Helpers;
+using netDxf.Entities;
 using netDxf.Tables;
 using SharpDX;
 using SharpDX.Direct2D1;
@@ -15,8 +16,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Media;
+
 using Bitmap = SharpDX.Direct2D1.Bitmap;
+using Point = System.Windows.Point;
 
 namespace Direct2DDXFViewer
 {
@@ -29,6 +31,8 @@ namespace Direct2DDXFViewer
         private int _maxBitmapSize;
         private string _tempPath;
         private string _tempFileFolderPath;
+        private Dictionary<(byte r, byte g, byte b, byte a), Brush> _brushes = new();
+
         #endregion
 
         #region Properties
@@ -109,18 +113,40 @@ namespace Direct2DDXFViewer
             {
                 for (int h = 0; h < divisions; h++) // height
                 {
-                   
-                    //WicRenderTarget wicRenderTarget = new(_factory, WicBitmap, properties,);
-                    //wicRenderTarget.BeginDraw();
-                    //RawRectangleF sourceRect = new((float)Bounds.Left, (float)Bounds.Top, (float)(Bounds.Left + (w * boundsWidth)), (float)(Bounds.Top + (h * boundsHeight)));
-                    //wicRenderTarget.DrawBitmap(RootBitmap, 1, SharpDX.WIC.BitmapInterpolationMode.Linear, sourceRect);
-                    //wicRenderTarget.EndDraw();
+                    //ImagingFactory imagingFactory = new ImagingFactory();
+                    //WicBitmap = new(imagingFactory, (int)bitmapWidth, (int)bitmapHeight, SharpDX.WIC.PixelFormat.Format32bppPRGBA, BitmapCreateCacheOption.CacheOnDemand);
+                    //RenderTargetProperties properties = new RenderTargetProperties();
+                    //WicRenderTarget target = new(_factory, WicBitmap, properties)
+                    //{
+                    //    DotsPerInch = new(96 * Zoom, 96 * Zoom),
+                    //    AntialiasMode = AntialiasMode.PerPrimitive
+                    //};
+                    //Rect destRect = new(DestRect.Left + destWidth * w, DestRect.Top + destHeight * h, destWidth, destHeight);
+                    //Rect srcRect = new(bitmapWidth * w, bitmapHeight * h, bitmapWidth, bitmapHeight);
+                    //Rect bounds = new(Bounds.Left + boundsWidth * w, Bounds.Top + boundsHeight * h, boundsWidth, boundsHeight);
+
+                    //List<DrawingObject> objects = _layerManager.GetDrawingObjectsinRect(bounds);
+
+                    //RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)(ExtentsMatrix.M31 - bitmapWidth * w), (float)(ExtentsMatrix.M32 - bitmapHeight * h));
+                    //target.BeginDraw();
+                    //target.Transform = matrix;
+
+                    //foreach (var obj in objects)
+                    //{
+                    //    Brush brush = GetDrawingObjectBrush(obj.Entity, target);
+                    //    obj.DrawToRenderTarget(target, 1, brush, obj.HairlineStrokeStyle);
+                    //}
+                    //target.EndDraw();
+
+                    //QuadTreeNode node = new(_factory, _deviceContext, objects, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, OverallSize, Levels, WicBitmap, srcRect, _tempFileFolderPath);
+                    //Roots.Add(node);
+
+                    //target.Dispose();
+                    //foreach (var brush in _brushes.Values) { brush.Dispose(); }
+                    //_brushes.Clear();
 
 
-                    ImagingFactory imagingFactory = new ImagingFactory();
-                    WicBitmap = new(imagingFactory, (int)bitmapWidth, (int)bitmapHeight, SharpDX.WIC.PixelFormat.Format32bppPRGBA, BitmapCreateCacheOption.CacheOnDemand);
-                    RenderTargetProperties properties = new RenderTargetProperties();
-                    WicRenderTarget target = new(_factory, WicBitmap, properties)
+                    BitmapRenderTarget target = new(_deviceContext, CompatibleRenderTargetOptions.None, new Size2F(bitmapWidth, bitmapHeight))
                     {
                         DotsPerInch = new(96 * Zoom, 96 * Zoom),
                         AntialiasMode = AntialiasMode.PerPrimitive
@@ -140,41 +166,50 @@ namespace Direct2DDXFViewer
                     }
                     target.EndDraw();
 
+                    RootBitmap = target.Bitmap;
                     QuadTreeNode node = new(_factory, _deviceContext, objects, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, OverallSize, Levels, target.Bitmap, srcRect, _tempFileFolderPath);
 
                     Roots.Add(node);
 
                     target.Dispose();
-
-
-                    //BitmapRenderTarget target = new(_deviceContext, CompatibleRenderTargetOptions.None, new Size2F(bitmapWidth, bitmapHeight))
-                    //{
-                    //    DotsPerInch = new(96 * Zoom, 96 * Zoom),
-                    //    AntialiasMode = AntialiasMode.PerPrimitive
-                    //};
-                    //Rect destRect = new(DestRect.Left + destWidth * w, DestRect.Top + destHeight * h, destWidth, destHeight);
-                    //Rect srcRect = new(bitmapWidth * w, bitmapHeight * h, bitmapWidth, bitmapHeight);
-                    //Rect bounds = new(Bounds.Left + boundsWidth * w, Bounds.Top + boundsHeight * h, boundsWidth, boundsHeight);
-
-                    //List<DrawingObject> objects = _layerManager.GetDrawingObjectsinRect(bounds);
-
-                    //RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)(ExtentsMatrix.M31 - bitmapWidth * w), (float)(ExtentsMatrix.M32 - bitmapHeight * h));
-                    //target.BeginDraw();
-                    //target.Transform = matrix;
-                    //foreach (var obj in objects)
-                    //{
-                    //    obj.DrawToRenderTarget(target, 1, obj.Brush, obj.HairlineStrokeStyle);
-                    //}
-                    //target.EndDraw();
-
-                    //RootBitmap = target.Bitmap;
-                    //QuadTreeNode node = new(_factory, _deviceContext, objects, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, OverallSize, Levels, target.Bitmap, srcRect, _tempFileFolderPath);
-
-                    //Roots.Add(node);
-
-                    //target.Dispose();
                 }
             }
+        }
+
+        private Brush GetDrawingObjectBrush(EntityObject entity, WicRenderTarget target)
+        {
+            byte r, g, b, a;
+            if (entity.Color.IsByLayer)
+            {
+                if (entity.Layer.Color.R == 255 && entity.Layer.Color.G == 255 && entity.Layer.Color.B == 255)
+                {
+                    r = g = b = 0; a = 255;
+                }
+                else
+                {
+                    r = entity.Layer.Color.R; g = entity.Layer.Color.G; b = entity.Layer.Color.B; a = 255;
+                }
+            }
+            else
+            {
+                if (entity.Color.R == 255 && entity.Color.G == 255 && entity.Color.B == 255)
+                {
+                    r = g = b = 0; a = 255;
+                }
+                else
+                {
+                    r = entity.Color.R; g = entity.Color.G; b = entity.Color.B; a = 255;
+                }
+            }
+
+            bool brushExists = _brushes.TryGetValue((r, g, b, a), out Brush brush);
+            if (!brushExists)
+            {
+                brush = new SolidColorBrush(target, new RawColor4((float)r / 255, (float)g / 255, (float)b / 255, 1.0f));
+                _brushes.Add((r, g, b, a), brush);
+            }
+
+            return brush;
         }
         public void GetRequiredLevels()
         {
