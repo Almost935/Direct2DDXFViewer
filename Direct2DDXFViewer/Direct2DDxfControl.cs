@@ -311,24 +311,6 @@ namespace Direct2DDXFViewer
                         RenderIntersectingViewsToBitmap(_offscreenRenderTarget);
                         deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
                     }
-
-                    //bool bitmapAvailable = _bitmapCache.TryUpdateCurrentDxfBitmap(CurrentZoomStep, out DxfBitmapView bitmapView);
-
-                    //if (!bitmapAvailable)
-                    //{
-                    //    if (_visibleObjectsDirty)
-                    //    {
-                    //        GetVisibleObjects();
-                    //    }
-
-                    //    RenderIntersectingViewsToBitmap(_offscreenRenderTarget);
-                    //    deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
-                    //}
-                    //else
-                    //{
-                    //    RenderBitmaps(deviceContext, bitmapView);
-                    //}
-
                     DrawInteractiveObjects(deviceContext, _interactiveRenderTarget);
 
                     deviceContext.EndDraw();

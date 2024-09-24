@@ -41,8 +41,7 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Properties
-        public Bitmap Bitmap { get; set; }
-        public SharpDX.WIC.Bitmap WicBitmap { get; set; }
+        public Bitmap1 Bitmap { get; set; }
         public Bitmap RootBitmap { get; set; }
         public List<DrawingObject> DrawingObjects { get; set; } = [];
         public int ZoomStep { get; set; }
@@ -62,7 +61,6 @@ namespace Direct2DDXFViewer
         {
             //Stopwatch stopwatch = Stopwatch.StartNew();
             //Debug.WriteLine($"\nQuadTreeNode Begin: ZoomStep: {zoomStep} Level: {Level}");
-
             _factory = factory;
             _deviceContext = deviceContext;
             DrawingObjects = drawingObjects;
@@ -75,7 +73,7 @@ namespace Direct2DDXFViewer
             Level = level;
             RootBitmap = rootBitmap;
             SourceRect = srcRect;
-            tempFileFolderPath = tempFileFolderPath;
+            _tempFileFolderPath = tempFileFolderPath;
             _filePath = Path.Combine(tempFileFolderPath, $"{Guid.NewGuid()}.png");
 
             Subdivide();
@@ -128,16 +126,6 @@ namespace Direct2DDXFViewer
         }
         public void DrawBitmap()
         {
-            //ImagingFactory imagingFactory = new ImagingFactory();
-            //WicBitmap = new(imagingFactory, (int)Size.Width, (int)Size.Height, SharpDX.WIC.PixelFormat.Format32bppPRGBA, BitmapCreateCacheOption.CacheOnDemand);
-            //RenderTargetProperties properties = new RenderTargetProperties();
-            //WicRenderTarget target = new(_factory, WicBitmap, properties)
-            //{
-            //    AntialiasMode = AntialiasMode.PerPrimitive
-            //};
-            //target.BeginDraw();
-            //RawRectangleF sourceRect = new((float)SourceRect.Left, (float)SourceRect.Top, (float)SourceRect.Right, (float)SourceRect.Bottom);
-
             Stopwatch stopwatch = Stopwatch.StartNew();
             Debug.WriteLine($"\nDrawBitmap Begin: ZoomStep: {ZoomStep}");
 
@@ -151,9 +139,8 @@ namespace Direct2DDXFViewer
             RawRectangleF sourceRect = new((float)SourceRect.Left, (float)SourceRect.Top, (float)SourceRect.Right, (float)SourceRect.Bottom);
             bitmapRenderTarget.DrawBitmap(RootBitmap, 1, BitmapInterpolationMode.Linear, sourceRect);
 
-            //Debug.WriteLineIf(ZoomStep == 0, $"QuadTree: {SourceRect} {DestRect}");
-
-            Bitmap = bitmapRenderTarget.Bitmap;
+            Bitmap = new(_deviceContext, new Size2((int)Size.Width, (int)Size.Height), new BitmapProperties1(new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied)));
+            Bitmap.CopyFromBitmap(bitmapRenderTarget.Bitmap);
             bitmapRenderTarget.EndDraw();
             bitmapRenderTarget.Dispose();
 
@@ -251,18 +238,7 @@ namespace Direct2DDXFViewer
         }
         public void SaveBitmap()
         {
-            BitmapRenderTarget renderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, new Size2F(Bitmap.PixelSize.Width, Bitmap.Size.Height));
-            renderTarget.BeginDraw();
-            renderTarget.DrawBitmap(Bitmap, 1, BitmapInterpolationMode.Linear);
-            renderTarget.EndDraw();
-
-            Bitmap1 bitmap1 = new(_deviceContext, new Size2(Bitmap.PixelSize.Width, Bitmap.PixelSize.Height), new BitmapProperties1(Bitmap.PixelFormat, Bitmap.DotsPerInch.Width, Bitmap.DotsPerInch.Height));
-            bitmap1.CopyFromBitmap(renderTarget.Bitmap);
-
-            ImagingFactory imagingFactory = new();
-            PngBitmapEncoder encoder = new(imagingFactory);
-            BitmapFrameEncode frameEncode = new(encoder);
-            frameEncode.WriteSource(bitmap1);
+           
         }
         public void LoadBitmap()
         {

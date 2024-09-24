@@ -7,7 +7,6 @@ using netDxf.Tables;
 using SharpDX;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
-using SharpDX.WIC;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -45,8 +44,6 @@ namespace Direct2DDXFViewer
         public List<QuadTreeNode> Roots { get; set; } = [];
         public int ZoomStep { get; set; }
         public float Zoom { get; set; }
-        public Bitmap RootBitmap { get; set; }
-        public SharpDX.WIC.Bitmap WicBitmap { get; set; }
         #endregion
 
         #region Constructors
@@ -113,39 +110,6 @@ namespace Direct2DDXFViewer
             {
                 for (int h = 0; h < divisions; h++) // height
                 {
-                    //ImagingFactory imagingFactory = new ImagingFactory();
-                    //WicBitmap = new(imagingFactory, (int)bitmapWidth, (int)bitmapHeight, SharpDX.WIC.PixelFormat.Format32bppPRGBA, BitmapCreateCacheOption.CacheOnDemand);
-                    //RenderTargetProperties properties = new RenderTargetProperties();
-                    //WicRenderTarget target = new(_factory, WicBitmap, properties)
-                    //{
-                    //    DotsPerInch = new(96 * Zoom, 96 * Zoom),
-                    //    AntialiasMode = AntialiasMode.PerPrimitive
-                    //};
-                    //Rect destRect = new(DestRect.Left + destWidth * w, DestRect.Top + destHeight * h, destWidth, destHeight);
-                    //Rect srcRect = new(bitmapWidth * w, bitmapHeight * h, bitmapWidth, bitmapHeight);
-                    //Rect bounds = new(Bounds.Left + boundsWidth * w, Bounds.Top + boundsHeight * h, boundsWidth, boundsHeight);
-
-                    //List<DrawingObject> objects = _layerManager.GetDrawingObjectsinRect(bounds);
-
-                    //RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)(ExtentsMatrix.M31 - bitmapWidth * w), (float)(ExtentsMatrix.M32 - bitmapHeight * h));
-                    //target.BeginDraw();
-                    //target.Transform = matrix;
-
-                    //foreach (var obj in objects)
-                    //{
-                    //    Brush brush = GetDrawingObjectBrush(obj.Entity, target);
-                    //    obj.DrawToRenderTarget(target, 1, brush, obj.HairlineStrokeStyle);
-                    //}
-                    //target.EndDraw();
-
-                    //QuadTreeNode node = new(_factory, _deviceContext, objects, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, OverallSize, Levels, WicBitmap, srcRect, _tempFileFolderPath);
-                    //Roots.Add(node);
-
-                    //target.Dispose();
-                    //foreach (var brush in _brushes.Values) { brush.Dispose(); }
-                    //_brushes.Clear();
-
-
                     BitmapRenderTarget target = new(_deviceContext, CompatibleRenderTargetOptions.None, new Size2F(bitmapWidth, bitmapHeight))
                     {
                         DotsPerInch = new(96 * Zoom, 96 * Zoom),
@@ -156,7 +120,6 @@ namespace Direct2DDXFViewer
                     Rect bounds = new(Bounds.Left + boundsWidth * w, Bounds.Top + boundsHeight * h, boundsWidth, boundsHeight);
 
                     List<DrawingObject> objects = _layerManager.GetDrawingObjectsinRect(bounds);
-
                     RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)(ExtentsMatrix.M31 - bitmapWidth * w), (float)(ExtentsMatrix.M32 - bitmapHeight * h));
                     target.BeginDraw();
                     target.Transform = matrix;
@@ -165,8 +128,6 @@ namespace Direct2DDXFViewer
                         obj.DrawToRenderTarget(target, 1, obj.Brush, obj.HairlineStrokeStyle);
                     }
                     target.EndDraw();
-
-                    RootBitmap = target.Bitmap;
                     QuadTreeNode node = new(_factory, _deviceContext, objects, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, OverallSize, Levels, target.Bitmap, srcRect, _tempFileFolderPath);
 
                     Roots.Add(node);
