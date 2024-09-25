@@ -47,7 +47,7 @@ namespace Direct2DDXFViewer
         private const int _bitmapReuseFactor = 2;
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
-        private const int _quadtreeUpperZoomStepLimit = 12;
+        private const int _quadtreeUpperZoomStepLimit = 6;
         private const int _quadtreeLowerZoomStepLimit = 0;
 
         private Matrix _transformMatrix = new();
@@ -336,7 +336,7 @@ namespace Direct2DDXFViewer
             var nodes = quadTree.GetIntersectingNodes(_currentView);
 
             stopwatch.Stop();
-            //Debug.WriteLine($"\nFind Nodes: {stopwatch.ElapsedMilliseconds}");
+            Debug.WriteLine($"nodes.Count: {nodes.Count}");
 
             stopwatch.Restart();
             Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
@@ -351,8 +351,16 @@ namespace Direct2DDXFViewer
             }
             brush.Dispose();
 
+            //var node = nodes.First();
+            //var destRect = node.DestRect;
+            //Matrix matrix = new Matrix((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
+            //destRect.Transform(matrix);
+            //var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
+            //deviceContext.DrawBitmap(node.RootBitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+            //deviceContext.DrawRectangle(destRawRect, brush, 1.0f);
+            //brush.Dispose();
+
             stopwatch.Stop();
-            //Debug.WriteLine($"Draw nodes: {stopwatch.ElapsedMilliseconds}");
         }
         private void RenderIntersectingViewsToBitmap(RenderTarget renderTarget)
         {
@@ -535,7 +543,7 @@ namespace Direct2DDXFViewer
                             SnappedObject.IsSnapped = true;
                             _deviceContextIsDirty = true;
 
-                            Debug.WriteLine($"SnappedObject found, count = {count}");
+                            //Debug.WriteLine($"SnappedObject found, count = {count}");
 
                             return;
                         }
@@ -543,7 +551,7 @@ namespace Direct2DDXFViewer
                 }
             }
 
-            Debug.WriteLine($"No objects found, count = {count}");
+            //Debug.WriteLine($"No objects found, count = {count}");
         }
         private void HitTestPoints()
         {

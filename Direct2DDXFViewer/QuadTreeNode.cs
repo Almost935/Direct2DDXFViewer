@@ -2,10 +2,7 @@
 using SharpDX.Mathematics.Interop;
 using SharpDX;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Drawing.Imaging;
 using System.Windows;
 using System.Diagnostics;
 using Direct2DControl;
@@ -16,7 +13,6 @@ using netDxf;
 using Direct2DDXFViewer.Helpers;
 using netDxf.Tables;
 using Direct2DDXFViewer.BitmapHelpers;
-using SharpDX.WIC;
 
 using Bitmap = SharpDX.Direct2D1.Bitmap;
 using BitmapInterpolationMode = SharpDX.Direct2D1.BitmapInterpolationMode;
@@ -74,7 +70,7 @@ namespace Direct2DDXFViewer
             RootBitmap = rootBitmap;
             SourceRect = srcRect;
             _tempFileFolderPath = tempFileFolderPath;
-            _filePath = Path.Combine(tempFileFolderPath, $"{Guid.NewGuid()}.png");
+            _filePath = Path.Combine(tempFileFolderPath, $"{Guid.NewGuid()}");
 
             Subdivide();
 
@@ -129,25 +125,69 @@ namespace Direct2DDXFViewer
             Stopwatch stopwatch = Stopwatch.StartNew();
             Debug.WriteLine($"\nDrawBitmap Begin: ZoomStep: {ZoomStep}");
 
-            BitmapRenderTarget bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, Size)
-            {
-                AntialiasMode = AntialiasMode.PerPrimitive
-            };
-            bitmapRenderTarget.BeginDraw();
-            bitmapRenderTarget.Clear(new RawColor4());
+            BitmapProperties1 bitmapProperties = new(new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied), 96, 96, BitmapOptions.CannotDraw | BitmapOptions.CpuRead);
+            Bitmap = new(_deviceContext, new Size2((int)Size.Width, (int)Size.Height), bitmapProperties);
+            Bitmap.CopyFromBitmap(RootBitmap);
 
-            RawRectangleF sourceRect = new((float)SourceRect.Left, (float)SourceRect.Top, (float)SourceRect.Right, (float)SourceRect.Bottom);
-            bitmapRenderTarget.DrawBitmap(RootBitmap, 1, BitmapInterpolationMode.Linear, sourceRect);
-
-            Bitmap = new(_deviceContext, new Size2((int)Size.Width, (int)Size.Height), new BitmapProperties1(new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied)));
-            Bitmap.CopyFromBitmap(bitmapRenderTarget.Bitmap);
-            bitmapRenderTarget.EndDraw();
-            bitmapRenderTarget.Dispose();
-
-            SaveBitmap();
+            SaveBitmap(Bitmap);
+            Bitmap = LoadBitmap();
 
             stopwatch.Stop();
             Debug.WriteLine($"DrawBitmap End: ZoomStep: {ZoomStep} time: {stopwatch.ElapsedMilliseconds} ms");
+        }
+        public void SaveBitmap(Bitmap1 bitmap)
+        {
+            // Create a file path for the bitmap
+            string filePath = Path.Combine(_tempFileFolderPath, $"{Guid.NewGuid()}.bmp");
+
+            // Map the bitmap pixels
+            DataStream dataStream;
+            DataRectangle dataRectangle = bitmap.Map(MapOptions.Read, out dataStream);
+
+            // Save the pixel data to a file
+            using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+            {
+                dataStream.CopyTo(fileStream);
+            }
+
+            // Unmap the bitmap
+            bitmap.Unmap();
+
+            // Store the file path for later use
+            _filePath = filePath;
+        }
+
+        public Bitmap1 LoadBitmap()
+        {
+            // Ensure the file path is valid
+            if (string.IsNullOrEmpty(_filePath) || !File.Exists(_filePath))
+            {
+                throw new FileNotFoundException("Bitmap file not found.", _filePath);
+            }
+
+            // Load the pixel data from the file
+            byte[] pixelData;
+            using (FileStream fileStream = new FileStream(_filePath, FileMode.Open, FileAccess.Read))
+            {
+                pixelData = new byte[fileStream.Length];
+                fileStream.Read(pixelData, 0, pixelData.Length);
+            }
+
+            // Create a new bitmap and map the pixels
+            BitmapProperties1 bitmapProperties = new BitmapProperties1(new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied), 96, 96, BitmapOptions.CannotDraw | BitmapOptions.CpuRead);
+            Bitmap1 newBitmap = new Bitmap1(_deviceContext, new Size2((int)Size.Width, (int)Size.Height), bitmapProperties);
+
+            // Map the new bitmap for writing
+            DataStream dataStream;
+            newBitmap.Map(MapOptions.Write, out dataStream);
+
+            // Write the pixel data to the new bitmap
+            dataStream.Write(pixelData, 0, pixelData.Length);
+
+            // Unmap the new bitmap
+            newBitmap.Unmap();
+
+            return newBitmap;
         }
         private void Subdivide()
         {
@@ -235,14 +275,6 @@ namespace Direct2DDXFViewer
             {
                 DrawBitmap();
             }
-        }
-        public void SaveBitmap()
-        {
-           
-        }
-        public void LoadBitmap()
-        {
-
         }
         #endregion
     }

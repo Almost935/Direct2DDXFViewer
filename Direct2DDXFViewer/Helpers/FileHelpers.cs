@@ -20,7 +20,7 @@ namespace Direct2DDXFViewer.Helpers
                     return false;
                 }
             }
-            catch (IOException)
+            catch (Exception)
             {
                 // If an IOException is thrown, the file is in use
                 return true;
