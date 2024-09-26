@@ -31,7 +31,7 @@ namespace Direct2DDXFViewer
         private string _tempPath;
         private string _tempFileFolderPath;
         private Dictionary<(byte r, byte g, byte b, byte a), Brush> _brushes = new();
-
+        private List<Bitmap> _overallBitmaps = new();
         #endregion
 
         #region Properties
@@ -89,6 +89,8 @@ namespace Direct2DDXFViewer
         }
         public void GetRoots()
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
             float limitingDim = Math.Max(OverallSize.Width, OverallSize.Height);
             int bitmapSplit = 0;
             while (limitingDim > _maxBitmapSize)
@@ -128,6 +130,8 @@ namespace Direct2DDXFViewer
                         obj.DrawToRenderTarget(target, 1, obj.Brush, obj.HairlineStrokeStyle);
                     }
                     target.EndDraw();
+
+                    _overallBitmaps.Add(target.Bitmap);
                     QuadTreeNode node = new(_factory, _deviceContext, objects, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, OverallSize, Levels, target.Bitmap, srcRect, _tempFileFolderPath);
 
                     Roots.Add(node);
@@ -135,6 +139,12 @@ namespace Direct2DDXFViewer
                     target.Dispose();
                 }
             }
+
+            foreach (var bitmap in _overallBitmaps) { bitmap.Dispose(); }
+            _overallBitmaps.Clear();
+
+            stopwatch.Stop();
+            Debug.WriteLine($"GetRoots Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
 
         private Brush GetDrawingObjectBrush(EntityObject entity, WicRenderTarget target)

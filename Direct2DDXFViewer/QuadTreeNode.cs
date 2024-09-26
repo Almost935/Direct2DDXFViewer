@@ -33,7 +33,7 @@ namespace Direct2DDXFViewer
         private DeviceContext1 _deviceContext;
         private string _tempFileFolderPath;
         private string _filePath;
-        private DataRectangle _dataRect;
+        private int _pitch;
         #endregion
 
         #region Properties
@@ -135,11 +135,13 @@ namespace Direct2DDXFViewer
             stopwatch.Stop();
             Debug.WriteLine($"DrawBitmap End: ZoomStep: {ZoomStep} time: {stopwatch.ElapsedMilliseconds} ms");
         }
+
         public void SaveBitmap(Bitmap1 bitmap)
         {
             // Map the bitmap pixels
             DataRectangle dataRectangle = bitmap.Map(MapOptions.Read);
- 
+            _pitch = dataRectangle.Pitch;
+
             using (DataStream dataStream = new(dataRectangle.DataPointer, dataRectangle.Pitch * bitmap.PixelSize.Height, true, false))
             {
                 // Save the pixel data to a file
@@ -163,9 +165,13 @@ namespace Direct2DDXFViewer
                     fileStream.CopyTo(dataStream);
                     dataStream.Position = 0;
 
+                    int pitch1 = (int)Size.Width * 4;
+                    int pitch2 = _pitch;
+
                     // Create a new Bitmap1 object from the data stream
-                    BitmapProperties1 bitmapProperties = new(new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied), 96, 96, BitmapOptions.CpuRead);
-                    return new Bitmap1(_deviceContext, new Size2((int)Size.Width, (int)Size.Height), dataStream, (int)Size.Width * 4, bitmapProperties);
+                    BitmapProperties1 bitmapProperties = new(new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied), 96, 96);
+                    Bitmap1 bitmap = new(_deviceContext, new Size2((int)Size.Width, (int)Size.Height), dataStream, pitch2, bitmapProperties);
+                    return bitmap;
                 }
             }
         }

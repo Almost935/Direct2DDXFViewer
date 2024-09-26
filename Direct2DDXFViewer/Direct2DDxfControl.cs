@@ -335,10 +335,6 @@ namespace Direct2DDXFViewer
 
             var nodes = quadTree.GetIntersectingNodes(_currentView);
 
-            stopwatch.Stop();
-            Debug.WriteLine($"nodes.Count: {nodes.Count}");
-
-            stopwatch.Restart();
             Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
             foreach (var node in nodes)
             {
@@ -351,16 +347,8 @@ namespace Direct2DDXFViewer
             }
             brush.Dispose();
 
-            //var node = nodes.First();
-            //var destRect = node.DestRect;
-            //Matrix matrix = new Matrix((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-            //destRect.Transform(matrix);
-            //var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
-            //deviceContext.DrawBitmap(node.RootBitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-            //deviceContext.DrawRectangle(destRawRect, brush, 1.0f);
-            //brush.Dispose();
-
             stopwatch.Stop();
+            //Debug.WriteLine($"RenderQuadTree Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
         private void RenderIntersectingViewsToBitmap(RenderTarget renderTarget)
         {
