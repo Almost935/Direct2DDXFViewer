@@ -70,7 +70,7 @@ namespace Direct2DDXFViewer
             RootBitmap = rootBitmap;
             SourceRect = srcRect;
             _tempFileFolderPath = tempFileFolderPath;
-            _filePath = Path.Combine(tempFileFolderPath, $"{Guid.NewGuid()}");
+            _filePath = Path.Combine(tempFileFolderPath, $"{Guid.NewGuid()}.bmp");
 
             Subdivide();
 
@@ -137,57 +137,37 @@ namespace Direct2DDXFViewer
         }
         public void SaveBitmap(Bitmap1 bitmap)
         {
-            // Create a file path for the bitmap
-            string filePath = Path.Combine(_tempFileFolderPath, $"{Guid.NewGuid()}.bmp");
-
             // Map the bitmap pixels
-            DataStream dataStream;
-            DataRectangle dataRectangle = bitmap.Map(MapOptions.Read, out dataStream);
-
-            // Save the pixel data to a file
-            using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+            DataRectangle dataRectangle = bitmap.Map(MapOptions.Read);
+ 
+            using (DataStream dataStream = new(dataRectangle.DataPointer, dataRectangle.Pitch * bitmap.PixelSize.Height, true, false))
             {
-                dataStream.CopyTo(fileStream);
+                // Save the pixel data to a file
+                using (FileStream fileStream = new(_filePath, FileMode.Create, FileAccess.Write))
+                {
+                    dataStream.CopyTo(fileStream);
+                }
             }
-
             // Unmap the bitmap
             bitmap.Unmap();
-
-            // Store the file path for later use
-            _filePath = filePath;
         }
 
         public Bitmap1 LoadBitmap()
         {
-            // Ensure the file path is valid
-            if (string.IsNullOrEmpty(_filePath) || !File.Exists(_filePath))
-            {
-                throw new FileNotFoundException("Bitmap file not found.", _filePath);
+            // Open the file stream to read the bitmap data
+            using (FileStream fileStream = new(_filePath, FileMode.Open, FileAccess.Read))
+            { 
+                // Create a data stream from the file stream
+                using (DataStream dataStream = new((int)fileStream.Length, true, true))
+                {
+                    fileStream.CopyTo(dataStream);
+                    dataStream.Position = 0;
+
+                    // Create a new Bitmap1 object from the data stream
+                    BitmapProperties1 bitmapProperties = new(new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied), 96, 96, BitmapOptions.CpuRead);
+                    return new Bitmap1(_deviceContext, new Size2((int)Size.Width, (int)Size.Height), dataStream, (int)Size.Width * 4, bitmapProperties);
+                }
             }
-
-            // Load the pixel data from the file
-            byte[] pixelData;
-            using (FileStream fileStream = new FileStream(_filePath, FileMode.Open, FileAccess.Read))
-            {
-                pixelData = new byte[fileStream.Length];
-                fileStream.Read(pixelData, 0, pixelData.Length);
-            }
-
-            // Create a new bitmap and map the pixels
-            BitmapProperties1 bitmapProperties = new BitmapProperties1(new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied), 96, 96, BitmapOptions.CannotDraw | BitmapOptions.CpuRead);
-            Bitmap1 newBitmap = new Bitmap1(_deviceContext, new Size2((int)Size.Width, (int)Size.Height), bitmapProperties);
-
-            // Map the new bitmap for writing
-            DataStream dataStream;
-            newBitmap.Map(MapOptions.Write, out dataStream);
-
-            // Write the pixel data to the new bitmap
-            dataStream.Write(pixelData, 0, pixelData.Length);
-
-            // Unmap the new bitmap
-            newBitmap.Unmap();
-
-            return newBitmap;
         }
         private void Subdivide()
         {
