@@ -130,7 +130,6 @@ namespace Direct2DDXFViewer
             Bitmap.CopyFromBitmap(RootBitmap);
 
             SaveBitmap(Bitmap);
-            Bitmap = LoadBitmap();
 
             stopwatch.Stop();
             Debug.WriteLine($"DrawBitmap End: ZoomStep: {ZoomStep} time: {stopwatch.ElapsedMilliseconds} ms");
@@ -165,12 +164,9 @@ namespace Direct2DDXFViewer
                     fileStream.CopyTo(dataStream);
                     dataStream.Position = 0;
 
-                    int pitch1 = (int)Size.Width * 4;
-                    int pitch2 = _pitch;
-
                     // Create a new Bitmap1 object from the data stream
                     BitmapProperties1 bitmapProperties = new(new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied), 96, 96);
-                    Bitmap1 bitmap = new(_deviceContext, new Size2((int)Size.Width, (int)Size.Height), dataStream, pitch2, bitmapProperties);
+                    Bitmap1 bitmap = new(_deviceContext, new Size2((int)Size.Width, (int)Size.Height), dataStream, _pitch, bitmapProperties);
                     return bitmap;
                 }
             }

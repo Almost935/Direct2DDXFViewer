@@ -249,7 +249,7 @@ namespace Direct2DDXFViewer
 
             //_quadTreeLevels = 2;
             _quadTreeCache = new(factory, deviceContext, _layerManager, _quadtreeUpperZoomStepLimit, _quadtreeLowerZoomStepLimit, resCache.MaxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView);
-            _currentQuadTree = _quadTreeCache.BaseQuadTree;
+            _currentQuadTree = _quadTreeCache.CurrentQuadTree;
 
             _quadTreeLevels = CalculateQuadTreeLevels(_dxfObjectCount, 100);
             _drawingObjectTree = new(_layerManager, Extents, 3);
@@ -606,13 +606,7 @@ namespace Direct2DDXFViewer
                 _visibleObjectsDirty = true;
                 _deviceContextIsDirty = true;
 
-                //if (CurrentZoomStep <= _bitmapCache.MaxZoomStep)
-                //{
-                //    _bitmapCache.UpdateCurrentDxfBitmap(CurrentZoomStep);
-                //}
-                //_testQuadTreeCache.UpdateCurrentQuadTree(zoom);
-                bool isCreated = _quadTreeCache.TryGetQuadTree(CurrentZoomStep, out QuadTree quadTree);
-                if (isCreated) { _currentQuadTree = quadTree; }
+                _quadTreeCache.TryGetQuadTree(CurrentZoomStep, out _currentQuadTree);
             }
         }
         private void UpdateTranslate(Vector translate)

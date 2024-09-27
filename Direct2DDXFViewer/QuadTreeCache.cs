@@ -23,6 +23,8 @@ namespace Direct2DDXFViewer
         private readonly int _bitmapReuseFactor;
         private readonly int _maxBitmapSize;
         private string _tempFolderPath;
+        private QuadTree _baseQuadTree;
+        private QuadTree[] _activeQuadTrees = new QuadTree[4];
         #endregion
 
         #region Properties
@@ -31,13 +33,17 @@ namespace Direct2DDXFViewer
         /// </summary>
         public Dictionary<int, QuadTree> QuadTrees { get; set; } = new();
         /// <summary>
+        /// The total number of QuadTree's that are initialized. If they are not within a 
+        /// </summary>
+        public int QuadTreeInitializationFactor { get; set; }
+        /// <summary>
         /// The upper limit of zoom steps. 
         /// </summary>
-        public int ZoomStepUpperLimit { get; set; }
-        /// <summary>
-        /// The lower limit of zoom steps.
-        /// </summary>
-        public int ZoomStepLowerLimit { get; set; }
+        public int ActiveQuadTreeFactor { get; set; }
+        ///// <summary>
+        ///// The lower limit of zoom steps.
+        ///// </summary>
+        //public int ZoomStepLowerLimit { get; set; }
         /// <summary>
         /// The largets dimensions any one side of a QuadTreeNode can be.
         /// </summary>
@@ -46,17 +52,17 @@ namespace Direct2DDXFViewer
         public RawMatrix3x2 ExtentsMatrix { get; set; }
         public Rect OverallBounds { get; set; }
         public Rect OverallDestRect { get; set; }
-        public QuadTree BaseQuadTree { get; set; }
+        public QuadTree CurrentQuadTree { get; set; }
         #endregion
 
         #region Constructors
-        public QuadTreeCache(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, int zoomStepUpperLimit, int zoomStepLowerLimit, int maxBitmapSize, int bitmapReuseFactor, float zoomFactor, int zoomPrecision, RawMatrix3x2 extentsMatrix, Rect overallBounds)
+        public QuadTreeCache(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, int quadTreeInitializationFactor, int activeQuadTreeFactor, int maxBitmapSize, int bitmapReuseFactor, float zoomFactor, int zoomPrecision, RawMatrix3x2 extentsMatrix, Rect overallBounds)
         {
             _factory = factory;
             _deviceContext = deviceContext;
             _layerManager = layerManager;
-            ZoomStepUpperLimit = zoomStepUpperLimit;
-            ZoomStepLowerLimit = zoomStepLowerLimit;
+            QuadTreeInitializationFactor = quadTreeInitializationFactor;
+            ActiveQuadTreeFactor = activeQuadTreeFactor;
             _maxBitmapSize = maxBitmapSize;
             _bitmapReuseFactor = bitmapReuseFactor;
             ZoomFactor = zoomFactor;
@@ -66,19 +72,21 @@ namespace Direct2DDXFViewer
             OverallDestRect = new(0, 0, _deviceContext.Size.Width, _deviceContext.Size.Height);
 
             CreateTempFolder();     
-            InitializeQuadTrees();
+            InitializeActiveQuadTrees();
+            RunInitializeQuadTreesAsync();
         }
         #endregion
 
         #region Methods
-        public void InitializeQuadTrees()
+        private void InitializeActiveQuadTrees()
         {
             var stopwatch = Stopwatch.StartNew();
 
             // Initialize base view first
-            BaseQuadTree = AddQuadTree(0);
+            _baseQuadTree = AddQuadTree(0);
+            CurrentQuadTree = _baseQuadTree;
 
-            for (int i = 0; i < ZoomStepUpperLimit; i++)
+            for (int i = 0; i < ActiveQuadTreeFactor; i++)
             {
                 if ((i + 1) % _bitmapReuseFactor == 0)
                 {
@@ -90,17 +98,47 @@ namespace Direct2DDXFViewer
             Debug.WriteLine($"InitializeQuadTrees took {stopwatch.ElapsedMilliseconds} ms");
         }
 
+        private async void RunInitializeQuadTreesAsync()
+        {
+            InitializeQuadTrees();
+        }
+        private void InitializeQuadTrees()
+        {
+            int count = 0;
+
+            while (count < QuadTreeInitializationFactor)
+            {
+                if (count > ActiveQuadTreeFactor)
+                {
+                    AddQuadTree(count * _bitmapReuseFactor);
+                }
+
+                count += _bitmapReuseFactor;
+            }
+        }
+
+        private async void RunUpdateActiveQuadTreesAsync()
+        {
+            while (true) 
+            {
+                
+            }
+        }
+        private void UpdateActiveQuadTrees()
+        {
+
+        }
+
         private QuadTree AddQuadTree(int zoomStep)
         {
-            var stopwatch = Stopwatch.StartNew();
+            zoomStep = AdjustZoomStep(zoomStep);
+
+            if (!QuadTrees.ContainsKey(zoomStep)) ;
 
             float zoom = MathHelpers.GetZoom(ZoomFactor, zoomStep, ZoomPrecision);
             Size2F size = new((float)(_deviceContext.Size.Width * zoom), (float)(_deviceContext.Size.Height * zoom));
             QuadTree quadTree = new(_factory, _deviceContext, _layerManager, size, ExtentsMatrix, OverallBounds, OverallDestRect, zoomStep, zoom, _maxBitmapSize, _tempFolderPath);
             QuadTrees.TryAdd(zoomStep, quadTree);
-
-            stopwatch.Stop();
-            Debug.WriteLine($"AddQuadTree for zoomStep {zoomStep} took {stopwatch.ElapsedMilliseconds} ms");
 
             return quadTree;
         }
@@ -110,6 +148,13 @@ namespace Direct2DDXFViewer
             zoomStep = AdjustZoomStep(zoomStep);
 
             return QuadTrees.TryGetValue(zoomStep, out quadTree);
+        }
+        
+        public void UpdateZoomStep(int zoomStep)
+        {
+            zoomStep = AdjustZoomStep(zoomStep);
+            TryGetQuadTree(zoomStep, out QuadTree quadTree);
+            CurrentQuadTree = quadTree;
         }
 
         private int AdjustZoomStep(int zoomStep)
