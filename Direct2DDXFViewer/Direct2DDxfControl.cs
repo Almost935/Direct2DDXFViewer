@@ -47,8 +47,8 @@ namespace Direct2DDXFViewer
         private const int _bitmapReuseFactor = 2;
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
-        private const int _quadtreeUpperZoomStepLimit = 6;
-        private const int _quadtreeLowerZoomStepLimit = 0;
+        private const int _syncQuadTreeInitFactor = 5;
+        private const int _asyncQuadTreeInitFactor = 10;
 
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
@@ -68,9 +68,7 @@ namespace Direct2DDXFViewer
         private int _objectDetailLevelTransitionNum = 500;
         private BitmapRenderTarget _offscreenRenderTarget;
         private BitmapRenderTarget _interactiveRenderTarget;
-        private int _quadTreeLevels;
         private QuadTreeCache _quadTreeCache;
-        private QuadTree _currentQuadTree;
         private DrawingObjectTree _drawingObjectTree;
 
         private DxfDocument _dxfDoc;
@@ -245,13 +243,8 @@ namespace Direct2DDXFViewer
         {
             RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
 
-            //_bitmapCache = new(deviceContext, factory, LayerManager, InitialView, extentsMatrix, _zoomFactor, _zoomPrecision, resCache.MaxBitmapSize, _numBitmapDivisions, _bitmapReuseFactor);
+            _quadTreeCache = new(factory, deviceContext, _layerManager, _syncQuadTreeInitFactor, _asyncQuadTreeInitFactor, resCache.MaxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView);
 
-            //_quadTreeLevels = 2;
-            _quadTreeCache = new(factory, deviceContext, _layerManager, _quadtreeUpperZoomStepLimit, _quadtreeLowerZoomStepLimit, resCache.MaxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView);
-            _currentQuadTree = _quadTreeCache.CurrentQuadTree;
-
-            _quadTreeLevels = CalculateQuadTreeLevels(_dxfObjectCount, 100);
             _drawingObjectTree = new(_layerManager, Extents, 3);
         }
 
@@ -297,9 +290,9 @@ namespace Direct2DDXFViewer
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 0));
 
-                    if (_currentQuadTree is not null)
+                    if (_quadTreeCache.CurrentQuadTree is not null)
                     {
-                        RenderQuadTree(deviceContext, _currentQuadTree);
+                        RenderQuadTree(deviceContext, _quadTreeCache.CurrentQuadTree);
                     }
                     else
                     {
@@ -606,7 +599,7 @@ namespace Direct2DDXFViewer
                 _visibleObjectsDirty = true;
                 _deviceContextIsDirty = true;
 
-                _quadTreeCache.TryGetQuadTree(CurrentZoomStep, out _currentQuadTree);
+                _quadTreeCache.UpdateZoomStep(CurrentZoomStep);
             }
         }
         private void UpdateTranslate(Vector translate)

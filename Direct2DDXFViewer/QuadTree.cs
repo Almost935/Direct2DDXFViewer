@@ -21,7 +21,7 @@ using Point = System.Windows.Point;
 
 namespace Direct2DDXFViewer
 {
-    public class QuadTree
+    public class QuadTree : IDisposable
     {
         #region Fields
         private Factory1 _factory;
@@ -32,18 +32,20 @@ namespace Direct2DDXFViewer
         private string _tempFileFolderPath;
         private Dictionary<(byte r, byte g, byte b, byte a), Brush> _brushes = new();
         private List<Bitmap> _overallBitmaps = new();
+        private bool _disposed = false;
         #endregion
 
         #region Properties
-        public List<DrawingObject> DrawingObjects { get; set; } = [];
+        public List<DrawingObject> DrawingObjects { get; set; } = new();
         public RawMatrix3x2 ExtentsMatrix { get; set; }
         public Rect Bounds { get; set; }
         public Rect DestRect { get; set; }
         public Size2F OverallSize { get; set; }
         public int Levels { get; set; }
-        public List<QuadTreeNode> Roots { get; set; } = [];
+        public List<QuadTreeNode> Roots { get; set; } = new();
         public int ZoomStep { get; set; }
         public float Zoom { get; set; }
+        public bool BitmapsLoaded { get; set; } = true;
         #endregion
 
         #region Constructors
@@ -146,7 +148,27 @@ namespace Direct2DDXFViewer
             stopwatch.Stop();
             Debug.WriteLine($"GetRoots Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
+        public void DisposeBitmaps()
+        {
+            foreach (var root in Roots)
+            {
+                root.DisposeBitmaps();
+            }
+            BitmapsLoaded = false;
+        }
+        public void LoadBitmaps()
+        {
+            Stopwatch stopwatch = Stopwatch.StartNew();
 
+            foreach (var root in Roots)
+            {
+                root.LoadBitmap();
+            }
+            BitmapsLoaded = true;
+
+            stopwatch.Stop();
+            Debug.WriteLine($"LoadBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
+        }
         private Brush GetDrawingObjectBrush(EntityObject entity, WicRenderTarget target)
         {
             byte r, g, b, a;
@@ -197,7 +219,7 @@ namespace Direct2DDXFViewer
         }
         public List<QuadTreeNode> GetIntersectingNodes(Rect view)
         {
-            List<QuadTreeNode> quadTreeNodes = [];
+            List<QuadTreeNode> quadTreeNodes = new();
 
             foreach (var root in Roots)
             {
@@ -208,7 +230,7 @@ namespace Direct2DDXFViewer
         }
         public List<QuadTreeNode> GetIntersectingNodes(Point p)
         {
-            List<QuadTreeNode> quadTreeNodes = [];
+            List<QuadTreeNode> quadTreeNodes = new();
 
             foreach (var root in Roots)
             {
@@ -216,6 +238,40 @@ namespace Direct2DDXFViewer
             }
 
             return quadTreeNodes;
+        }
+        #endregion
+
+        #region IDisposable Support
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    foreach (var brush in _brushes.Values)
+                    {
+                        brush.Dispose();
+                    }
+                    _brushes.Clear();
+
+                    foreach (var root in Roots)
+                    {
+                        root.Dispose();
+                    }
+                    Roots.Clear();
+                }
+
+                // Free unmanaged resources (if any)
+
+                _disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
         #endregion
     }

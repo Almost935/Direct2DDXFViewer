@@ -21,10 +21,26 @@ namespace Direct2DDXFViewer
         private readonly DeviceContext1 _deviceContext;
         private readonly ObjectLayerManager _layerManager;
         private readonly int _bitmapReuseFactor;
+        private readonly int _loadedQuadTreesFactor;
+        private readonly int _asyncBitmapInitFactor;
         private readonly int _maxBitmapSize;
         private string _tempFolderPath;
         private QuadTree _baseQuadTree;
-        private QuadTree[] _activeQuadTrees = new QuadTree[4];
+        private QuadTree[] _adjacentZoomedInQuadTrees; 
+        private QuadTree[] _adjacentZoomedOutQuadTrees;
+        private bool _adjacentQuadTreesIsDirty = true;
+        private int _maxZoomStep;
+        private int _minZoomStep;
+
+        ///// <summary>
+        ///// Represents the zoom step QuadTree that is one level more zoomed in than the current one.
+        ///// </summary>
+        //private QuadTree _nextZoomStepQuadTree;
+
+        ///// <summary>
+        ///// Represents the zoom step QuadTree that is one level more zoomed out than the current one.
+        ///// </summary>
+        //private QuadTree _prevZoomStepQuadTree;
         #endregion
 
         #region Properties
@@ -32,20 +48,9 @@ namespace Direct2DDXFViewer
         /// Dictionary of QuadTrees with keys corresponding to zoom steps as ints.
         /// </summary>
         public Dictionary<int, QuadTree> QuadTrees { get; set; } = new();
+
         /// <summary>
-        /// The total number of QuadTree's that are initialized. If they are not within a 
-        /// </summary>
-        public int QuadTreeInitializationFactor { get; set; }
-        /// <summary>
-        /// The upper limit of zoom steps. 
-        /// </summary>
-        public int ActiveQuadTreeFactor { get; set; }
-        ///// <summary>
-        ///// The lower limit of zoom steps.
-        ///// </summary>
-        //public int ZoomStepLowerLimit { get; set; }
-        /// <summary>
-        /// The largets dimensions any one side of a QuadTreeNode can be.
+        /// The largest dimension any one side of a QuadTreeNode can be.
         /// </summary>
         public float ZoomFactor { get; set; }
         public int ZoomPrecision { get; set; }
@@ -56,13 +61,17 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTreeCache(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, int quadTreeInitializationFactor, int activeQuadTreeFactor, int maxBitmapSize, int bitmapReuseFactor, float zoomFactor, int zoomPrecision, RawMatrix3x2 extentsMatrix, Rect overallBounds)
+        public QuadTreeCache(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, int loadedQuadTreesFactor, int asyncQuadTreeInitFactor, int maxBitmapSize, int bitmapReuseFactor, float zoomFactor, int zoomPrecision, RawMatrix3x2 extentsMatrix, Rect overallBounds)
         {
             _factory = factory;
             _deviceContext = deviceContext;
             _layerManager = layerManager;
-            QuadTreeInitializationFactor = quadTreeInitializationFactor;
-            ActiveQuadTreeFactor = activeQuadTreeFactor;
+            _loadedQuadTreesFactor = loadedQuadTreesFactor;
+            _asyncBitmapInitFactor = asyncQuadTreeInitFactor;
+            
+            _maxZoomStep = asyncQuadTreeInitFactor * bitmapReuseFactor;
+            _minZoomStep = 0;
+
             _maxBitmapSize = maxBitmapSize;
             _bitmapReuseFactor = bitmapReuseFactor;
             ZoomFactor = zoomFactor;
@@ -71,27 +80,32 @@ namespace Direct2DDXFViewer
             OverallBounds = overallBounds;
             OverallDestRect = new(0, 0, _deviceContext.Size.Width, _deviceContext.Size.Height);
 
-            CreateTempFolder();     
-            InitializeActiveQuadTrees();
+            CreateTempFolder();
+            InitializeQuadTrees();
             RunInitializeQuadTreesAsync();
+            RunGetAdjacentQuadTreesAsync();
         }
         #endregion
 
         #region Methods
-        private void InitializeActiveQuadTrees()
+        private void InitializeQuadTrees()
         {
             var stopwatch = Stopwatch.StartNew();
-
-            // Initialize base view first
             _baseQuadTree = AddQuadTree(0);
             CurrentQuadTree = _baseQuadTree;
 
-            for (int i = 0; i < ActiveQuadTreeFactor; i++)
+            _adjacentZoomedInQuadTrees = new QuadTree[_loadedQuadTreesFactor];
+            _adjacentZoomedOutQuadTrees = new QuadTree[_loadedQuadTreesFactor];
+
+            for (int i = 0; i < _loadedQuadTreesFactor; i++) // Begin loop at 2 since 0 and 1 are already initialized
             {
-                if ((i + 1) % _bitmapReuseFactor == 0)
+                QuadTree quadTree = AddQuadTree((i + 1) * _bitmapReuseFactor);
+                if (quadTree is not null)
                 {
-                    AddQuadTree(i + 1);
+                    _adjacentZoomedInQuadTrees[i] = quadTree;
                 }
+
+                Debug.WriteLine($"InitializeActiveQuadTrees, Zoom Step: {i * _bitmapReuseFactor}");
             }
 
             stopwatch.Stop();
@@ -100,33 +114,19 @@ namespace Direct2DDXFViewer
 
         private async void RunInitializeQuadTreesAsync()
         {
-            InitializeQuadTrees();
+            InitializeQuadTreesAsync();
         }
-        private void InitializeQuadTrees()
+        private void InitializeQuadTreesAsync()
         {
-            int count = 0;
-
-            while (count < QuadTreeInitializationFactor)
+            for (int i = 0; i < _asyncBitmapInitFactor; i++)
             {
-                if (count > ActiveQuadTreeFactor)
+                if (i > _loadedQuadTreesFactor)
                 {
-                    AddQuadTree(count * _bitmapReuseFactor);
+                    AddQuadTree(i * _bitmapReuseFactor);
+
+                    Debug.WriteLine($"InitializeActiveQuadTrees, Zoom Step: {i * _bitmapReuseFactor}");
                 }
-
-                count += _bitmapReuseFactor;
             }
-        }
-
-        private async void RunUpdateActiveQuadTreesAsync()
-        {
-            while (true) 
-            {
-                
-            }
-        }
-        private void UpdateActiveQuadTrees()
-        {
-
         }
 
         private QuadTree AddQuadTree(int zoomStep)
@@ -138,7 +138,13 @@ namespace Direct2DDXFViewer
             float zoom = MathHelpers.GetZoom(ZoomFactor, zoomStep, ZoomPrecision);
             Size2F size = new((float)(_deviceContext.Size.Width * zoom), (float)(_deviceContext.Size.Height * zoom));
             QuadTree quadTree = new(_factory, _deviceContext, _layerManager, size, ExtentsMatrix, OverallBounds, OverallDestRect, zoomStep, zoom, _maxBitmapSize, _tempFolderPath);
-            QuadTrees.TryAdd(zoomStep, quadTree);
+            var added = QuadTrees.TryAdd(zoomStep, quadTree);
+
+            if (!added) 
+            {    
+                quadTree.Dispose();
+                throw new Exception("Failed to add QuadTree to QuadTrees dictionary.");
+            }
 
             return quadTree;
         }
@@ -147,18 +153,96 @@ namespace Direct2DDXFViewer
         {
             zoomStep = AdjustZoomStep(zoomStep);
 
+            quadTree = _adjacentZoomedInQuadTrees.FirstOrDefault(qt => qt.ZoomStep == zoomStep);
+            if (quadTree is not null)
+            {
+                return true;
+            }
+
+            quadTree = _adjacentZoomedOutQuadTrees.FirstOrDefault(qt => qt.ZoomStep == zoomStep);
+            if (quadTree is not null)
+            {
+                return true;
+            }
+
             return QuadTrees.TryGetValue(zoomStep, out quadTree);
         }
-        
+
         public void UpdateZoomStep(int zoomStep)
         {
             zoomStep = AdjustZoomStep(zoomStep);
             TryGetQuadTree(zoomStep, out QuadTree quadTree);
             CurrentQuadTree = quadTree;
+
+            _adjacentQuadTreesIsDirty = true;
         }
 
+        private async Task RunGetAdjacentQuadTreesAsync()
+        {
+            while (true)
+            {
+                await Task.Run(() => GetAdjacentQuadTreesAsync());
+                await Task.Delay(100);
+            }
+        }
+        private void GetAdjacentQuadTreesAsync()
+        {
+            if (!_adjacentQuadTreesIsDirty)
+            {
+                return;
+            }
+
+            int currentStep = CurrentQuadTree.ZoomStep; 
+
+            for (int i = 0; i < _loadedQuadTreesFactor; i++)
+            {
+                int upperStep = AdjustZoomStep(currentStep + (i + 1) * _bitmapReuseFactor);
+                int lowerStep = AdjustZoomStep(currentStep - (i + 1) * _bitmapReuseFactor);
+
+                if (upperStep <= _maxZoomStep)
+                {
+                    TryGetQuadTree(upperStep, out _adjacentZoomedInQuadTrees[i]);
+                }
+            }
+
+            if (nextStep != _nextZoomStepQuadTree.ZoomStep)
+            {
+                _nextZoomStepQuadTree.DisposeBitmaps();
+                
+                bool treeFound = TryGetQuadTree(nextStep, out _nextZoomStepQuadTree);
+                if (treeFound &&
+                    !_nextZoomStepQuadTree.BitmapsLoaded)
+                {
+                    _nextZoomStepQuadTree.LoadBitmaps();
+                }
+            }
+            if (prevStep != _prevZoomStepQuadTree.ZoomStep)
+            {
+                _prevZoomStepQuadTree.DisposeBitmaps();
+                
+                bool treeFound = TryGetQuadTree(nextStep, out _prevZoomStepQuadTree);
+                if (treeFound &&
+                    !_prevZoomStepQuadTree.BitmapsLoaded)
+                {
+                    _prevZoomStepQuadTree.LoadBitmaps();
+                }
+            }
+
+            _adjacentQuadTreesIsDirty = false;
+        }
+
+        /// <summary>
+        /// Adjusts a zoom step to be divisible by the bitmap reuse factor if the zoom step is greater than 0. If the zoom step is less than 0, it will return 0.
+        /// </summary>
+        /// <param name="zoomStep">An integer representing the zoom step that is to be adjusted.</param>
+        /// <returns></returns>
         private int AdjustZoomStep(int zoomStep)
         {
+            if (zoomStep <= _minZoomStep)
+            {
+                return _minZoomStep;
+            }
+
             while (zoomStep % _bitmapReuseFactor != 0)
             {
                 zoomStep -= 1;
