@@ -45,14 +45,14 @@ namespace Direct2DDXFViewer
         #region Fields
         private const int _zoomPrecision = 3;
         private const int _bitmapReuseFactor = 2;
+        private const float _zoomFactor = 1.25f;
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
-        private const int _syncQuadTreeInitFactor = 5;
-        private const int _asyncQuadTreeInitFactor = 10;
+        private const int _loadedQuadTreesFactor = 2;
+        private const int _initializedQuadTreeFactor = 5;
 
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
-        private readonly float _zoomFactor = 1.25f;
         private bool _isPanning = false;
         private bool _isRendering = false;
         //private BitmapCache _bitmapCache;
@@ -243,7 +243,7 @@ namespace Direct2DDXFViewer
         {
             RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
 
-            _quadTreeCache = new(factory, deviceContext, _layerManager, _syncQuadTreeInitFactor, _asyncQuadTreeInitFactor, resCache.MaxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView);
+            _quadTreeCache = new(factory, deviceContext, _layerManager, _loadedQuadTreesFactor, _initializedQuadTreeFactor, resCache.MaxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView);
 
             _drawingObjectTree = new(_layerManager, Extents, 3);
         }

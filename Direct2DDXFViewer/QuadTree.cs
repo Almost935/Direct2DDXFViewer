@@ -1,4 +1,4 @@
-﻿using Direct2DControl;
+﻿                                                                                         using Direct2DControl;
 using Direct2DDXFViewer.BitmapHelpers;
 using Direct2DDXFViewer.DrawingObjects;
 using Direct2DDXFViewer.Helpers;
@@ -30,7 +30,6 @@ namespace Direct2DDXFViewer
         private int _maxBitmapSize;
         private string _tempPath;
         private string _tempFileFolderPath;
-        private Dictionary<(byte r, byte g, byte b, byte a), Brush> _brushes = new();
         private List<Bitmap> _overallBitmaps = new();
         private bool _disposed = false;
         #endregion
@@ -45,7 +44,7 @@ namespace Direct2DDXFViewer
         public List<QuadTreeNode> Roots { get; set; } = new();
         public int ZoomStep { get; set; }
         public float Zoom { get; set; }
-        public bool BitmapsLoaded { get; set; } = true;
+        public bool BitmapsLoaded { get; set; } = false;
         #endregion
 
         #region Constructors
@@ -145,6 +144,8 @@ namespace Direct2DDXFViewer
             foreach (var bitmap in _overallBitmaps) { bitmap.Dispose(); }
             _overallBitmaps.Clear();
 
+            BitmapsLoaded = true;
+
             stopwatch.Stop();
             Debug.WriteLine($"GetRoots Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
@@ -168,41 +169,6 @@ namespace Direct2DDXFViewer
 
             stopwatch.Stop();
             Debug.WriteLine($"LoadBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
-        }
-        private Brush GetDrawingObjectBrush(EntityObject entity, WicRenderTarget target)
-        {
-            byte r, g, b, a;
-            if (entity.Color.IsByLayer)
-            {
-                if (entity.Layer.Color.R == 255 && entity.Layer.Color.G == 255 && entity.Layer.Color.B == 255)
-                {
-                    r = g = b = 0; a = 255;
-                }
-                else
-                {
-                    r = entity.Layer.Color.R; g = entity.Layer.Color.G; b = entity.Layer.Color.B; a = 255;
-                }
-            }
-            else
-            {
-                if (entity.Color.R == 255 && entity.Color.G == 255 && entity.Color.B == 255)
-                {
-                    r = g = b = 0; a = 255;
-                }
-                else
-                {
-                    r = entity.Color.R; g = entity.Color.G; b = entity.Color.B; a = 255;
-                }
-            }
-
-            bool brushExists = _brushes.TryGetValue((r, g, b, a), out Brush brush);
-            if (!brushExists)
-            {
-                brush = new SolidColorBrush(target, new RawColor4((float)r / 255, (float)g / 255, (float)b / 255, 1.0f));
-                _brushes.Add((r, g, b, a), brush);
-            }
-
-            return brush;
         }
         public void GetRequiredLevels()
         {
@@ -249,12 +215,6 @@ namespace Direct2DDXFViewer
                 if (disposing)
                 {
                     // Dispose managed resources
-                    foreach (var brush in _brushes.Values)
-                    {
-                        brush.Dispose();
-                    }
-                    _brushes.Clear();
-
                     foreach (var root in Roots)
                     {
                         root.Dispose();

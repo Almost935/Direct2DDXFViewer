@@ -22,11 +22,11 @@ namespace Direct2DDXFViewer
         private readonly ObjectLayerManager _layerManager;
         private readonly int _bitmapReuseFactor;
         private readonly int _loadedQuadTreesFactor;
-        private readonly int _asyncBitmapInitFactor;
+        private readonly int _initializedQuadTreeFactor;
         private readonly int _maxBitmapSize;
         private string _tempFolderPath;
         private QuadTree _baseQuadTree;
-        private QuadTree[] _adjacentZoomedInQuadTrees; 
+        private QuadTree[] _adjacentZoomedInQuadTrees;
         private QuadTree[] _adjacentZoomedOutQuadTrees;
         private bool _adjacentQuadTreesIsDirty = true;
         private int _maxZoomStep;
@@ -61,15 +61,15 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTreeCache(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, int loadedQuadTreesFactor, int asyncQuadTreeInitFactor, int maxBitmapSize, int bitmapReuseFactor, float zoomFactor, int zoomPrecision, RawMatrix3x2 extentsMatrix, Rect overallBounds)
+        public QuadTreeCache(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, int loadedQuadTreesFactor, int initializedQuadTreeFactor, int maxBitmapSize, int bitmapReuseFactor, float zoomFactor, int zoomPrecision, RawMatrix3x2 extentsMatrix, Rect overallBounds)
         {
             _factory = factory;
             _deviceContext = deviceContext;
             _layerManager = layerManager;
             _loadedQuadTreesFactor = loadedQuadTreesFactor;
-            _asyncBitmapInitFactor = asyncQuadTreeInitFactor;
-            
-            _maxZoomStep = asyncQuadTreeInitFactor * bitmapReuseFactor;
+            _initializedQuadTreeFactor = initializedQuadTreeFactor;
+
+            _maxZoomStep = initializedQuadTreeFactor * bitmapReuseFactor;
             _minZoomStep = 0;
 
             _maxBitmapSize = maxBitmapSize;
@@ -97,7 +97,7 @@ namespace Direct2DDXFViewer
             _adjacentZoomedInQuadTrees = new QuadTree[_loadedQuadTreesFactor];
             _adjacentZoomedOutQuadTrees = new QuadTree[_loadedQuadTreesFactor];
 
-            for (int i = 0; i < _loadedQuadTreesFactor; i++) // Begin loop at 2 since 0 and 1 are already initialized
+            for (int i = 0; i < _loadedQuadTreesFactor; i++)
             {
                 QuadTree quadTree = AddQuadTree((i + 1) * _bitmapReuseFactor);
                 if (quadTree is not null)
@@ -118,11 +118,12 @@ namespace Direct2DDXFViewer
         }
         private void InitializeQuadTreesAsync()
         {
-            for (int i = 0; i < _asyncBitmapInitFactor; i++)
+            for (int i = 0; i < _initializedQuadTreeFactor; i++)
             {
                 if (i > _loadedQuadTreesFactor)
                 {
-                    AddQuadTree(i * _bitmapReuseFactor);
+                    var quadTree = AddQuadTree(i * _bitmapReuseFactor);
+                    quadTree.DisposeBitmaps();
 
                     Debug.WriteLine($"InitializeActiveQuadTrees, Zoom Step: {i * _bitmapReuseFactor}");
                 }
@@ -140,8 +141,8 @@ namespace Direct2DDXFViewer
             QuadTree quadTree = new(_factory, _deviceContext, _layerManager, size, ExtentsMatrix, OverallBounds, OverallDestRect, zoomStep, zoom, _maxBitmapSize, _tempFolderPath);
             var added = QuadTrees.TryAdd(zoomStep, quadTree);
 
-            if (!added) 
-            {    
+            if (!added)
+            {
                 quadTree.Dispose();
                 throw new Exception("Failed to add QuadTree to QuadTrees dictionary.");
             }
@@ -159,7 +160,7 @@ namespace Direct2DDXFViewer
                 return true;
             }
 
-            quadTree = _adjacentZoomedOutQuadTrees.FirstOrDefault(qt => qt.ZoomStep == zoomStep);
+            quadTree = _adjacentZoomedOutQuadTrees.FirstOrDefault(qt => qt is not null && qt.ZoomStep == zoomStep);
             if (quadTree is not null)
             {
                 return true;
@@ -192,7 +193,7 @@ namespace Direct2DDXFViewer
                 return;
             }
 
-            int currentStep = CurrentQuadTree.ZoomStep; 
+            int currentStep = CurrentQuadTree.ZoomStep;
 
             for (int i = 0; i < _loadedQuadTreesFactor; i++)
             {
@@ -201,30 +202,26 @@ namespace Direct2DDXFViewer
 
                 if (upperStep <= _maxZoomStep)
                 {
-                    TryGetQuadTree(upperStep, out _adjacentZoomedInQuadTrees[i]);
+                    bool found = TryGetQuadTree(upperStep, out _adjacentZoomedInQuadTrees[i]);
+                    if (found)
+                    {
+                        if (!_adjacentZoomedInQuadTrees[i].BitmapsLoaded)
+                        {
+                            _adjacentZoomedInQuadTrees[i].LoadBitmaps();
+                        }
+                    }
                 }
-            }
 
-            if (nextStep != _nextZoomStepQuadTree.ZoomStep)
-            {
-                _nextZoomStepQuadTree.DisposeBitmaps();
-                
-                bool treeFound = TryGetQuadTree(nextStep, out _nextZoomStepQuadTree);
-                if (treeFound &&
-                    !_nextZoomStepQuadTree.BitmapsLoaded)
+                if (lowerStep >= _minZoomStep)
                 {
-                    _nextZoomStepQuadTree.LoadBitmaps();
-                }
-            }
-            if (prevStep != _prevZoomStepQuadTree.ZoomStep)
-            {
-                _prevZoomStepQuadTree.DisposeBitmaps();
-                
-                bool treeFound = TryGetQuadTree(nextStep, out _prevZoomStepQuadTree);
-                if (treeFound &&
-                    !_prevZoomStepQuadTree.BitmapsLoaded)
-                {
-                    _prevZoomStepQuadTree.LoadBitmaps();
+                    bool found = TryGetQuadTree(lowerStep, out _adjacentZoomedOutQuadTrees[i]);
+                    if (found)
+                    {
+                        if (!_adjacentZoomedOutQuadTrees[i].BitmapsLoaded)
+                        {
+                            _adjacentZoomedOutQuadTrees[i].LoadBitmaps();
+                        }
+                    }
                 }
             }
 

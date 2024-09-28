@@ -145,6 +145,8 @@ namespace Direct2DDXFViewer
                 }
             }
             bitmap.Unmap();
+
+            BitmapSaved = true;
         }
 
         public void LoadBitmap()
@@ -176,9 +178,12 @@ namespace Direct2DDXFViewer
                 Bitmap.Dispose();
                 Bitmap = null;
             }
-            foreach (var child in ChildNodes)
+            if (ChildNodes is not null)
             {
-                child.DisposeBitmaps();
+                foreach (var child in ChildNodes)
+                {
+                    child.DisposeBitmaps();
+                }
             }
         }
 
