@@ -121,9 +121,12 @@ namespace Direct2DDXFViewer
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            BitmapProperties1 bitmapProperties = new(new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied), 96, 96, BitmapOptions.CannotDraw | BitmapOptions.CpuRead);
+            BitmapProperties1 bitmapProperties = new(new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied), 96, 96, BitmapOptions.CpuRead | BitmapOptions.CannotDraw);
             Bitmap = new(_deviceContext, new Size2((int)Size.Width, (int)Size.Height), bitmapProperties);
-            Bitmap.CopyFromBitmap(RootBitmap);
+            
+            RawPoint destPoint = new(0, 0);  
+            RawRectangle sourceRect = new((int)SourceRect.Left, (int)SourceRect.Top, (int)SourceRect.Right, (int)SourceRect.Bottom);
+            Bitmap.CopyFromBitmap(RootBitmap, destPoint, sourceRect);
 
             SaveBitmap(Bitmap);
 
@@ -147,6 +150,8 @@ namespace Direct2DDXFViewer
             bitmap.Unmap();
 
             BitmapSaved = true;
+
+            LoadBitmap(); // Reload bitmap from file with CpuRead and CannotDraw flag removed so that i
         }
 
         public void LoadBitmap()
@@ -262,7 +267,7 @@ namespace Direct2DDXFViewer
             {
                 DrawBitmap();
             }
-        }
+        } 
 
         protected virtual void Dispose(bool disposing)
         {

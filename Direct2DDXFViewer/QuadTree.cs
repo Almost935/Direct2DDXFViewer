@@ -32,6 +32,7 @@ namespace Direct2DDXFViewer
         private string _tempFileFolderPath;
         private List<Bitmap> _overallBitmaps = new();
         private bool _disposed = false;
+        private int _maxQuadNodeSize;
         #endregion
 
         #region Properties
@@ -48,7 +49,7 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTree(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, Size2F overallSize, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, int zoomStep, float zoom, int maxBitmapSize, string tempPath)
+        public QuadTree(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, Size2F overallSize, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, int zoomStep, float zoom, int maxBitmapSize, int maxQuadNodeSize, string tempPath)
         {
             _factory = factory;
             _deviceContext = deviceContext;
@@ -60,6 +61,7 @@ namespace Direct2DDXFViewer
             ZoomStep = zoomStep;
             Zoom = zoom;
             _maxBitmapSize = maxBitmapSize;
+            _maxQuadNodeSize = maxQuadNodeSize;
             _tempPath = tempPath;
 
             GetTempFilePath();
@@ -168,13 +170,14 @@ namespace Direct2DDXFViewer
             BitmapsLoaded = true;
 
             stopwatch.Stop();
-            Debug.WriteLine($"LoadBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
+            //Debug.WriteLine($"LoadBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
         public void GetRequiredLevels()
         {
             double limitingFactor = new List<double>() { Zoom * _deviceContext.Size.Width, Zoom * _deviceContext.Size.Height }.Max();
 
-            Levels = (int)Math.Floor(limitingFactor / _maxBitmapSize);
+            Levels = (int)Math.Floor(limitingFactor / 2000);
+            int x = 0;
         }
         private void GetDrawingObjects()
         {

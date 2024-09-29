@@ -45,17 +45,16 @@ namespace Direct2DDXFViewer
         #region Fields
         private const int _zoomPrecision = 3;
         private const int _bitmapReuseFactor = 2;
-        private const float _zoomFactor = 1.25f;
+        private const float _zoomFactor = 1.3f;
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
         private const int _loadedQuadTreesFactor = 2;
-        private const int _initializedQuadTreeFactor = 5;
+        private const int _initializedQuadTreeFactor = 6;
 
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
         private bool _isPanning = false;
         private bool _isRendering = false;
-        //private BitmapCache _bitmapCache;
         private bool _deviceContextIsDirty = true;
         private Point _lastTranslatePos = new();
         private bool _dxfLoaded = false;
@@ -293,6 +292,8 @@ namespace Direct2DDXFViewer
                     if (_quadTreeCache.CurrentQuadTree is not null)
                     {
                         RenderQuadTree(deviceContext, _quadTreeCache.CurrentQuadTree);
+
+                        //Debug.WriteLine($"RenderQuadTree");
                     }
                     else
                     {
@@ -303,6 +304,8 @@ namespace Direct2DDXFViewer
 
                         RenderIntersectingViewsToBitmap(_offscreenRenderTarget);
                         deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
+
+                        //Debug.WriteLine($"RenderIntersectingViewsToBitmap");
                     }
                     DrawInteractiveObjects(deviceContext, _interactiveRenderTarget);
 
@@ -327,14 +330,19 @@ namespace Direct2DDXFViewer
             Stopwatch stopwatch = Stopwatch.StartNew();
 
             var nodes = quadTree.GetIntersectingNodes(_currentView);
+            Matrix matrix = new Matrix((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, 
+                (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
 
             Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
             foreach (var node in nodes)
             {
                 var destRect = node.DestRect;
-                Matrix matrix = new Matrix((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
                 destRect.Transform(matrix);
                 var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
+
+                node.DisposeBitmaps();
+                node.LoadBitmap();
+
                 deviceContext.DrawBitmap(node.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
                 deviceContext.DrawRectangle(destRawRect, brush, 1.0f);
             }
@@ -604,6 +612,8 @@ namespace Direct2DDXFViewer
         }
         private void UpdateTranslate(Vector translate)
         {
+            if (translate.LengthSquared < 0.5) return; // Prevent unnecessary translations
+
             _overallMatrix.Translate(translate.X, translate.Y);
             _transformMatrix.Translate(translate.X, translate.Y);
             UpdateCurrentView();

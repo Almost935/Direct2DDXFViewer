@@ -84,57 +84,12 @@ namespace Direct2DDXFViewer.BitmapHelpers
             int x = 0;
         }
 
-        //private async Task RunLoadBitmapsAsync()
-        //{
-        //    while (!_asyncBitmapsInitialized)
-        //    {
-        //        await Task.Run(LoadBitmapsAsync);
-        //    }
-        //}
-
-        //private void LoadBitmapsAsync()
-        //{
-        //    Stopwatch overallStopwatch = Stopwatch.StartNew();
-
-        //    CurrentBitmap = new DxfBitmapView(_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, 0, _zoomFactor, _zoomPrecision, _tempFolderPath, _maxBitmapSize, _numOfDivisions);
-        //    _createdBitmaps[0] = CurrentBitmap;
-
-        //    Parallel.For(_initializationFactor, MaxZoomStep, i =>
-        //    {
-        //        CreateAndAddBitmapView(i + 1);
-        //        CreateAndAddBitmapView(-1 * (i + 1));
-        //    });
-
-        //    overallStopwatch.Stop();
-        //    Debug.WriteLine($"ASYNC: Bitmaps initialized in {overallStopwatch.ElapsedMilliseconds} ms");
-
-        //    _asyncBitmapsInitialized = true;
-        //}
-
         public void InitializeBitmaps()
         {
             Stopwatch overallStopwatch = Stopwatch.StartNew();
 
             CurrentBitmap = new DxfBitmapView(_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, 0, _zoomFactor, _zoomPrecision, _tempFolderPath, _maxBitmapSize, _numOfDivisions);
             _createdBitmaps[0] = CurrentBitmap;
-
-            //// Only gets every nth(_bitmapReuseFactor) bitmap to reduce memory usage
-            //Parallel.For(0, MaxZoomStep, i =>
-            //{
-            //    if (((i + 1) % _bitmapReuseFactor) == 0)
-            //    {
-            //        if ((i / _bitmapReuseFactor) < _initializationFactor)
-            //        {
-            //            CreateAndAddBitmapView(i + 1, _zoomedInLoadedBitmaps, i / _bitmapReuseFactor);
-            //            CreateAndAddBitmapView(-1 * (i + 1), _zoomedOutLoadedBitmaps, i / _bitmapReuseFactor);
-            //        }
-            //        else
-            //        {
-            //            CreateAndAddBitmapView(i + 1);
-            //            CreateAndAddBitmapView(-1 * (i + 1));
-            //        }
-            //    }
-            //});
 
             // Load all bitmaps up to MaxZoomStep 
             Parallel.For(0, MaxZoomStep, i =>
@@ -146,20 +101,14 @@ namespace Direct2DDXFViewer.BitmapHelpers
             });
 
             _bitmapsInitialized = true;
-            MaxBitmapZoomStep = _createdBitmaps.Keys.Max() + (_bitmapReuseFactor - 1); 
+            MaxBitmapZoomStep = _createdBitmaps.Keys.Max() + (_bitmapReuseFactor - 1);
 
             overallStopwatch.Stop();
-            //Debug.WriteLine($"Bitmaps initialized in {overallStopwatch.ElapsedMilliseconds} ms");
         }
 
         private void CreateAndAddBitmapView(int zoomStep)
         {
-            //Stopwatch stopwatch = Stopwatch.StartNew();
-
             DxfBitmapView bitmapView = new(_deviceContext, _factory, _layerManager, _extents, _extentsMatrix, zoomStep, _zoomFactor, _zoomPrecision, _tempFolderPath, _maxBitmapSize, _numOfDivisions);
-
-            //stopwatch.Stop();
-            //Debug.WriteLine($"bitmapView.ZoomStep: {bitmapView.ZoomStep} created in {stopwatch.ElapsedMilliseconds} ms");
 
             if (!_createdBitmaps.TryAdd(bitmapView.ZoomStep, bitmapView))
             {
@@ -201,7 +150,7 @@ namespace Direct2DDXFViewer.BitmapHelpers
                 zoomStep = MinZoomStep;
             }
             int adjustedZoomStep = AdjustZoomStep(zoomStep);
-            
+
             if (!_bitmapsInitialized || adjustedZoomStep > MaxBitmapZoomStep)
             {
                 bitmapView = null;
