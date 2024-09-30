@@ -96,6 +96,10 @@ namespace Direct2DDXFViewer
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
+            // Calculate number of divisions required to be below the min in each direction
+            int numOfBitmapsWidth = (int)Math.Floor(Math.Log((OverallSize.Width / )));
+
+
             float limitingDim = Math.Max(OverallSize.Width, OverallSize.Height);
             int bitmapSplit = 0;
             while (limitingDim > _maxBitmapSize)
@@ -103,21 +107,23 @@ namespace Direct2DDXFViewer
                 limitingDim /= 2;
                 bitmapSplit++;
             }
+            int numOfOverallBitmaps = (int)(Math.Pow(2, bitmapSplit));
 
-            int divisions = (int)(Math.Pow(2, bitmapSplit));
-            float bitmapWidth = (float)(OverallSize.Width / divisions);
-            float bitmapHeight = (float)(OverallSize.Height / divisions);
-            double destWidth = DestRect.Width / divisions;
-            double destHeight = DestRect.Height / divisions;
+            float bitmapWidth = (float)(OverallSize.Width / numOfOverallBitmaps);
+            float bitmapHeight = (float)(OverallSize.Height / numOfOverallBitmaps);
+            Size2F size = new(bitmapWidth, bitmapHeight);
 
-            double boundsWidth = Bounds.Width / divisions;
-            double boundsHeight = Bounds.Height / divisions;
+            double destWidth = DestRect.Width / numOfOverallBitmaps;
+            double destHeight = DestRect.Height / numOfOverallBitmaps;
 
-            for (int w = 0; w < divisions; w++) // width
+            double boundsWidth = Bounds.Width / numOfOverallBitmaps;
+            double boundsHeight = Bounds.Height / numOfOverallBitmaps;
+
+            for (int w = 0; w < numOfOverallBitmaps; w++) // width
             {
-                for (int h = 0; h < divisions; h++) // height
+                for (int h = 0; h < numOfOverallBitmaps; h++) // height
                 {
-                    BitmapRenderTarget target = new(_deviceContext, CompatibleRenderTargetOptions.None, new Size2F(bitmapWidth, bitmapHeight))
+                    BitmapRenderTarget target = new(_deviceContext, CompatibleRenderTargetOptions.None, size)
                     {
                         DotsPerInch = new(96 * Zoom, 96 * Zoom),
                         AntialiasMode = AntialiasMode.PerPrimitive
@@ -138,14 +144,14 @@ namespace Direct2DDXFViewer
                     target.EndDraw();
 
                     _overallBitmaps.Add(target.Bitmap);
-                    QuadTreeNode node = new(_factory, _deviceContext, objects, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, OverallSize, Levels, target.Bitmap, srcRect, _tempFileFolderPath);
+                    QuadTreeNode node = new(_factory, _deviceContext, objects, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, size, Levels, target.Bitmap, srcRect, _tempFileFolderPath);
 
                     Roots.Add(node);
 
                     target.Dispose();
                 }
             }
-
+            Debug.WriteLine($"Roots.Count: {Roots.Count}");
             foreach (var bitmap in _overallBitmaps) { bitmap.Dispose(); }
             _overallBitmaps.Clear();
 

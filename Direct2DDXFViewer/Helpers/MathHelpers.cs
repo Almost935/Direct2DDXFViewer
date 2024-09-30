@@ -98,7 +98,7 @@ namespace Direct2DDXFViewer.Helpers
             }
 
             // Calculate the number of levels using logarithm base 4
-            return (int)Math.Ceiling(Math.Log(limitingDim / maxQuadTreeNodeSize, 4));
+            return (int)Math.Floor(Math.Log(limitingDim / maxQuadTreeNodeSize, 4));
         }
     }
 }

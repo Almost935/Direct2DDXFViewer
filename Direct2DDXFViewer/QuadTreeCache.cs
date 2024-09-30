@@ -17,8 +17,6 @@ namespace Direct2DDXFViewer
     public class QuadTreeCache
     {
         #region Fields
-        private const int _maxQuadNodeSize = 5000;
-
         private readonly Factory1 _factory;
         private readonly DeviceContext1 _deviceContext;
         private readonly ObjectLayerManager _layerManager;
@@ -26,6 +24,7 @@ namespace Direct2DDXFViewer
         private readonly int _loadedQuadTreesFactor;
         private readonly int _initializedQuadTreeFactor;
         private readonly int _maxBitmapSize;
+        private readonly int _maxQuadNodeSize;
         private string _tempFolderPath;
         private QuadTree _baseQuadTree;
         private QuadTree[] _adjacentZoomedInQuadTrees;
@@ -75,6 +74,8 @@ namespace Direct2DDXFViewer
             _minZoomStep = 0;
 
             _maxBitmapSize = maxBitmapSize;
+            _maxQuadNodeSize = (int)(maxBitmapSize * 0.98); // 98% of maxBitmapSize to account for rounding errors
+
             _bitmapReuseFactor = bitmapReuseFactor;
             ZoomFactor = zoomFactor;
             ZoomPrecision = zoomPrecision;
