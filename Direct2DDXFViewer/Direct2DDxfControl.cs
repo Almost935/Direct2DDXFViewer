@@ -49,7 +49,7 @@ namespace Direct2DDXFViewer
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
         private const int _loadedQuadTreesFactor = 2;
-        private const int _initializedQuadTreeFactor = 6;
+        private const int _initializedQuadTreeFactor = 8;
 
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();

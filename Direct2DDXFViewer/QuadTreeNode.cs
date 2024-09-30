@@ -131,6 +131,7 @@ namespace Direct2DDXFViewer
             SaveBitmap(Bitmap);
 
             stopwatch.Stop();
+            Debug.WriteLine($"ZoomStep {ZoomStep} DrawBitmap time: {stopwatch.ElapsedMilliseconds}");
         }
 
         private void SaveBitmap(Bitmap1 bitmap)
@@ -196,6 +197,8 @@ namespace Direct2DDXFViewer
         {
             if (Level > 0)
             {
+                Stopwatch stopwatch = Stopwatch.StartNew();
+
                 ChildNodes = new QuadTreeNode[4];
 
                 Point factor1 = new(0, 0);
@@ -215,7 +218,6 @@ namespace Direct2DDXFViewer
                 Rect destRect3 = new(DestRect.Left + (halfDestRectSize.Width * factor3.X), DestRect.Top + (halfDestRectSize.Height * factor3.Y), halfDestRectSize.Width, halfDestRectSize.Height);
                 Rect destRect4 = new(DestRect.Left + (halfDestRectSize.Width * factor4.X), DestRect.Top + (halfDestRectSize.Height * factor4.Y), halfDestRectSize.Width, halfDestRectSize.Height);
 
-                Size bitmapSize = new(RootBitmap.Size.Width, RootBitmap.Size.Height);
                 Size halfSrcSize = new(SourceRect.Width / 2, SourceRect.Height / 2);
                 Rect srcRect1 = new(SourceRect.Left + (halfSrcSize.Width * factor1.X), SourceRect.Top + (halfSrcSize.Height * factor1.Y), halfSrcSize.Width, halfSrcSize.Height);
                 Rect srcRect2 = new(SourceRect.Left + (halfSrcSize.Width * factor2.X), SourceRect.Top + (halfSrcSize.Height * factor2.Y), halfSrcSize.Width, halfSrcSize.Height);
@@ -262,6 +264,9 @@ namespace Direct2DDXFViewer
                 ChildNodes[1] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m2, bounds2, destRect2, size, Level - 1, RootBitmap, srcRect2, _tempFileFolderPath);
                 ChildNodes[2] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m3, bounds3, destRect3, size, Level - 1, RootBitmap, srcRect3, _tempFileFolderPath);
                 ChildNodes[3] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m4, bounds4, destRect4, size, Level - 1, RootBitmap, srcRect4, _tempFileFolderPath);
+
+                stopwatch.Stop();
+                Debug.WriteLine($"ZoomStep {ZoomStep} Level: {Level} Subdivide time: {stopwatch.ElapsedMilliseconds}");
             }
             else
             {

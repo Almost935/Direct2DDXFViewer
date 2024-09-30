@@ -33,6 +33,7 @@ namespace Direct2DDXFViewer
         private List<Bitmap> _overallBitmaps = new();
         private bool _disposed = false;
         private int _maxQuadNodeSize;
+        private int _bitmapReuseFactor;
         #endregion
 
         #region Properties
@@ -49,7 +50,7 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTree(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, Size2F overallSize, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, int zoomStep, float zoom, int maxBitmapSize, int maxQuadNodeSize, string tempPath)
+        public QuadTree(Factory1 factory, DeviceContext1 deviceContext, ObjectLayerManager layerManager, Size2F overallSize, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, int zoomStep, float zoom, int maxBitmapSize, int maxQuadNodeSize, int bitmapReuseFactor, string tempPath)
         {
             _factory = factory;
             _deviceContext = deviceContext;
@@ -62,10 +63,11 @@ namespace Direct2DDXFViewer
             Zoom = zoom;
             _maxBitmapSize = maxBitmapSize;
             _maxQuadNodeSize = maxQuadNodeSize;
+            _bitmapReuseFactor = bitmapReuseFactor;
             _tempPath = tempPath;
+            Levels = MathHelpers.CalculateQuadTreeLevelsFromMaxSize(OverallSize, _maxQuadNodeSize);
 
             GetTempFilePath();
-            GetRequiredLevels();
             Initialize();
         }
         #endregion
@@ -128,6 +130,7 @@ namespace Direct2DDXFViewer
                     RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)(ExtentsMatrix.M31 - bitmapWidth * w), (float)(ExtentsMatrix.M32 - bitmapHeight * h));
                     target.BeginDraw();
                     target.Transform = matrix;
+                    
                     foreach (var obj in objects)
                     {
                         obj.DrawToRenderTarget(target, 1, obj.Brush, obj.HairlineStrokeStyle);
@@ -171,13 +174,6 @@ namespace Direct2DDXFViewer
 
             stopwatch.Stop();
             //Debug.WriteLine($"LoadBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
-        }
-        public void GetRequiredLevels()
-        {
-            double limitingFactor = new List<double>() { Zoom * _deviceContext.Size.Width, Zoom * _deviceContext.Size.Height }.Max();
-
-            Levels = (int)Math.Floor(limitingFactor / 2000);
-            int x = 0;
         }
         private void GetDrawingObjects()
         {

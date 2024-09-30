@@ -10,6 +10,7 @@ using SharpDX.Direct3D;
 using FeatureLevel = SharpDX.Direct3D.FeatureLevel;
 using System.Net;
 using System.Windows;
+using SharpDX;
 
 namespace Direct2DDXFViewer.Helpers
 {
@@ -86,6 +87,18 @@ namespace Direct2DDXFViewer.Helpers
                 return true;
             }
             return false;
+        }
+
+        public static int CalculateQuadTreeLevelsFromMaxSize(Size2F overallSize, float maxQuadTreeNodeSize)
+        {
+            float limitingDim = Math.Max(overallSize.Width, overallSize.Height);
+            if (limitingDim <= maxQuadTreeNodeSize)
+            {
+                return 0;
+            }
+
+            // Calculate the number of levels using logarithm base 4
+            return (int)Math.Ceiling(Math.Log(limitingDim / maxQuadTreeNodeSize, 4));
         }
     }
 }
