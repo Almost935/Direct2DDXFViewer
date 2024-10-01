@@ -173,7 +173,10 @@ namespace Direct2DDXFViewer
                 zoomStep = AdjustZoomStep(zoomStep);
                 float zoom = MathHelpers.GetZoom(ZoomFactor, zoomStep, ZoomPrecision);
                 Size2F size = new((float)(_deviceContext.Size.Width * zoom), (float)(_deviceContext.Size.Height * zoom));
-                quadTree = new(_factory, _deviceContext, _layerManager, size, ExtentsMatrix, OverallBounds, OverallDestRect, zoomStep, zoom, _maxBitmapSize, _maxQuadNodeSize, _bitmapReuseFactor, _tempFolderPath);
+                float sizeFactor = 0.75f * zoom;
+
+                quadTree = new(_factory, _deviceContext, _layerManager, ExtentsMatrix, OverallBounds, OverallDestRect, zoomStep, zoom, _maxBitmapSize, 
+                    _maxQuadNodeSize, _tempFolderPath, sizeFactor);
                 var added = QuadTrees.TryAdd(zoomStep, quadTree);
 
                 if (!added)

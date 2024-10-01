@@ -49,7 +49,7 @@ namespace Direct2DDXFViewer
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
         private const int _loadedQuadTreesFactor = 2;
-        private const int _initializedQuadTreeFactor = 7;
+        private const int _initializedQuadTreeFactor = 6;
 
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
@@ -292,8 +292,6 @@ namespace Direct2DDXFViewer
                     if (_quadTreeCache.CurrentQuadTree is not null)
                     {
                         RenderQuadTree(deviceContext, _quadTreeCache.CurrentQuadTree);
-
-                        Debug.WriteLine($"\nRenderQuadTree");
                     }
                     else
                     {
@@ -304,8 +302,6 @@ namespace Direct2DDXFViewer
 
                         RenderIntersectingViewsToBitmap(_offscreenRenderTarget);
                         deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
-
-                        Debug.WriteLine($"\nRenderIntersectingViewsToBitmap");
                     }
                     DrawInteractiveObjects(deviceContext, _interactiveRenderTarget);
 
@@ -313,7 +309,7 @@ namespace Direct2DDXFViewer
                     resCache.Device.ImmediateContext.Flush();
 
                     stopwatch.Stop();
-                    Debug.WriteLine($"RenderAsync Elapsed Time: {stopwatch.ElapsedMilliseconds}");
+                    //Debug.WriteLine($"RenderAsync Elapsed Time: {stopwatch.ElapsedMilliseconds}");
                     int elapsedTime = (int)stopwatch.ElapsedMilliseconds;
                     delay = 17 - elapsedTime;
                     _deviceContextIsDirty = false;
@@ -331,32 +327,15 @@ namespace Direct2DDXFViewer
             Stopwatch stopwatch = Stopwatch.StartNew();
 
             var nodes = quadTree.GetIntersectingNodes(_currentView);
-            stopwatch.Stop ();
-            Debug.WriteLine($"GetIntersectingNodes Time: {stopwatch.ElapsedMilliseconds} nodes.Count: {nodes.Count}");
 
-            stopwatch.Restart();
             Matrix matrix = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, 
                 (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-            stopwatch.Stop();
-            Debug.WriteLine($"matrix Creation: {stopwatch.ElapsedMilliseconds}");
 
             //Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
 
-            stopwatch.Restart();
-            
-            _quadTreeCache.TryGetQuadTree(12, out QuadTree tree);
-            tree.LoadBitmaps();
-            nodes = tree.GetIntersectingNodes(_currentView);
-            foreach (var node in nodes)
-            {
-                var destRect = node.DestRect;
-                destRect.Transform(matrix);
-                var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
-
-                deviceContext.DrawBitmap(node.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-                //deviceContext.DrawRectangle(destRawRect, brush, 1.0f);
-            }
-
+            //_quadTreeCache.TryGetQuadTree(12, out QuadTree tree);
+            //tree.LoadBitmaps();
+            //nodes = tree.GetIntersectingNodes(_currentView);
             //foreach (var node in nodes)
             //{
             //    var destRect = node.DestRect;
@@ -367,9 +346,15 @@ namespace Direct2DDXFViewer
             //    //deviceContext.DrawRectangle(destRawRect, brush, 1.0f);
             //}
 
+            foreach (var node in nodes)
+            {
+                var destRect = node.DestRect;
+                destRect.Transform(matrix);
+                var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
 
-            stopwatch.Stop();
-            Debug.WriteLine($"Render Nodes Time: {stopwatch.ElapsedMilliseconds}");
+                deviceContext.DrawBitmap(node.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+                //deviceContext.DrawRectangle(destRawRect, brush, 1.0f);
+            }
 
             //brush.Dispose();
 
