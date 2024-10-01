@@ -89,16 +89,24 @@ namespace Direct2DDXFViewer.Helpers
             return false;
         }
 
-        public static int CalculateQuadTreeLevelsFromMaxSize(Size2F overallSize, float maxQuadTreeNodeSize)
+        /// <summary>
+        /// Calculates the number of times a size must be divided by 2 to smaller than a certain length.
+        /// </summary>
+        /// <param name="overallSize">The size to be divided.</param>
+        /// <param name="maxQuadTreeNodeSize">The max length any one dimension of the size can be.</param>
+        /// <returns></returns>
+        public static (int x, int y) GetRequiredQuadTreeLevels(Size2F overallSize, float maxQuadTreeNodeSize)
         {
-            float limitingDim = Math.Max(overallSize.Width, overallSize.Height);
-            if (limitingDim <= maxQuadTreeNodeSize)
-            {
-                return 0;
-            }
+            // Calculate number of divisions required to be below the min in each direction
+            double levelsX = Math.Log((overallSize.Width / maxQuadTreeNodeSize), 2);
+            if (levelsX < 0) { levelsX = 0; }
+            else { levelsX = Math.Ceiling(levelsX); }
 
-            // Calculate the number of levels using logarithm base 4
-            return (int)Math.Floor(Math.Log(limitingDim / maxQuadTreeNodeSize, 4));
+            double levelsY = Math.Log((overallSize.Height / maxQuadTreeNodeSize), 2);
+            if (levelsY < 0) { levelsY = 0; }
+            else { levelsY = Math.Ceiling(levelsY); }
+
+            return ((int)levelsX, (int)levelsY);
         }
     }
 }

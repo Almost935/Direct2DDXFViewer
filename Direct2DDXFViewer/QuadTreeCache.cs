@@ -74,7 +74,7 @@ namespace Direct2DDXFViewer
             _minZoomStep = 0;
 
             _maxBitmapSize = maxBitmapSize;
-            _maxQuadNodeSize = (int)(maxBitmapSize * 0.98); // 98% of maxBitmapSize to account for rounding errors
+            _maxQuadNodeSize = (int)(maxBitmapSize * 0.95); // 98% of maxBitmapSize to account for rounding errors
 
             _bitmapReuseFactor = bitmapReuseFactor;
             ZoomFactor = zoomFactor;
@@ -123,8 +123,8 @@ namespace Direct2DDXFViewer
             //Debug.WriteLine($"InitializeQuadTrees took {stopwatch.ElapsedMilliseconds} ms");
         }
 
-        private async Task RunInitializeQuadTreesAsync() 
-        {             
+        private async Task RunInitializeQuadTreesAsync()
+        {
             await Task.Run(() => InitializeQuadTreesAsync());
         }
         private void InitializeQuadTreesAsync()
@@ -149,7 +149,7 @@ namespace Direct2DDXFViewer
             //Parallel.For(0, _initializedQuadTreeFactor, i =>
             //{
             //    int zoomStep = i * _bitmapReuseFactor;
-            //    int x = 0;
+
             //    if (i > _loadedQuadTreesFactor)
             //    {
             //        bool created = TryCreateQuadTree(i * _bitmapReuseFactor, out var quadTree);

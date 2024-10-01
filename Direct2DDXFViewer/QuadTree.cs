@@ -42,7 +42,6 @@ namespace Direct2DDXFViewer
         public Rect Bounds { get; set; }
         public Rect DestRect { get; set; }
         public Size2F OverallSize { get; set; }
-        public int Levels { get; set; }
         public List<QuadTreeNode> Roots { get; set; } = new();
         public int ZoomStep { get; set; }
         public float Zoom { get; set; }
@@ -65,7 +64,6 @@ namespace Direct2DDXFViewer
             _maxQuadNodeSize = maxQuadNodeSize;
             _bitmapReuseFactor = bitmapReuseFactor;
             _tempPath = tempPath;
-            Levels = MathHelpers.CalculateQuadTreeLevelsFromMaxSize(OverallSize, _maxQuadNodeSize);
 
             GetTempFilePath();
             Initialize();
@@ -96,32 +94,55 @@ namespace Direct2DDXFViewer
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            // Calculate number of divisions required to be below the min in each direction
-            int numOfBitmapsWidth = (int)Math.Floor(Math.Log((OverallSize.Width / )));
+            //// Calculate number of divisions required to be below the min in each direction
+            //(int x, int y) divisions = MathHelpers.GetRequiredQuadTreeLevels(OverallSize, _maxQuadNodeSize);
 
+            //float bitmapWidth = (float)(OverallSize.Width / (divisions.x + 1));
+            //float bitmapHeight = (float)(OverallSize.Height / (divisions.y + 1));
+            //Size2F size = new(bitmapWidth, bitmapHeight);
 
-            float limitingDim = Math.Max(OverallSize.Width, OverallSize.Height);
-            int bitmapSplit = 0;
-            while (limitingDim > _maxBitmapSize)
+            //double destWidth = DestRect.Width / divisions.x;
+            //double destHeight = DestRect.Height / divisions.y;
+
+            //double boundsWidth = Bounds.Width / divisions.x;
+            //double boundsHeight = Bounds.Height / divisions.y;
+
+            (int x, int y) divisions = (1, 1);
+            float wDim = OverallSize.Width;
+            float hDim = OverallSize.Height;
+            while (wDim >= _maxBitmapSize)
             {
-                limitingDim /= 2;
-                bitmapSplit++;
+                wDim /= 2;
+                divisions.x++;
             }
-            int numOfOverallBitmaps = (int)(Math.Pow(2, bitmapSplit));
+            while (hDim >= _maxBitmapSize)
+            {
+                hDim /= 2;
+                divisions.y++;
+            }
 
-            float bitmapWidth = (float)(OverallSize.Width / numOfOverallBitmaps);
-            float bitmapHeight = (float)(OverallSize.Height / numOfOverallBitmaps);
+            //float limitingDim = Math.Max(OverallSize.Width, OverallSize.Height);
+            //int bitmapSplit = 0;
+            //while (limitingDim > _maxBitmapSize)
+            //{
+            //    limitingDim /= 2;
+            //    bitmapSplit++;
+            //}
+            //int numOfOverallBitmaps = (int)(Math.Pow(2, bitmapSplit));
+
+            float bitmapWidth = (float)(OverallSize.Width / divisions.x);
+            float bitmapHeight = (float)(OverallSize.Height / divisions.y);
             Size2F size = new(bitmapWidth, bitmapHeight);
 
-            double destWidth = DestRect.Width / numOfOverallBitmaps;
-            double destHeight = DestRect.Height / numOfOverallBitmaps;
+            double destWidth = DestRect.Width / divisions.x;
+            double destHeight = DestRect.Height / divisions.y;
 
-            double boundsWidth = Bounds.Width / numOfOverallBitmaps;
-            double boundsHeight = Bounds.Height / numOfOverallBitmaps;
+            double boundsWidth = Bounds.Width / divisions.x;
+            double boundsHeight = Bounds.Height / divisions.y;
 
-            for (int w = 0; w < numOfOverallBitmaps; w++) // width
+            for (int w = 0; w < divisions.x; w++) // width
             {
-                for (int h = 0; h < numOfOverallBitmaps; h++) // height
+                for (int h = 0; h < divisions.y; h++) // height
                 {
                     BitmapRenderTarget target = new(_deviceContext, CompatibleRenderTargetOptions.None, size)
                     {
@@ -133,7 +154,8 @@ namespace Direct2DDXFViewer
                     Rect bounds = new(Bounds.Left + boundsWidth * w, Bounds.Top + boundsHeight * h, boundsWidth, boundsHeight);
 
                     List<DrawingObject> objects = _layerManager.GetDrawingObjectsinRect(bounds);
-                    RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)(ExtentsMatrix.M31 - bitmapWidth * w), (float)(ExtentsMatrix.M32 - bitmapHeight * h));
+                    RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, 
+                        (float)(ExtentsMatrix.M31 - bitmapWidth * w), (float)(ExtentsMatrix.M32 - bitmapHeight * h));
                     target.BeginDraw();
                     target.Transform = matrix;
                     
@@ -144,7 +166,11 @@ namespace Direct2DDXFViewer
                     target.EndDraw();
 
                     _overallBitmaps.Add(target.Bitmap);
-                    QuadTreeNode node = new(_factory, _deviceContext, objects, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, size, Levels, target.Bitmap, srcRect, _tempFileFolderPath);
+
+                    (int x, int y) nodeDivisions = MathHelpers.GetRequiredQuadTreeLevels(size, _maxBitmapSize);
+                    QuadTreeNode node = new(_factory, _deviceContext, objects, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, size, 
+                        (nodeDivisions.x > nodeDivisions.y) ? nodeDivisions.x : nodeDivisions.y, 
+                        target.Bitmap, srcRect, _tempFileFolderPath);
 
                     Roots.Add(node);
 

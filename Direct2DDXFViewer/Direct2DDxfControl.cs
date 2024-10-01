@@ -49,7 +49,7 @@ namespace Direct2DDXFViewer
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
         private const int _loadedQuadTreesFactor = 2;
-        private const int _initializedQuadTreeFactor = 8;
+        private const int _initializedQuadTreeFactor = 7;
 
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
@@ -293,7 +293,7 @@ namespace Direct2DDXFViewer
                     {
                         RenderQuadTree(deviceContext, _quadTreeCache.CurrentQuadTree);
 
-                        //Debug.WriteLine($"RenderQuadTree");
+                        Debug.WriteLine($"\nRenderQuadTree");
                     }
                     else
                     {
@@ -305,7 +305,7 @@ namespace Direct2DDXFViewer
                         RenderIntersectingViewsToBitmap(_offscreenRenderTarget);
                         deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
 
-                        //Debug.WriteLine($"RenderIntersectingViewsToBitmap");
+                        Debug.WriteLine($"\nRenderIntersectingViewsToBitmap");
                     }
                     DrawInteractiveObjects(deviceContext, _interactiveRenderTarget);
 
@@ -313,6 +313,7 @@ namespace Direct2DDXFViewer
                     resCache.Device.ImmediateContext.Flush();
 
                     stopwatch.Stop();
+                    Debug.WriteLine($"RenderAsync Elapsed Time: {stopwatch.ElapsedMilliseconds}");
                     int elapsedTime = (int)stopwatch.ElapsedMilliseconds;
                     delay = 17 - elapsedTime;
                     _deviceContextIsDirty = false;
@@ -330,23 +331,47 @@ namespace Direct2DDXFViewer
             Stopwatch stopwatch = Stopwatch.StartNew();
 
             var nodes = quadTree.GetIntersectingNodes(_currentView);
-            Matrix matrix = new Matrix((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, 
-                (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
+            stopwatch.Stop ();
+            Debug.WriteLine($"GetIntersectingNodes Time: {stopwatch.ElapsedMilliseconds} nodes.Count: {nodes.Count}");
 
-            Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
+            stopwatch.Restart();
+            Matrix matrix = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, 
+                (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
+            stopwatch.Stop();
+            Debug.WriteLine($"matrix Creation: {stopwatch.ElapsedMilliseconds}");
+
+            //Brush brush = new SolidColorBrush(deviceContext, new RawColor4(0, 0, 0, 1));
+
+            stopwatch.Restart();
+            
+            _quadTreeCache.TryGetQuadTree(12, out QuadTree tree);
+            tree.LoadBitmaps();
+            nodes = tree.GetIntersectingNodes(_currentView);
             foreach (var node in nodes)
             {
                 var destRect = node.DestRect;
                 destRect.Transform(matrix);
                 var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
 
-                node.DisposeBitmaps();
-                node.LoadBitmap();
-
                 deviceContext.DrawBitmap(node.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
-                deviceContext.DrawRectangle(destRawRect, brush, 1.0f);
+                //deviceContext.DrawRectangle(destRawRect, brush, 1.0f);
             }
-            brush.Dispose();
+
+            //foreach (var node in nodes)
+            //{
+            //    var destRect = node.DestRect;
+            //    destRect.Transform(matrix);
+            //    var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
+
+            //    deviceContext.DrawBitmap(node.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
+            //    //deviceContext.DrawRectangle(destRawRect, brush, 1.0f);
+            //}
+
+
+            stopwatch.Stop();
+            Debug.WriteLine($"Render Nodes Time: {stopwatch.ElapsedMilliseconds}");
+
+            //brush.Dispose();
 
             stopwatch.Stop();
             //Debug.WriteLine($"RenderQuadTree Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
@@ -612,7 +637,7 @@ namespace Direct2DDXFViewer
         }
         private void UpdateTranslate(Vector translate)
         {
-            if (translate.LengthSquared < 0.5) return; // Prevent unnecessary translations
+            if (translate.LengthSquared < 1) return; // Prevent unnecessary translations
 
             _overallMatrix.Translate(translate.X, translate.Y);
             _transformMatrix.Translate(translate.X, translate.Y);
@@ -669,16 +694,6 @@ namespace Direct2DDXFViewer
                 o.IsHighlighted = false;
             }
             HighlightedObjects.Clear();
-        }
-        private int CalculateQuadTreeLevels(int totalObjects, int maxObjectsPerLeaf)
-        {
-            if (totalObjects <= 0 || maxObjectsPerLeaf <= 0)
-            {
-                throw new ArgumentException("Total objects and max objects per leaf must be greater than zero.");
-            }
-
-            // Calculate the number of levels using logarithm base 4
-            return (int)Math.Ceiling(Math.Log(totalObjects / (double)maxObjectsPerLeaf, 4));
         }
         public void ZoomToExtents()
         {
