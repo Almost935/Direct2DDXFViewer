@@ -48,8 +48,8 @@ namespace Direct2DDXFViewer
         private const float _zoomFactor = 1.3f;
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
-        private const int _loadedQuadTreesFactor = 2;
-        private const int _initializedQuadTreeFactor = 6;
+        private const int _loadedQuadTreesFactor = 1;
+        private const int _initializedQuadTreeFactor = 5;
 
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
@@ -240,9 +240,11 @@ namespace Direct2DDXFViewer
         }
         public void InitializeBitmapCache(DeviceContext1 deviceContext, Factory1 factory)
         {
-            RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
+            RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, 
+                (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
 
-            _quadTreeCache = new(factory, deviceContext, _layerManager, _loadedQuadTreesFactor, _initializedQuadTreeFactor, resCache.MaxBitmapSize, _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView);
+            _quadTreeCache = new(factory, deviceContext, _layerManager, _loadedQuadTreesFactor, _initializedQuadTreeFactor, resCache.MaxBitmapSize, 
+                _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView);
 
             _drawingObjectTree = new(_layerManager, Extents, 3);
         }
@@ -289,7 +291,8 @@ namespace Direct2DDXFViewer
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 0));
 
-                    if (_quadTreeCache.CurrentQuadTree is not null)
+                    if (_quadTreeCache.CurrentQuadTree is not null &&
+                        _quadTreeCache.CurrentQuadTree.BitmapsLoaded)
                     {
                         RenderQuadTree(deviceContext, _quadTreeCache.CurrentQuadTree);
                     }
@@ -327,7 +330,7 @@ namespace Direct2DDXFViewer
             Stopwatch stopwatch = Stopwatch.StartNew();
 
             var nodes = quadTree.GetIntersectingNodes(_currentView);
-
+            
             Matrix matrix = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, 
                 (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
 

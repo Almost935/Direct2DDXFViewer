@@ -165,7 +165,7 @@ namespace Direct2DDXFViewer
                         (nodeDivisions.x > nodeDivisions.y) ? nodeDivisions.x : nodeDivisions.y,
                         target.Bitmap, srcRect, _tempFileFolderPath);
 
-                  Roots.Add(node);
+                    Roots.Add(node);
 
                     target.Dispose();
                 }
@@ -193,12 +193,15 @@ namespace Direct2DDXFViewer
 
             foreach (var root in Roots)
             {
-                root.LoadBitmap();
+                if (root.Bitmap is null)
+                {
+                    root.LoadBitmap();
+                }
             }
             BitmapsLoaded = true;
 
             stopwatch.Stop();
-            //Debug.WriteLine($"LoadBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
+            Debug.WriteLine($"LoadBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
         private void GetDrawingObjects()
         {

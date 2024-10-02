@@ -128,27 +128,27 @@ namespace Direct2DDXFViewer
             RawRectangle sourceRect = new((int)SourceRect.Left, (int)SourceRect.Top, (int)SourceRect.Right, (int)SourceRect.Bottom);
             Bitmap.CopyFromBitmap(RootBitmap, destPoint, sourceRect);
 
-            SaveBitmap(Bitmap);
+            SaveBitmap();
 
             stopwatch.Stop();
             Debug.WriteLine($"ZoomStep {ZoomStep} DrawBitmap time: {stopwatch.ElapsedMilliseconds}");
         }
 
-        private void SaveBitmap(Bitmap1 bitmap)
+        private void SaveBitmap()
         {
             _filePath = Path.Combine(_tempFileFolderPath, $"{Guid.NewGuid()}.bmp");
 
-            DataRectangle dataRectangle = bitmap.Map(MapOptions.Read);
+            DataRectangle dataRectangle = Bitmap.Map(MapOptions.Read);
             _pitch = dataRectangle.Pitch;
 
-            using (DataStream dataStream = new(dataRectangle.DataPointer, dataRectangle.Pitch * bitmap.PixelSize.Height, true, false))
+            using (DataStream dataStream = new(dataRectangle.DataPointer, dataRectangle.Pitch * Bitmap.PixelSize.Height, true, false))
             {
                 using (FileStream fileStream = new(_filePath, FileMode.Create, FileAccess.Write))
                 {
                     dataStream.CopyTo(fileStream);
                 }
             }
-            bitmap.Unmap();
+            Bitmap.Unmap();
 
             BitmapSaved = true;
 
@@ -181,6 +181,11 @@ namespace Direct2DDXFViewer
         {
             if (Bitmap != null)
             {
+                if (!BitmapSaved)
+                {
+                    SaveBitmap();
+                }
+
                 Bitmap.Dispose();
                 Bitmap = null;
             }

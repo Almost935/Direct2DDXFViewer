@@ -17,6 +17,8 @@ namespace Direct2DDXFViewer
     public class QuadTreeCache
     {
         #region Fields
+        private const int _minZoomStep = 0;
+
         private readonly Factory1 _factory;
         private readonly DeviceContext1 _deviceContext;
         private readonly ObjectLayerManager _layerManager;
@@ -25,13 +27,10 @@ namespace Direct2DDXFViewer
         private readonly int _initializedQuadTreeFactor;
         private readonly int _maxBitmapSize;
         private readonly int _maxQuadNodeSize;
+        private readonly int _maxZoomStep;
         private string _tempFolderPath;
         private QuadTree _baseQuadTree;
-        private QuadTree[] _adjacentZoomedInQuadTrees;
-        private QuadTree[] _adjacentZoomedOutQuadTrees;
         private bool _adjacentQuadTreesIsDirty = true;
-        private int _maxZoomStep;
-        private int _minZoomStep;
 
         ///// <summary>
         ///// Represents the zoom step QuadTree that is one level more zoomed in than the current one.
@@ -71,7 +70,6 @@ namespace Direct2DDXFViewer
             _initializedQuadTreeFactor = initializedQuadTreeFactor;
 
             _maxZoomStep = initializedQuadTreeFactor * bitmapReuseFactor;
-            _minZoomStep = 0;
 
             _maxBitmapSize = maxBitmapSize;
             _maxQuadNodeSize = (int)(maxBitmapSize * 0.95); // 98% of maxBitmapSize to account for rounding errors
@@ -98,9 +96,6 @@ namespace Direct2DDXFViewer
         {
             var stopwatch = Stopwatch.StartNew();
 
-            _adjacentZoomedInQuadTrees = new QuadTree[_loadedQuadTreesFactor];
-            _adjacentZoomedOutQuadTrees = new QuadTree[_loadedQuadTreesFactor];
-
             bool baseCreated = TryCreateQuadTree(0, out _baseQuadTree);
             if (!baseCreated)
             {
@@ -111,10 +106,6 @@ namespace Direct2DDXFViewer
             Parallel.For(0, _loadedQuadTreesFactor, i =>
             {
                 bool created = TryCreateQuadTree((i + 1) * _bitmapReuseFactor, out var quadTree);
-                if (created)
-                {
-                    _adjacentZoomedInQuadTrees[i] = quadTree;
-                }
 
                 //Debug.WriteLine($"InitializeActiveQuadTrees, Zoom Step: {i * _bitmapReuseFactor}");
             });
@@ -132,10 +123,24 @@ namespace Direct2DDXFViewer
             Debug.WriteLine("Entering InitializeQuadTreesAsync");
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            for (int i = 0; i < _initializedQuadTreeFactor; i++)
+            //for (int i = 0; i <= _initializedQuadTreeFactor; i++)
+            //{
+            //    int zoomStep = i * _bitmapReuseFactor;
+            //    int x = 0;
+            //    if (i > _loadedQuadTreesFactor)
+            //    {
+            //        bool created = TryCreateQuadTree(i * _bitmapReuseFactor, out var quadTree);
+            //        if (created)
+            //        {
+            //            quadTree.DisposeBitmaps();
+            //        }
+            //    }
+            //}
+
+            Parallel.For(0, _initializedQuadTreeFactor + 1, i =>
             {
                 int zoomStep = i * _bitmapReuseFactor;
-                int x = 0;
+
                 if (i > _loadedQuadTreesFactor)
                 {
                     bool created = TryCreateQuadTree(i * _bitmapReuseFactor, out var quadTree);
@@ -144,18 +149,7 @@ namespace Direct2DDXFViewer
                         quadTree.DisposeBitmaps();
                     }
                 }
-            }
-
-            //Parallel.For(0, _initializedQuadTreeFactor, i =>
-            //{
-            //    int zoomStep = i * _bitmapReuseFactor;
-
-            //    if (i > _loadedQuadTreesFactor)
-            //    {
-            //        bool created = TryCreateQuadTree(i * _bitmapReuseFactor, out var quadTree);
-            //        quadTree.DisposeBitmaps();
-            //    }
-            //});
+            });
 
             stopwatch.Stop();
             Debug.WriteLine($"InitializeQuadTreesAsync took {stopwatch.ElapsedMilliseconds} ms");
@@ -175,7 +169,7 @@ namespace Direct2DDXFViewer
                 Size2F size = new((float)(_deviceContext.Size.Width * zoom), (float)(_deviceContext.Size.Height * zoom));
                 float sizeFactor = 0.75f * zoom;
 
-                quadTree = new(_factory, _deviceContext, _layerManager, ExtentsMatrix, OverallBounds, OverallDestRect, zoomStep, zoom, _maxBitmapSize, 
+                quadTree = new(_factory, _deviceContext, _layerManager, ExtentsMatrix, OverallBounds, OverallDestRect, zoomStep, zoom, _maxBitmapSize,
                     _maxQuadNodeSize, _tempFolderPath, sizeFactor);
                 var added = QuadTrees.TryAdd(zoomStep, quadTree);
 
@@ -193,25 +187,19 @@ namespace Direct2DDXFViewer
         {
             zoomStep = AdjustZoomStep(zoomStep);
 
-            quadTree = _adjacentZoomedInQuadTrees.FirstOrDefault(qt => qt is not null && qt.ZoomStep == zoomStep);
-            if (quadTree is not null)
-            {
-                return true;
-            }
-
-            quadTree = _adjacentZoomedOutQuadTrees.FirstOrDefault(qt => qt is not null && qt.ZoomStep == zoomStep);
-            if (quadTree is not null)
-            {
-                return true;
-            }
-
             return QuadTrees.TryGetValue(zoomStep, out quadTree);
         }
 
         public void UpdateZoomStep(int zoomStep)
         {
             zoomStep = AdjustZoomStep(zoomStep);
-            TryGetQuadTree(zoomStep, out QuadTree quadTree);
+
+            bool found = TryGetQuadTree(zoomStep, out QuadTree quadTree);
+            if (found && !quadTree.BitmapsLoaded)
+            {
+                quadTree.LoadBitmaps();
+            }
+
             CurrentQuadTree = quadTree;
 
             _adjacentQuadTreesIsDirty = true;
@@ -234,35 +222,18 @@ namespace Direct2DDXFViewer
 
             int currentStep = CurrentQuadTree.ZoomStep;
 
-            for (int i = 0; i < _loadedQuadTreesFactor; i++)
+            Parallel.ForEach(QuadTrees.Values, tree =>
             {
-                int upperStep = AdjustZoomStep(currentStep + (i + 1) * _bitmapReuseFactor);
-                int lowerStep = AdjustZoomStep(currentStep - (i + 1) * _bitmapReuseFactor);
-
-                if (upperStep <= _maxZoomStep)
+                if (Math.Abs((tree.ZoomStep - currentStep) / _bitmapReuseFactor) <= _loadedQuadTreesFactor)
                 {
-                    bool found = TryGetQuadTree(upperStep, out _adjacentZoomedInQuadTrees[i]);
-                    if (found)
-                    {
-                        if (!_adjacentZoomedInQuadTrees[i].BitmapsLoaded)
-                        {
-                            _adjacentZoomedInQuadTrees[i].LoadBitmaps();
-                        }
-                    }
+                    tree.LoadBitmaps();
                 }
-
-                if (lowerStep >= _minZoomStep)
+                else
                 {
-                    bool found = TryGetQuadTree(lowerStep, out _adjacentZoomedOutQuadTrees[i]);
-                    if (found)
-                    {
-                        if (!_adjacentZoomedOutQuadTrees[i].BitmapsLoaded)
-                        {
-                            _adjacentZoomedOutQuadTrees[i].LoadBitmaps();
-                        }
-                    }
+                    tree.DisposeBitmaps();
+                    Something fucked here
                 }
-            }
+            });
 
             _adjacentQuadTreesIsDirty = false;
         }
