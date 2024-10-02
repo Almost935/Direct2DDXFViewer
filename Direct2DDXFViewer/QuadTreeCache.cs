@@ -94,8 +94,6 @@ namespace Direct2DDXFViewer
         #region Methods
         private void InitializeQuadTrees()
         {
-            var stopwatch = Stopwatch.StartNew();
-
             bool baseCreated = TryCreateQuadTree(0, out _baseQuadTree);
             if (!baseCreated)
             {
@@ -107,11 +105,7 @@ namespace Direct2DDXFViewer
             {
                 bool created = TryCreateQuadTree((i + 1) * _bitmapReuseFactor, out var quadTree);
 
-                //Debug.WriteLine($"InitializeActiveQuadTrees, Zoom Step: {i * _bitmapReuseFactor}");
             });
-
-            stopwatch.Stop();
-            //Debug.WriteLine($"InitializeQuadTrees took {stopwatch.ElapsedMilliseconds} ms");
         }
 
         private async Task RunInitializeQuadTreesAsync()
@@ -120,23 +114,6 @@ namespace Direct2DDXFViewer
         }
         private void InitializeQuadTreesAsync()
         {
-            Debug.WriteLine("Entering InitializeQuadTreesAsync");
-            Stopwatch stopwatch = Stopwatch.StartNew();
-
-            //for (int i = 0; i <= _initializedQuadTreeFactor; i++)
-            //{
-            //    int zoomStep = i * _bitmapReuseFactor;
-            //    int x = 0;
-            //    if (i > _loadedQuadTreesFactor)
-            //    {
-            //        bool created = TryCreateQuadTree(i * _bitmapReuseFactor, out var quadTree);
-            //        if (created)
-            //        {
-            //            quadTree.DisposeBitmaps();
-            //        }
-            //    }
-            //}
-
             Parallel.For(0, _initializedQuadTreeFactor + 1, i =>
             {
                 int zoomStep = i * _bitmapReuseFactor;
@@ -150,10 +127,6 @@ namespace Direct2DDXFViewer
                     }
                 }
             });
-
-            stopwatch.Stop();
-            Debug.WriteLine($"InitializeQuadTreesAsync took {stopwatch.ElapsedMilliseconds} ms");
-            Debug.WriteLine("Exiting InitializeQuadTreesAsync");
         }
 
         private bool TryCreateQuadTree(int zoomStep, out QuadTree quadTree)
@@ -166,8 +139,7 @@ namespace Direct2DDXFViewer
             {
                 zoomStep = AdjustZoomStep(zoomStep);
                 float zoom = MathHelpers.GetZoom(ZoomFactor, zoomStep, ZoomPrecision);
-                Size2F size = new((float)(_deviceContext.Size.Width * zoom), (float)(_deviceContext.Size.Height * zoom));
-                float sizeFactor = 0.75f * zoom;
+                float sizeFactor = zoom;
 
                 quadTree = new(_factory, _deviceContext, _layerManager, ExtentsMatrix, OverallBounds, OverallDestRect, zoomStep, zoom, _maxBitmapSize,
                     _maxQuadNodeSize, _tempFolderPath, sizeFactor);
@@ -224,14 +196,16 @@ namespace Direct2DDXFViewer
 
             Parallel.ForEach(QuadTrees.Values, tree =>
             {
-                if (Math.Abs((tree.ZoomStep - currentStep) / _bitmapReuseFactor) <= _loadedQuadTreesFactor)
+                int loc = Math.Abs((tree.ZoomStep - currentStep) / _bitmapReuseFactor);
+                bool isAdjacent = loc <= _loadedQuadTreesFactor;
+                int x = 0;
+                if (isAdjacent)
                 {
                     tree.LoadBitmaps();
                 }
                 else
                 {
                     tree.DisposeBitmaps();
-                    Something fucked here
                 }
             });
 

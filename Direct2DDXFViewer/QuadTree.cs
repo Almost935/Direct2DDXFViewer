@@ -146,7 +146,7 @@ namespace Direct2DDXFViewer
                     Rect srcRect = new(bitmapWidth * w, bitmapHeight * h, bitmapWidth, bitmapHeight);
                     Rect bounds = new(Bounds.Left + boundsWidth * w, Bounds.Top + boundsHeight * h, boundsWidth, boundsHeight);
 
-                    List<DrawingObject> objects = _layerManager.GetDrawingObjectsinRect(bounds);
+                    //List<DrawingObject> objects = _layerManager.GetDrawingObjectsinRect(bounds);
                     RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22,
                         (float)(ExtentsMatrix.M31 - bitmapWidth * w), (float)(ExtentsMatrix.M32 - bitmapHeight * h));
                     target.BeginDraw();
@@ -161,7 +161,7 @@ namespace Direct2DDXFViewer
                     _overallBitmaps.Add(target.Bitmap);
 
                     (int x, int y) nodeDivisions = MathHelpers.GetRequiredQuadTreeLevels(size, _maxQuadNodeSize);
-                    QuadTreeNode node = new(_factory, _deviceContext, objects, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, size,
+                    QuadTreeNode node = new(_factory, _deviceContext, ZoomStep, Zoom, ExtentsMatrix, bounds, destRect, size,
                         (nodeDivisions.x > nodeDivisions.y) ? nodeDivisions.x : nodeDivisions.y,
                         target.Bitmap, srcRect, _tempFileFolderPath);
 
@@ -170,14 +170,17 @@ namespace Direct2DDXFViewer
                     target.Dispose();
                 }
             }
-            Debug.WriteLine($"Roots.Count: {Roots.Count}");
-            foreach (var bitmap in _overallBitmaps) { bitmap.Dispose(); }
+
+            Parallel.ForEach(_overallBitmaps, bitmap =>
+            {
+                bitmap.Dispose();
+            });
             _overallBitmaps.Clear();
 
             BitmapsLoaded = true;
 
             stopwatch.Stop();
-            Debug.WriteLine($"GetRoots Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
+            Debug.WriteLine($"GetRoots (ZoomStep: {ZoomStep}) Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
         public void DisposeBitmaps()
         {
@@ -189,8 +192,6 @@ namespace Direct2DDXFViewer
         }
         public void LoadBitmaps()
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
-
             foreach (var root in Roots)
             {
                 if (root.Bitmap is null)
@@ -199,9 +200,6 @@ namespace Direct2DDXFViewer
                 }
             }
             BitmapsLoaded = true;
-
-            stopwatch.Stop();
-            Debug.WriteLine($"LoadBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
         private void GetDrawingObjects()
         {

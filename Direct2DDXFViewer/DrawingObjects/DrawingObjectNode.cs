@@ -107,9 +107,6 @@ namespace Direct2DDXFViewer.DrawingObjects
                 List<DrawingObject> objects3 = [];
                 List<DrawingObject> objects4 = [];
 
-                //Stopwatch stopwatch = Stopwatch.StartNew();
-                //Debug.WriteLine($"\nDrawingObject Seperation Begin: ZoomStep: {ZoomStep} Level: {Level}");
-
                 foreach (var drawingObject in DrawingObjects)
                 {
                     if (drawingObject.DrawingObjectIsInRect(extents1))
@@ -129,9 +126,6 @@ namespace Direct2DDXFViewer.DrawingObjects
                         objects4.Add(drawingObject);
                     }
                 }
-
-                //stopwatch.Stop();
-                //Debug.WriteLine($"DrawingObject Seperation End: ZoomStep: {ZoomStep} time: {stopwatch.ElapsedMilliseconds} ms");
 
                 ChildNodes[0] = new(objects1, Level - 1, extents1);
                 ChildNodes[1] = new(objects2, Level - 1, extents2);

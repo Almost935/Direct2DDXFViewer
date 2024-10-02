@@ -40,7 +40,6 @@ namespace Direct2DDXFViewer
         #region Properties
         public Bitmap1 Bitmap { get; set; }
         public Bitmap RootBitmap { get; set; }
-        public List<DrawingObject> DrawingObjects { get; set; } = new();
         public int ZoomStep { get; set; }
         public float Zoom { get; set; }
         public RawMatrix3x2 ExtentsMatrix { get; set; }
@@ -54,11 +53,10 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Constructors
-        public QuadTreeNode(Factory1 factory, DeviceContext1 deviceContext, List<DrawingObject> drawingObjects, int zoomStep, float zoom, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, Size2F size, int level, Bitmap rootBitmap, Rect srcRect, string tempFileFolderPath)
+        public QuadTreeNode(Factory1 factory, DeviceContext1 deviceContext, int zoomStep, float zoom, RawMatrix3x2 extentsMatrix, Rect bounds, Rect destRect, Size2F size, int level, Bitmap rootBitmap, Rect srcRect, string tempFileFolderPath)
         {
             _factory = factory;
             _deviceContext = deviceContext;
-            DrawingObjects = drawingObjects;
             ZoomStep = zoomStep;
             Zoom = zoom;
             ExtentsMatrix = extentsMatrix;
@@ -119,8 +117,6 @@ namespace Direct2DDXFViewer
 
         public void DrawBitmap()
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
-
             BitmapProperties1 bitmapProperties = new(new PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Premultiplied), 96, 96, BitmapOptions.CpuRead | BitmapOptions.CannotDraw);
             Bitmap = new(_deviceContext, new Size2((int)Size.Width, (int)Size.Height), bitmapProperties);
             
@@ -129,9 +125,6 @@ namespace Direct2DDXFViewer
             Bitmap.CopyFromBitmap(RootBitmap, destPoint, sourceRect);
 
             SaveBitmap();
-
-            stopwatch.Stop();
-            Debug.WriteLine($"ZoomStep {ZoomStep} DrawBitmap time: {stopwatch.ElapsedMilliseconds}");
         }
 
         private void SaveBitmap()
@@ -139,7 +132,7 @@ namespace Direct2DDXFViewer
             _filePath = Path.Combine(_tempFileFolderPath, $"{Guid.NewGuid()}.bmp");
 
             DataRectangle dataRectangle = Bitmap.Map(MapOptions.Read);
-            _pitch = dataRectangle.Pitch;
+            _pitch = dataRectangle.Pitch; 
 
             using (DataStream dataStream = new(dataRectangle.DataPointer, dataRectangle.Pitch * Bitmap.PixelSize.Height, true, false))
             {
@@ -149,7 +142,6 @@ namespace Direct2DDXFViewer
                 }
             }
             Bitmap.Unmap();
-
             BitmapSaved = true;
 
             LoadBitmap(); // Reload bitmap from file with CpuRead and CannotDraw flag removed so that i
@@ -202,8 +194,6 @@ namespace Direct2DDXFViewer
         {
             if (Level > 0)
             {
-                Stopwatch stopwatch = Stopwatch.StartNew();
-
                 ChildNodes = new QuadTreeNode[4];
 
                 Point factor1 = new(0, 0);
@@ -243,35 +233,12 @@ namespace Direct2DDXFViewer
                 List<DrawingObject> objects3 = new();
                 List<DrawingObject> objects4 = new();
 
-                foreach (var drawingObject in DrawingObjects)
-                {
-                    if (drawingObject.DrawingObjectIsInRect(bounds1))
-                    {
-                        objects1.Add(drawingObject);
-                    }
-                    if (drawingObject.DrawingObjectIsInRect(bounds2))
-                    {
-                        objects2.Add(drawingObject);
-                    }
-                    if (drawingObject.DrawingObjectIsInRect(bounds3))
-                    {
-                        objects3.Add(drawingObject);
-                    }
-                    if (drawingObject.DrawingObjectIsInRect(bounds4))
-                    {
-                        objects4.Add(drawingObject);
-                    }
-                }
-
                 Size2F size = new(Size.Width / 2, Size.Height / 2);
 
-                ChildNodes[0] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m1, bounds1, destRect1, size, Level - 1, RootBitmap, srcRect1, _tempFileFolderPath);
-                ChildNodes[1] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m2, bounds2, destRect2, size, Level - 1, RootBitmap, srcRect2, _tempFileFolderPath);
-                ChildNodes[2] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m3, bounds3, destRect3, size, Level - 1, RootBitmap, srcRect3, _tempFileFolderPath);
-                ChildNodes[3] = new(_factory, _deviceContext, DrawingObjects, ZoomStep, Zoom, m4, bounds4, destRect4, size, Level - 1, RootBitmap, srcRect4, _tempFileFolderPath);
-
-                stopwatch.Stop();
-                Debug.WriteLine($"ZoomStep {ZoomStep} Level: {Level} Subdivide time: {stopwatch.ElapsedMilliseconds}");
+                ChildNodes[0] = new(_factory, _deviceContext, ZoomStep, Zoom, m1, bounds1, destRect1, size, Level - 1, RootBitmap, srcRect1, _tempFileFolderPath);
+                ChildNodes[1] = new(_factory, _deviceContext, ZoomStep, Zoom, m2, bounds2, destRect2, size, Level - 1, RootBitmap, srcRect2, _tempFileFolderPath);
+                ChildNodes[2] = new(_factory, _deviceContext, ZoomStep, Zoom, m3, bounds3, destRect3, size, Level - 1, RootBitmap, srcRect3, _tempFileFolderPath);
+                ChildNodes[3] = new(_factory, _deviceContext, ZoomStep, Zoom, m4, bounds4, destRect4, size, Level - 1, RootBitmap, srcRect4, _tempFileFolderPath);
             }
             else
             {
