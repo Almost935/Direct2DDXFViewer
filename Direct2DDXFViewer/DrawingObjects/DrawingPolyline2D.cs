@@ -45,11 +45,14 @@ namespace Direct2DDXFViewer.DrawingObjects
 
             GetStrokeStyle();
             UpdateBrush();
+            GetDrawingSegments();
+
+            UpdateGeometriesAsync();
         }
         #endregion
 
         #region Methods
-        public override void UpdateGeometry()
+        public override void GetDrawingSegments()
         {
             foreach (var e in DxfPolyline2D.Explode())
             {
@@ -57,9 +60,29 @@ namespace Direct2DDXFViewer.DrawingObjects
                 if (obj is not null)
                 {
                     EntityCount += obj.EntityCount;
-                    DrawingSegments.Add(obj); 
+                    DrawingSegments.Add(obj);
                 }
             }
+        }
+
+        public override async Task UpdateGeometriesAsync()
+        {
+            await Task.Run(() => UpdateGeometry());
+            await Task.Run(() => UpdateGeometryRealization());
+        }
+        public override void UpdateGeometry()
+        {
+            Parallel.ForEach(DrawingSegments, segment =>
+            {
+                segment.UpdateGeometry();
+            });
+        }
+        public override void UpdateGeometryRealization()
+        {
+            Parallel.ForEach(DrawingSegments, segment =>
+            {
+                segment.UpdateGeometryRealization();
+            });
         }
         #endregion
     }

@@ -18,6 +18,7 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         #region Properties
         public Dictionary<string, ObjectLayer> Layers { get; set; } = new();
+        public List<DrawingObject> DrawingObjects => Layers.Values.SelectMany(layer => layer.DrawingObjects).ToList();
         #endregion
 
         #region Methods

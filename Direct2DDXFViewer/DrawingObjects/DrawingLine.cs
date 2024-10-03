@@ -53,6 +53,8 @@ namespace Direct2DDXFViewer.DrawingObjects
 
             GetStrokeStyle();
             UpdateBrush();
+
+            UpdateGeometriesAsync();
         }
         #endregion
 
@@ -77,7 +79,12 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             return Bounds.IntersectsWith(rect) || Bounds.Contains(rect);
         }
-        public override void UpdateGeometry()
+
+        public override async Task UpdateGeometriesAsync()
+        {
+            await Task.Run(() => UpdateGeometry());
+        }
+        public async override void UpdateGeometry()
         {
             PathGeometry pathGeometry = new(Factory);
             using (var sink = pathGeometry.Open())
@@ -89,14 +96,17 @@ namespace Direct2DDXFViewer.DrawingObjects
 
                 Geometry = pathGeometry;
 
-                Stopwatch stopwatch = Stopwatch.StartNew();
-                stopwatch.Restart();
-                GeometryRealization = new(DeviceContext, Geometry, 1.0f, 0.25f, HairlineStrokeStyle);
-                stopwatch.Stop();
-                Debug.WriteLine($"DrawingLine GeometryRealization: {stopwatch.ElapsedMilliseconds} ms");
-
                 var bounds = Geometry.GetBounds();
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
+
+                UpdateGeometryRealization();
+            }
+        }
+        public async override void UpdateGeometryRealization()
+        {
+            if (Geometry is not null)
+            {
+                GeometryRealization = new(DeviceContext, Geometry, 1.0f, 0.25f, HairlineStrokeStyle);
             }
         }
         public override bool Hittest(RawVector2 p, float thickness)

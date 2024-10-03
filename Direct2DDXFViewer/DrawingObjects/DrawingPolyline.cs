@@ -14,7 +14,7 @@ using System.Windows;
 
 namespace Direct2DDXFViewer.DrawingObjects
 {
-    public class DrawingPolyline : DrawingObject
+    public abstract class DrawingPolyline : DrawingObject
     {
         #region Fields
         #endregion
@@ -24,6 +24,8 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
+        public abstract void GetDrawingSegments();
+
         public override void UpdateGeometry()
         {
             // Implement logic to update the geometry of the polyline

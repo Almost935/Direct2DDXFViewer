@@ -29,7 +29,7 @@ using SharpDX;
 
 namespace Direct2DDXFViewer.DrawingObjects
 {
-    public class DrawingEllipse : DrawingObject
+    public class DrawingEllipse : DrawingSegment
     {
         #region Fields
         private netDxf.Entities.Ellipse _dxfEllipse;
@@ -84,33 +84,32 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             return Bounds.IntersectsWith(rect) || Bounds.Contains(rect);
         }
+
+        public override async Task UpdateGeometriesAsync()
+        {
+            await Task.Run(() => UpdateGeometry());
+            await Task.Run(() => UpdateGeometryRealization());
+        }
         public override void UpdateGeometry()
         {
             if (DxfEllipse.IsFullEllipse)
             {
                 Geometry = GetEllipseGeometry();
-
-                Stopwatch stopwatch = Stopwatch.StartNew();
-                stopwatch.Restart();
-                GeometryRealization = new(DeviceContext, Geometry, 1.0f, 0.25f, HairlineStrokeStyle);
-                stopwatch.Stop();
-                Debug.WriteLine($"DrawingEllipse GeometryRealization: {stopwatch.ElapsedMilliseconds} ms");
-
                 var bounds = Geometry.GetBounds();
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
             }
             else
             {
                 Geometry = GetArcGeometry();
-
-                Stopwatch stopwatch = Stopwatch.StartNew();
-                stopwatch.Restart();
-                GeometryRealization = new(DeviceContext, Geometry, 1.0f, 0.25f, HairlineStrokeStyle);
-                stopwatch.Stop();
-                Debug.WriteLine($"DrawingEllipse GeometryRealization: {stopwatch.ElapsedMilliseconds} ms");
-
                 var bounds = Geometry.GetBounds();
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
+            }
+        }
+        public override void UpdateGeometryRealization()
+        {
+            if (Geometry is not null)
+            {
+                GeometryRealization = new(DeviceContext, Geometry, 1.0f, 0.25f, HairlineStrokeStyle);
             }
         }
         public Geometry GetArcGeometry()

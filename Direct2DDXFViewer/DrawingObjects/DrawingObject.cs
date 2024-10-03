@@ -74,8 +74,9 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Methods
+        public abstract Task UpdateGeometriesAsync();
         public abstract void UpdateGeometry();
-
+        public abstract void UpdateGeometryRealization();
         public abstract void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush);
         public abstract void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush, StrokeStyle1 strokeStyle);
         public abstract void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush);

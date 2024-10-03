@@ -61,13 +61,10 @@ namespace Direct2DDXFViewer.DrawingObjects
             _factoryWrite = factoryWrite;
             EntityCount = 1;
 
-            UpdateGeometry();
             GetStrokeStyle();
             UpdateBrush();
 
-            GetTransform();
-            GetTextFormat();
-            GetTextLayout();
+            UpdateGeometriesAsync();
         }
         #endregion
 
@@ -75,7 +72,6 @@ namespace Direct2DDXFViewer.DrawingObjects
         public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush)
         {
             deviceContext.DrawTextLayout(new RawVector2((float)DxfMtext.Position.X, (float)DxfMtext.Position.Y), _textLayout, brush);
-            //deviceContext.DrawText(DxfMtext.PlainText(), _textFormat, new RawRectangleF((float)Bounds.Left, (float)Bounds.Top, (float)Bounds.Right, (float)Bounds.Bottom), Brush);
         }
         public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush, StrokeStyle1 strokeStyle)
         {
@@ -108,9 +104,22 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             return Bounds.IntersectsWith(rect) || Bounds.Contains(rect);
         }
+
+        public override async Task UpdateGeometriesAsync()
+        {
+            await Task.Run(() => UpdateGeometry());
+            await Task.Run(() => UpdateGeometryRealization());
+        }
         public override void UpdateGeometry()
         {
             Bounds = new(DxfMtext.Position.X, DxfMtext.Position.Y, DxfMtext.RectangleWidth * 2, DxfMtext.Height * 2);
+            GetTransform();
+            GetTextFormat();
+            GetTextLayout();
+        }
+        public override void UpdateGeometryRealization()
+        {
+            // DrawingMtext objects do not have a GeometryRealization.
         }
         public void GetTextFormat()
         {

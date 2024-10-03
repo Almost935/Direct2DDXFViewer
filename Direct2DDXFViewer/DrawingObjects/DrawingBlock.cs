@@ -47,14 +47,27 @@ namespace Direct2DDXFViewer.DrawingObjects
             ResCache = resCache;
             Layer = layer;
 
-            UpdateGeometry();
             GetStrokeStyle();
-            GetThickness();
             UpdateBrush();
         }
         #endregion
 
         #region Methods
+        public void GetDrawingObjects()
+        {
+            foreach (var e in DxfBlock.Explode())
+            {
+                var obj = DxfHelpers.GetDrawingObject(e, Layer, Factory, DeviceContext, ResCache);
+
+                if (obj is not null)
+                {
+                    EntityCount += obj.EntityCount;
+                    DrawingObjects.Add(obj);
+                }
+            }
+        }
+
+
         public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush)
         {
             foreach (var obj in DrawingObjects)
@@ -94,16 +107,26 @@ namespace Direct2DDXFViewer.DrawingObjects
             }
             return false;
         }
+
+        public override async Task UpdateGeometriesAsync()
+        {
+            await Task.Run(() => UpdateGeometry());
+            await Task.Run(() => UpdateGeometryRealization());
+        }
         public override void UpdateGeometry()
         {
-            foreach (var e in DxfBlock.Explode())
+            foreach (var obj in DrawingObjects)
             {
-                var obj = DxfHelpers.GetDrawingObject(e, Layer, Factory, DeviceContext, ResCache);
-               
-                if (obj is not null) 
+                obj.UpdateGeometry();
+            }
+        }
+        public override void UpdateGeometryRealization()
+        {
+            if (Geometry is not null)
+            {
+                foreach (var obj in DrawingObjects)
                 {
-                    EntityCount += obj.EntityCount;
-                    DrawingObjects.Add(obj); 
+                    obj.UpdateGeometryRealization();
                 }
             }
         }

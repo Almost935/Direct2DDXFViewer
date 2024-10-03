@@ -347,8 +347,17 @@ namespace Direct2DDXFViewer
             
             deviceContext.AntialiasMode = AntialiasMode.PerPrimitive;
 
-            var copy = _visibleDrawingObjects.ToList();
-            foreach (var obj in copy)
+            //var copy = _visibleDrawingObjects.ToList();
+            //foreach (var obj in copy)
+            //{
+            //    Debug.WriteLine($"RenderGeometryRealizations Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
+            //    if (obj.Layer.IsVisible)
+            //    {
+            //        GeometryRealizationRenderer.RenderGeometryRealization(deviceContext, obj);
+            //    }
+            //}
+
+            foreach (var obj in LayerManager.DrawingObjects)
             {
                 if (obj.Layer.IsVisible)
                 {

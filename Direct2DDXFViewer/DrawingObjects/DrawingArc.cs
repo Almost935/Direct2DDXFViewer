@@ -47,6 +47,8 @@ namespace Direct2DDXFViewer.DrawingObjects
 
             GetStrokeStyle();
             UpdateBrush();
+            
+            UpdateGeometriesAsync();
         }
         #endregion
 
@@ -71,6 +73,12 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             return Bounds.IntersectsWith(rect) || Bounds.Contains(rect);
         }
+        public override async Task UpdateGeometriesAsync()
+        {
+            await Task.Run(() => UpdateGeometry());
+            await Task.Run(() => UpdateGeometryRealization());
+        }
+
         public override void UpdateGeometry()
         {
             // Start by getting start and end points using NetDxf ToPolyline2D method
@@ -122,17 +130,17 @@ namespace Direct2DDXFViewer.DrawingObjects
                 }
                 Geometry = simplifiedGeometry;
 
-                Stopwatch stopwatch = Stopwatch.StartNew();
-                stopwatch.Restart();
-                GeometryRealization = new(DeviceContext, Geometry, 1.0f, 0.25f, HairlineStrokeStyle);
-                stopwatch.Stop();
-                Debug.WriteLine($"DrawingArc GeometryRealization: {stopwatch.ElapsedMilliseconds} ms");
-
                 var bounds = Geometry.GetBounds();
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
             }
         }
-
+        public override void UpdateGeometryRealization()
+        {
+            if (Geometry is not null)
+            {
+                GeometryRealization = new(DeviceContext, Geometry, 1.0f, 0.25f, HairlineStrokeStyle);
+            }
+        }
         public override bool Hittest(RawVector2 p, float thickness)
         {
             return Geometry.StrokeContainsPoint(p, thickness);
