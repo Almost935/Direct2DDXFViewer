@@ -49,6 +49,7 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public EntityObject Entity { get; set; }
         public Geometry Geometry { get; set; }
+        public GeometryRealization GeometryRealization { get; set; }
         public Rect Bounds { get; set; }
         public DeviceContext1 DeviceContext { get; set; }
         public Factory1 Factory { get; set; }
@@ -95,10 +96,10 @@ namespace Direct2DDXFViewer.DrawingObjects
                 Brush = null;
             }
             
-            (byte r, byte g, byte b, byte a) = GetRGBAColor();
+            (byte r, byte g, byte b, byte a) = DxfHelpers.GetRGBAColor(Entity);
 
-            bool brushExisted = ResCache.Brushes.TryGetValue((r, g, b, a), value: out Brush brush);
-            if (!brushExisted)
+            bool brushExists = ResCache.Brushes.TryGetValue((r, g, b, a), value: out Brush brush);
+            if (!brushExists)
             {
                 Brush = new SolidColorBrush(DeviceContext, new RawColor4((float)r / 255, (float)g / 255, (float)b / 255, 1.0f));
                 ResCache.Brushes.Add((r, g, b, a), Brush);
@@ -107,35 +108,6 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 Brush = brush;
             }
-        }
-
-        public (byte r, byte g, byte b, byte a) GetRGBAColor()
-        {
-            byte r, g, b, a;
-            if (Entity.Color.IsByLayer)
-            {
-                if (Entity.Layer.Color.R == 255 && Entity.Layer.Color.G == 255 && Entity.Layer.Color.B == 255)
-                {
-                    r = g = b = 0; a = 255;
-                }
-                else
-                {
-                    r = Entity.Layer.Color.R; g = Entity.Layer.Color.G; b = Entity.Layer.Color.B; a = 255;
-                }
-            }
-            else
-            {
-                if (Entity.Color.R == 255 && Entity.Color.G == 255 && Entity.Color.B == 255)
-                {
-                    r = g = b = 0; a = 255;
-                }
-                else
-                {
-                    r = Entity.Color.R; g = Entity.Color.G; b = Entity.Color.B; a = 255;
-                }
-            }
-
-            return (r, g, b, a);
         }
 
         public void GetStrokeStyle()

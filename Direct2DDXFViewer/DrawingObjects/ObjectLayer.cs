@@ -16,7 +16,7 @@ namespace Direct2DDXFViewer.DrawingObjects
     {
         #region Fields
         private string _name;
-        private List<DrawingObject> _drawingObjects = new();
+        private List<DrawingObject> _drawingObjects = [];
         private bool isVisible = true;
         private bool _disposed = false;
         #endregion

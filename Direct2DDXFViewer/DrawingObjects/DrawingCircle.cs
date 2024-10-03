@@ -15,7 +15,7 @@ using Ellipse = SharpDX.Direct2D1.Ellipse;
 
 namespace Direct2DDXFViewer.DrawingObjects
 {
-    public class DrawingCircle : DrawingObject
+    public class DrawingCircle : DrawingSegment
     {
         #region Fields
         private Circle _dxfCircle;
@@ -77,6 +77,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             EllipseGeometry ellipseGeometry = new(Factory, ellipse);
 
             Geometry = ellipseGeometry;
+            GeometryRealization = new(DeviceContext, ellipseGeometry, 0.25f, 0.25f, HairlineStrokeStyle);
 
             var bounds = Geometry.GetBounds();
             Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));

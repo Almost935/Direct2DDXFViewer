@@ -90,6 +90,13 @@ namespace Direct2DDXFViewer.DrawingObjects
                 sink.Close();
 
                 Geometry = pathGeometry;
+
+                Stopwatch stopwatch = Stopwatch.StartNew();
+                stopwatch.Restart();
+                GeometryRealization = new(DeviceContext, Geometry, 1.0f, 0.25f, HairlineStrokeStyle);
+                stopwatch.Stop();
+                Debug.WriteLine($"DrawingLine GeometryRealization: {stopwatch.ElapsedMilliseconds} ms");
+
                 var bounds = Geometry.GetBounds();
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
             }

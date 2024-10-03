@@ -6,6 +6,7 @@ using SharpDX.Mathematics.Interop;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -121,6 +122,12 @@ namespace Direct2DDXFViewer.DrawingObjects
                     geometrySink.Close();
                 }
                 Geometry = simplifiedGeometry;
+
+                Stopwatch stopwatch = Stopwatch.StartNew();
+                stopwatch.Restart();
+                GeometryRealization = new(DeviceContext, Geometry, 1.0f, 0.25f, HairlineStrokeStyle);
+                stopwatch.Stop();
+                Debug.WriteLine($"DrawingArc GeometryRealization: {stopwatch.ElapsedMilliseconds} ms");
 
                 var bounds = Geometry.GetBounds();
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));

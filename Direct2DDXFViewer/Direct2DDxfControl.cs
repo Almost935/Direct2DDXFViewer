@@ -37,6 +37,8 @@ using BitmapCache = Direct2DDXFViewer.BitmapHelpers.BitmapCache;
 using System.Windows.Controls.Ribbon.Primitives;
 using System.Security.Cryptography.Xml;
 using netDxf.Collections;
+using System.Collections.Generic;
+using Direct2DDXFViewer.Helpers;
 
 namespace Direct2DDXFViewer
 {
@@ -71,13 +73,16 @@ namespace Direct2DDXFViewer
         private DrawingObjectTree _drawingObjectTree;
 
         private DxfDocument _dxfDoc;
-        private string _filePath = @"DXF\SmallDxf.dxf";
+        private string _filePath = @"DXF\LargeDxf.dxf";
         private Point _pointerCoords = new();
         private Point _dxfPointerCoords = new();
         private Rect _extents = new();
         private ObjectLayerManager _layerManager;
         private DrawingObject _snappedObject;
         private int _currentZoomStep = 0;
+
+        private bool _geometryRealizationsDirty = true;
+        private Dictionary<int, List<(GeometryRealization geometryRealization, Brush brush)>> _geometryRealizationDict = new();
 
         private enum SnapMode { Point, Object };
         private SnapMode _snapMode = SnapMode.Object;
@@ -243,8 +248,8 @@ namespace Direct2DDXFViewer
             RawMatrix3x2 extentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, 
                 (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
 
-            _quadTreeCache = new(factory, deviceContext, _layerManager, _loadedQuadTreesFactor, _initializedQuadTreeFactor, resCache.MaxBitmapSize, 
-                _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView);
+            //_quadTreeCache = new(factory, deviceContext, _layerManager, _loadedQuadTreesFactor, _initializedQuadTreeFactor, resCache.MaxBitmapSize, 
+            //    _bitmapReuseFactor, _zoomFactor, _zoomPrecision, extentsMatrix, InitialView);
 
             _drawingObjectTree = new(_layerManager, Extents, 3);
         }
@@ -254,6 +259,12 @@ namespace Direct2DDXFViewer
             GetResources(deviceContext);
             _offscreenRenderTarget ??= new(deviceContext, CompatibleRenderTargetOptions.None, new Size2F((float)ActualWidth, (float)ActualHeight));
             _interactiveRenderTarget ??= new(deviceContext, CompatibleRenderTargetOptions.None, new Size2F((float)ActualWidth, (float)ActualHeight));
+
+            //if (_geometryRealizationsDirty)
+            //{
+            //    GetGeometryRealizations(deviceContext);
+            //    _geometryRealizationsDirty = false;
+            //}
 
             if (!_dxfLoaded)
             {
@@ -291,21 +302,22 @@ namespace Direct2DDXFViewer
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 0));
 
-                    if (_quadTreeCache.CurrentQuadTree is not null &&
-                        _quadTreeCache.CurrentQuadTree.BitmapsLoaded)
-                    {
-                        RenderQuadTree(deviceContext, _quadTreeCache.CurrentQuadTree);
-                    }
-                    else
-                    {
-                        if (_visibleObjectsDirty)
-                        {
-                            GetVisibleObjects();
-                        }
+                    RenderGeometryRealizations(deviceContext);
+                    //if (_quadTreeCache.CurrentQuadTree is not null &&
+                    //    _quadTreeCache.CurrentQuadTree.BitmapsLoaded)
+                    //{
+                    //    RenderQuadTree(deviceContext, _quadTreeCache.CurrentQuadTree);
+                    //}
+                    //else
+                    //{
+                    //    if (_visibleObjectsDirty)
+                    //    {
+                    //        GetVisibleObjects();
+                    //    }
 
-                        RenderIntersectingViewsToBitmap(_offscreenRenderTarget);
-                        deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
-                    }
+                    //    RenderIntersectingViewsToBitmap(_offscreenRenderTarget);
+                    //    deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
+                    //}
                     DrawInteractiveObjects(deviceContext, _interactiveRenderTarget);
 
                     deviceContext.EndDraw();
@@ -325,6 +337,28 @@ namespace Direct2DDXFViewer
             }
         }
 
+        private void RenderGeometryRealizations(DeviceContext1 deviceContext)
+        {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            deviceContext.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
+            //if (_visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum) { deviceContext.AntialiasMode = AntialiasMode.Aliased; }
+            //else { deviceContext.AntialiasMode = AntialiasMode.PerPrimitive; }
+            
+            deviceContext.AntialiasMode = AntialiasMode.PerPrimitive;
+
+            var copy = _visibleDrawingObjects.ToList();
+            foreach (var obj in copy)
+            {
+                if (obj.Layer.IsVisible)
+                {
+                    GeometryRealizationRenderer.RenderGeometryRealization(deviceContext, obj);
+                }
+            }
+
+            stopwatch.Stop();
+            Debug.WriteLine($"RenderGeometryRealizations Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
+        }
         private void RenderQuadTree(DeviceContext1 deviceContext, QuadTree quadTree)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
@@ -602,7 +636,7 @@ namespace Direct2DDXFViewer
                 _visibleObjectsDirty = true;
                 _deviceContextIsDirty = true;
 
-                _quadTreeCache.UpdateZoomStep(CurrentZoomStep);
+                //_quadTreeCache.UpdateZoomStep(CurrentZoomStep);
             }
         }
         private void UpdateTranslate(Vector translate)

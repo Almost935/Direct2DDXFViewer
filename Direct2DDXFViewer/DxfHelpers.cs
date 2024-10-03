@@ -107,12 +107,33 @@ namespace Direct2DDXFViewer
             };
         }
 
-        public static RawColor4 GetEntityColor(EntityObject entity)
+        public static (byte r, byte g, byte b, byte a) GetRGBAColor(EntityObject entity)
         {
-            var color = entity.Color.IsByLayer ? entity.Layer.Color : entity.Color;
-            return color.R == 255 && color.G == 255 && color.B == 255
-                ? new RawColor4(0.0f, 0.0f, 0.0f, 1.0f)
-                : new RawColor4(color.R / 255f, color.G / 255f, color.B / 255f, 1.0f);
+            byte r, g, b, a;
+            if (entity.Color.IsByLayer)
+            {
+                if (entity.Layer.Color.R == 255 && entity.Layer.Color.G == 255 && entity.Layer.Color.B == 255)
+                {
+                    r = g = b = 0; a = 255;
+                }
+                else
+                {
+                    r = entity.Layer.Color.R; g = entity.Layer.Color.G; b = entity.Layer.Color.B; a = 255;
+                }
+            }
+            else
+            {
+                if (entity.Color.R == 255 && entity.Color.G == 255 && entity.Color.B == 255)
+                {
+                    r = g = b = 0; a = 255;
+                }
+                else
+                {
+                    r = entity.Color.R; g = entity.Color.G; b = entity.Color.B; a = 255;
+                }
+            }
+
+            return (r, g, b, a);
         }
     }
 }

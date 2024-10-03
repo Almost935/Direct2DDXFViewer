@@ -25,7 +25,7 @@ using Point = System.Windows.Point;
 
 namespace Direct2DDXFViewer.DrawingObjects
 {
-    public class DrawingMtext : DrawingSegment
+    public class DrawingMtext : DrawingObject
     {
         #region Fields
         private MText _dxfMtext;

@@ -152,7 +152,7 @@ namespace Direct2DDXFViewer
                     target.BeginDraw();
                     target.Transform = matrix;
 
-                    foreach (var obj in objects)
+                    foreach (var obj in DrawingObjects)
                     {
                         obj.DrawToRenderTarget(target, thickness, obj.Brush);
                     }
