@@ -16,6 +16,11 @@ namespace Direct2DDXFViewer
 {
     public static class DxfHelpers
     {
+        public static Geometry GetEntityGeometry(Factory1 factory, DeviceContext1 deviceContext, EntityObject e)
+        {
+
+        }
+
         public static Rect GetExtentsFromHeader(DxfDocument doc)
         {
             if (doc == null) return Rect.Empty;

@@ -156,15 +156,7 @@ namespace Direct2DDXFViewer.DrawingObjects
                 FixedStrokeStyle = fixedStrokeStyle;
             }
         }
-        public void GetThickness()
-        {
-            if (Entity is null)
-            {
-                return;
-            }
-
-            var lineweight = Entity.Lineweight;
-        }
+    
         public void UpdateFactory(Factory1 factory)
         {
             Factory = factory;

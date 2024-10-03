@@ -43,7 +43,6 @@ namespace Direct2DDXFViewer.DrawingObjects
             ResCache = resCache;
             Layer = layer;
 
-            UpdateGeometry();
             GetStrokeStyle();
             UpdateBrush();
         }

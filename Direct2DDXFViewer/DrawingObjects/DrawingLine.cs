@@ -51,9 +51,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             StartPoint = new((float)dxfLine.StartPoint.X, (float)dxfLine.StartPoint.Y);
             EndPoint = new((float)dxfLine.EndPoint.X, (float)dxfLine.EndPoint.Y);
 
-            UpdateGeometry();
             GetStrokeStyle();
-            GetThickness();
             UpdateBrush();
         }
         #endregion

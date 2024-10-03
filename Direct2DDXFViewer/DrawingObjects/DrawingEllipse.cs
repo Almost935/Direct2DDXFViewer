@@ -58,7 +58,6 @@ namespace Direct2DDXFViewer.DrawingObjects
             Layer = layer;
             EntityCount = 1;
 
-            UpdateGeometry();
             GetStrokeStyle();
             UpdateBrush();
         }
