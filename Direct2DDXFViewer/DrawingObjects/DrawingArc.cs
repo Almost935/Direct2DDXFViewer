@@ -46,9 +46,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             EntityCount = 1;
 
             GetStrokeStyle();
-            UpdateBrush();
-            
-            UpdateGeometriesAsync();
+            UpdateBrush();            
         }
         #endregion
 
@@ -76,9 +74,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         public override async Task UpdateGeometriesAsync()
         {
             await Task.Run(() => UpdateGeometry());
-            await Task.Run(() => UpdateGeometryRealization());
         }
-
         public override void UpdateGeometry()
         {
             // Start by getting start and end points using NetDxf ToPolyline2D method
@@ -132,13 +128,6 @@ namespace Direct2DDXFViewer.DrawingObjects
 
                 var bounds = Geometry.GetBounds();
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
-            }
-        }
-        public override void UpdateGeometryRealization()
-        {
-            if (Geometry is not null)
-            {
-                GeometryRealization = new(DeviceContext, Geometry, 1.0f, 0.25f, HairlineStrokeStyle);
             }
         }
         public override bool Hittest(RawVector2 p, float thickness)

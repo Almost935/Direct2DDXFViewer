@@ -49,7 +49,6 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public EntityObject Entity { get; set; }
         public Geometry Geometry { get; set; }
-        public GeometryRealization GeometryRealization { get; set; }
         public Rect Bounds { get; set; }
         public DeviceContext1 DeviceContext { get; set; }
         public Factory1 Factory { get; set; }
@@ -76,7 +75,6 @@ namespace Direct2DDXFViewer.DrawingObjects
         #region Methods
         public abstract Task UpdateGeometriesAsync();
         public abstract void UpdateGeometry();
-        public abstract void UpdateGeometryRealization();
         public abstract void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush);
         public abstract void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush, StrokeStyle1 strokeStyle);
         public abstract void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush);

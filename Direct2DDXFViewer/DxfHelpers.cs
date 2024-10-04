@@ -94,32 +94,27 @@ namespace Direct2DDXFViewer
 
             //Parallel.ForEach(layerManager.Layers.Values, layer =>
             //{
-            //    Parallel.ForEach(layer.DrawingObjects, obj =>
-            //{
-            //    obj.UpdateGeometry();
-            //});
-            //});
-            //stopwatch.Stop();
-            //Debug.WriteLine($"Load Geometries: {stopwatch.ElapsedMilliseconds} ms");
+            //    foreach (var obj in layer.DrawingObjects)
+            //    {
+            //        obj.UpdateGeometry();
+            //    }
 
-            stopwatch.Restart();
+            //    //    Parallel.ForEach(layer.DrawingObjects, obj =>
+            //    //{
+            //    //    obj.UpdateGeometry();
+            //    //});
+            //});
 
-            // Create GeometryRealizations on separate thread
-            //Task.Run(() =>
-            //{
-            //Parallel.ForEach(layerManager.Layers.Values, layer =>
-            //{
-            //    Parallel.ForEach(layer.DrawingObjects, obj =>
-            //{
-            //    obj.UpdateGeometryRealization();
-            //});
-            //});
-            //});
+            foreach (var layer in layerManager.Layers.Values)
+            {
+                foreach (var obj in layer.DrawingObjects)
+                {
+                    obj.UpdateGeometry();
+                }
+            }
 
             stopwatch.Stop();
-            Debug.WriteLine($"Load GeometryRealizations: {stopwatch.ElapsedMilliseconds} ms");
-
-            Thread.Sleep(20000);
+            Debug.WriteLine($"Load Geometries: {stopwatch.ElapsedMilliseconds} ms");
 
             return count;
         }

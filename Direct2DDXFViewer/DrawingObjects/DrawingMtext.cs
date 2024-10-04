@@ -63,8 +63,6 @@ namespace Direct2DDXFViewer.DrawingObjects
 
             GetStrokeStyle();
             UpdateBrush();
-
-            UpdateGeometriesAsync();
         }
         #endregion
 
@@ -108,7 +106,6 @@ namespace Direct2DDXFViewer.DrawingObjects
         public override async Task UpdateGeometriesAsync()
         {
             await Task.Run(() => UpdateGeometry());
-            await Task.Run(() => UpdateGeometryRealization());
         }
         public override void UpdateGeometry()
         {
@@ -117,10 +114,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             GetTextFormat();
             GetTextLayout();
         }
-        public override void UpdateGeometryRealization()
-        {
-            // DrawingMtext objects do not have a GeometryRealization.
-        }
+
         public void GetTextFormat()
         {
             _textFormat = new(_factoryWrite, DxfMtext.Style.FontFamilyName, (float)(DxfMtext.Height * 1.25));

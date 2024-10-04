@@ -19,6 +19,8 @@ namespace Direct2DDXFViewer.DrawingObjects
     public class DrawingObjectTree
     {
         #region Fields
+        private const float _viewInflationFactor = 1.1f;
+
         private ObjectLayerManager _layerManager;
         #endregion
 
@@ -27,6 +29,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         public Rect Extents { get; set; }
         public int Levels { get; set; }
         public DrawingObjectNode Root { get; set; }
+        public List<DrawingObjectNode> CurrentlyVisibleNodes { get; set; } = new();
         #endregion
 
         #region Constructors
@@ -73,6 +76,12 @@ namespace Direct2DDXFViewer.DrawingObjects
 
             return quadTreeNodes;
         }
+
+        //public void UpdateCurrentlyVisibleNodes(Rect view)
+        //{
+        //    view.Inflate(new System.Windows.Size);
+        //    CurrentlyVisibleNodes = GetIntersectingNodes(view);
+        //}
         #endregion
     }
 }

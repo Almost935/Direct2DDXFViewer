@@ -46,8 +46,6 @@ namespace Direct2DDXFViewer.DrawingObjects
 
             GetStrokeStyle();
             UpdateBrush();
-
-            UpdateGeometriesAsync();
         }
         #endregion
 
@@ -76,7 +74,6 @@ namespace Direct2DDXFViewer.DrawingObjects
         public override async Task UpdateGeometriesAsync()
         {
             await Task.Run(() => UpdateGeometry());
-            await Task.Run(() => UpdateGeometryRealization());
         }
         public override void UpdateGeometry()
         {
@@ -87,13 +84,6 @@ namespace Direct2DDXFViewer.DrawingObjects
 
             var bounds = Geometry.GetBounds();
             Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
-        }
-        public override void UpdateGeometryRealization()
-        {
-            if (Geometry is not null)
-            {
-                GeometryRealization = new(DeviceContext, Geometry, 1.0f, 0.25f, HairlineStrokeStyle);
-            }
         }
         public override bool Hittest(RawVector2 p, float thickness)
         {

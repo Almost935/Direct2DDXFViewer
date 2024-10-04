@@ -111,23 +111,12 @@ namespace Direct2DDXFViewer.DrawingObjects
         public override async Task UpdateGeometriesAsync()
         {
             await Task.Run(() => UpdateGeometry());
-            await Task.Run(() => UpdateGeometryRealization());
         }
         public override void UpdateGeometry()
         {
             foreach (var obj in DrawingObjects)
             {
                 obj.UpdateGeometry();
-            }
-        }
-        public override void UpdateGeometryRealization()
-        {
-            if (Geometry is not null)
-            {
-                foreach (var obj in DrawingObjects)
-                {
-                    obj.UpdateGeometryRealization();
-                }
             }
         }
         public override bool Hittest(RawVector2 p, float thickness)

@@ -82,12 +82,17 @@ namespace Direct2DDXFViewer
             OverallDestRect = new(0, 0, _deviceContext.Size.Width, _deviceContext.Size.Height);
 
             CreateTempFolder();
-            InitializeQuadTrees();
 
-            //RunInitializeQuadTreesAsync();
-            InitializeQuadTreesAsync();
+            Stopwatch sw = Stopwatch.StartNew();
+            //InitializeQuadTrees();
 
-            RunGetAdjacentQuadTreesAsync();
+            ////RunInitializeQuadTreesAsync();
+            //InitializeQuadTreesAsync();
+            
+            sw.Stop();
+            Debug.WriteLine($"\nQuadTree Initialization Overall Time: {sw.ElapsedMilliseconds}");
+
+            //RunGetAdjacentQuadTreesAsync();
         }
         #endregion
 

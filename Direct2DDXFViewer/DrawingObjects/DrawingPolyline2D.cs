@@ -46,8 +46,6 @@ namespace Direct2DDXFViewer.DrawingObjects
             GetStrokeStyle();
             UpdateBrush();
             GetDrawingSegments();
-
-            UpdateGeometriesAsync();
         }
         #endregion
 
@@ -68,20 +66,12 @@ namespace Direct2DDXFViewer.DrawingObjects
         public override async Task UpdateGeometriesAsync()
         {
             await Task.Run(() => UpdateGeometry());
-            await Task.Run(() => UpdateGeometryRealization());
         }
         public override void UpdateGeometry()
         {
             Parallel.ForEach(DrawingSegments, segment =>
             {
                 segment.UpdateGeometry();
-            });
-        }
-        public override void UpdateGeometryRealization()
-        {
-            Parallel.ForEach(DrawingSegments, segment =>
-            {
-                segment.UpdateGeometryRealization();
             });
         }
         #endregion

@@ -35,10 +35,10 @@ namespace Direct2DDXFViewer.Helpers
 
         public static void RenderDrawingSegment(DeviceContext1 deviceContext, DrawingSegment drawingSegment)
         {
-            if (drawingSegment.GeometryRealization is not null)
-            {
-                deviceContext.DrawGeometryRealization(drawingSegment.GeometryRealization, drawingSegment.Brush);
-            }
+            //if (drawingSegment.GeometryRealization is not null)
+            //{
+            //    deviceContext.DrawGeometryRealization(drawingSegment.GeometryRealization, drawingSegment.Brush);
+            //}
         }
 
         public static void RenderDrawingPolyline(DeviceContext1 deviceContext, DrawingPolyline drawingPolyline)

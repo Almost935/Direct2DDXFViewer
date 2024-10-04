@@ -70,6 +70,8 @@ namespace Direct2DDXFViewer
             _tempPath = tempPath;
             SizeFactor = sizeFactor;
 
+            DrawingObjects.AddRange(_layerManager.DrawingObjects);
+
             GetBitmapProperties();
             GetTempFilePath();
             Initialize();
@@ -107,7 +109,7 @@ namespace Direct2DDXFViewer
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            var thickness = AssortedHelpers.GetLineWidth(_deviceContext, 0.25f, Zoom);
+            var thickness = AssortedHelpers.GetLineWidth(_deviceContext, 0.5f, Zoom);
 
             (int x, int y) = (1, 1);
             float wDim = OverallSize.Width;
@@ -146,16 +148,30 @@ namespace Direct2DDXFViewer
                     Rect srcRect = new(bitmapWidth * w, bitmapHeight * h, bitmapWidth, bitmapHeight);
                     Rect bounds = new(Bounds.Left + boundsWidth * w, Bounds.Top + boundsHeight * h, boundsWidth, boundsHeight);
 
-                    //List<DrawingObject> objects = _layerManager.GetDrawingObjectsinRect(bounds);
+                    //List<DrawingObject> objects = _layerManager.GetDrawingObjectsinRect(bounds);  QQQ1
                     RawMatrix3x2 matrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22,
                         (float)(ExtentsMatrix.M31 - bitmapWidth * w), (float)(ExtentsMatrix.M32 - bitmapHeight * h));
                     target.BeginDraw();
                     target.Transform = matrix;
 
+                    //List<Bitmap> layerBitmaps = new();
+                    //Parallel.ForEach(_layerManager.Layers.Values, layer =>
+                    //{
+                    //    Bitmap layerBitmap = GetLayerBitmap(layer, AntialiasMode.PerPrimitive, size, DPI, thickness, matrix);
+                    //    layerBitmaps.Add(layerBitmap);
+                    //});
+
+                    //foreach (var bitmap in layerBitmaps)
+                    //{
+                    //    target.DrawBitmap(bitmap, 1, BitmapInterpolationMode.Linear);
+                    //    bitmap.Dispose();
+                    //}
+
                     foreach (var obj in DrawingObjects)
                     {
                         obj.DrawToRenderTarget(target, thickness, obj.Brush);
                     }
+
                     target.EndDraw();
 
                     _overallBitmaps.Add(target.Bitmap);
@@ -182,6 +198,27 @@ namespace Direct2DDXFViewer
             stopwatch.Stop();
             Debug.WriteLine($"GetRoots (ZoomStep: {ZoomStep}) Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
+        public Bitmap GetLayerBitmap(ObjectLayer layer, AntialiasMode antialiasMode, Size2F size, Size2F dpi, float thickness, RawMatrix3x2 matrix)
+        {
+            using (BitmapRenderTarget bitmapRenderTarget = new(_deviceContext, CompatibleRenderTargetOptions.None, size)
+            {
+                DotsPerInch = dpi,
+                AntialiasMode = AntialiasMode.PerPrimitive
+            })
+            {
+                bitmapRenderTarget.BeginDraw();
+                bitmapRenderTarget.Transform = matrix;
+
+                foreach (var obj in layer.DrawingObjects)
+                {
+                    obj.DrawToRenderTarget(bitmapRenderTarget, thickness, obj.Brush);
+                }
+
+                bitmapRenderTarget.EndDraw();
+
+                return bitmapRenderTarget.Bitmap;
+            }
+        }
         public void DisposeBitmaps()
         {
             foreach (var root in Roots)
@@ -200,13 +237,6 @@ namespace Direct2DDXFViewer
                 }
             }
             BitmapsLoaded = true;
-        }
-        private void GetDrawingObjects()
-        {
-            foreach (var layer in _layerManager.Layers.Values)
-            {
-                DrawingObjects.AddRange(layer.DrawingObjects);
-            }
         }
         public List<QuadTreeNode> GetIntersectingNodes(Rect view)
         {
