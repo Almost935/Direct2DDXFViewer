@@ -73,8 +73,12 @@ namespace Direct2DDXFViewer
         private DrawingObjectTree _drawingObjectTree;
         private RawMatrix3x2 _rawExtentsMatrix;
 
+
         // Layer bitmap rendering test fields
-        Dictionary<int, List<Bitmap>> layerBitmaps = [];
+        private Dictionary<int, List<Bitmap>> _layerBitmaps = [];
+        private Bitmap _currentOverallBitmap;
+        private bool _layerBitmapsDirty = true;
+        private bool _currentOverallBitmapDirty = true;
 
 
         private DxfDocument _dxfDoc;
@@ -210,7 +214,7 @@ namespace Direct2DDXFViewer
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            List<Bitmap> bitmaps = [];  
+            List<Bitmap> bitmaps = [];
 
             Parallel.ForEach(LayerManager.Layers.Values, layer =>
             {
@@ -224,14 +228,31 @@ namespace Direct2DDXFViewer
                     {
                         obj.DrawToRenderTarget(renderTarget, 1, obj.Brush, obj.HairlineStrokeStyle);
                     });
-                    
+
                     bitmaps.Add(renderTarget.Bitmap);
 
                     renderTarget.EndDraw();
                 }
             });
 
-            layerBitmaps.Add(0, bitmaps);
+            _layerBitmaps.Add(0, bitmaps);
+
+            // Setting _overall
+            using (var renderTarget = new BitmapRenderTarget(deviceContext, CompatibleRenderTargetOptions.None,
+                        new Size2F((float)ActualWidth, (float)ActualHeight)))
+            {
+                renderTarget.BeginDraw();
+                renderTarget.Transform = _rawExtentsMatrix;
+
+                Parallel.ForEach(bitmaps, bitmap =>
+                {
+                    renderTarget.DrawBitmap(bitmap, 1.0f, BitmapInterpolationMode.Linear);
+                });
+
+                renderTarget.EndDraw();
+
+                _currentOverallBitmap = renderTarget.Bitmap;
+            }
 
             stopwatch.Stop();
             Debug.WriteLine($"LoadLayerBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
@@ -371,7 +392,7 @@ namespace Direct2DDXFViewer
             deviceContext.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
             //if (_visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum) { deviceContext.AntialiasMode = AntialiasMode.Aliased; }
             //else { deviceContext.AntialiasMode = AntialiasMode.PerPrimitive; }
-            
+
             deviceContext.AntialiasMode = AntialiasMode.PerPrimitive;
 
             //var copy = _visibleDrawingObjects.ToList();
@@ -400,8 +421,8 @@ namespace Direct2DDXFViewer
             Stopwatch stopwatch = Stopwatch.StartNew();
 
             var nodes = quadTree.GetIntersectingNodes(_currentView);
-            
-            Matrix matrix = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, 
+
+            Matrix matrix = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21,
                 (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
 
             foreach (var node in nodes)
@@ -420,16 +441,12 @@ namespace Direct2DDXFViewer
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            List<Bitmap> bitmaps = layerBitmaps[0];
+            List<Bitmap> bitmaps = _layerBitmaps[0];
 
             deviceContext.Transform = new RawMatrix3x2((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-            
-            Parallel.ForEach(bitmaps, bitmap =>
-            {
-                deviceContext.DrawBitmap(bitmap, 1.0f, BitmapInterpolationMode.Linear);
-            });
 
-            NEED TO HAVE EACH BITMAP ALREADY SET TO ONE BITMAP FOR FASTER SPEEDS. UPDATED EVERYTIME A LAYER IS TURNED OFF.
+
+            deviceContext.DrawBitmap(_currentOverallBitmap, 1.0f, BitmapInterpolationMode.Linear);
 
             stopwatch.Stop();
             Debug.WriteLine($"RenderLayerBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
@@ -453,7 +470,7 @@ namespace Direct2DDXFViewer
             //    }
             //}
 
-           
+
 
             renderTarget.EndDraw();
             stopwatch.Stop();
@@ -630,6 +647,17 @@ namespace Direct2DDXFViewer
         private void HitTestPoints()
         {
 
+        }
+
+
+        // Testing Methods
+        private void GetNextBitmaps()
+        {
+            Need to add something that find the next zoomed in maximum extents and creates a bitmap to those extents
+        }
+        private double GetDistanceToCurrentView()
+        {
+            Need to add a method that finds the distance to the current view and if it less than a certain threshold, make the next one. Maybe just a widened band around the current view
         }
 
         private async Task RunGetVisibleObjectsAsync()
