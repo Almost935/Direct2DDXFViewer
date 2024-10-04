@@ -28,15 +28,19 @@ namespace Direct2DDXFViewer.DrawingObjects
         public List<DrawingObject> DrawingObjects { get; set; } = [];
         public Rect Extents { get; set; }
         public int Level { get; set; }
-        public DrawingObjectNode[] ChildNodes;
+        public DrawingObjectNode[] ChildNodes { get; set; }
+        public DrawingObjectTree Tree { get; set; }
         #endregion
 
         #region Constructors
-        public DrawingObjectNode(List<DrawingObject> drawingObjects, int level, Rect extents)
+        public DrawingObjectNode(List<DrawingObject> drawingObjects, int level, Rect extents, DrawingObjectTree tree)
         {
             DrawingObjects = drawingObjects;
             Level = level;
             Extents = extents;
+            Tree = tree;
+
+            if (Level == 0) { Tree.BaseLevelNodes.Add(this); }
 
             Subdivide();
         }
@@ -127,10 +131,10 @@ namespace Direct2DDXFViewer.DrawingObjects
                     }
                 }
 
-                ChildNodes[0] = new(objects1, Level - 1, extents1);
-                ChildNodes[1] = new(objects2, Level - 1, extents2);
-                ChildNodes[2] = new(objects3, Level - 1, extents3);
-                ChildNodes[3] = new(objects4, Level - 1, extents4);
+                ChildNodes[0] = new(objects1, Level - 1, extents1, Tree);
+                ChildNodes[1] = new(objects2, Level - 1, extents2, Tree);
+                ChildNodes[2] = new(objects3, Level - 1, extents3, Tree);
+                ChildNodes[3] = new(objects4, Level - 1, extents4, Tree);
             }
         }
         #endregion

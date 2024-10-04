@@ -154,19 +154,6 @@ namespace Direct2DDXFViewer
                     target.BeginDraw();
                     target.Transform = matrix;
 
-                    //List<Bitmap> layerBitmaps = new();
-                    //Parallel.ForEach(_layerManager.Layers.Values, layer =>
-                    //{
-                    //    Bitmap layerBitmap = GetLayerBitmap(layer, AntialiasMode.PerPrimitive, size, DPI, thickness, matrix);
-                    //    layerBitmaps.Add(layerBitmap);
-                    //});
-
-                    //foreach (var bitmap in layerBitmaps)
-                    //{
-                    //    target.DrawBitmap(bitmap, 1, BitmapInterpolationMode.Linear);
-                    //    bitmap.Dispose();
-                    //}
-
                     foreach (var obj in DrawingObjects)
                     {
                         obj.DrawToRenderTarget(target, thickness, obj.Brush);

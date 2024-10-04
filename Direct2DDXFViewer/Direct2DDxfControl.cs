@@ -53,8 +53,13 @@ namespace Direct2DDXFViewer
         private const int _loadedQuadTreesFactor = 1;
         private const int _initializedQuadTreeFactor = 5;
 
+        // Zooming and panning matrices
+        private RawMatrix3x2 _rawExtentsMatrix = new();
         private Matrix _transformMatrix = new();
         private Matrix _overallMatrix = new();
+        private RawMatrix3x2 _rawTransformMatrix;
+        private RawMatrix3x2 _rawOverallMatrix;
+
         private bool _isPanning = false;
         private bool _isRendering = false;
         private bool _deviceContextIsDirty = true;
@@ -71,8 +76,7 @@ namespace Direct2DDXFViewer
         private BitmapRenderTarget _interactiveRenderTarget;
         private QuadTreeCache _quadTreeCache;
         private DrawingObjectTree _drawingObjectTree;
-        private RawMatrix3x2 _rawExtentsMatrix;
-
+        private float _hittestStrokeThickness = 7;
 
         // Layer bitmap rendering test fields
         private Dictionary<int, List<Bitmap>> _layerBitmaps = [];
@@ -179,6 +183,9 @@ namespace Direct2DDXFViewer
         #region Constructor
         public Direct2DDxfControl()
         {
+            _rawTransformMatrix = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
+            _overallMatrix = new((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
+
             UpdateDxfCoordsAsync();
             RunGetVisibleObjectsAsync();
             RunHitTestAsync();
@@ -203,7 +210,9 @@ namespace Direct2DDXFViewer
                 ExtentsMatrix = GetInitialMatrix();
                 _overallMatrix = ExtentsMatrix;
                 _rawExtentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
+                _rawOverallMatrix = _rawExtentsMatrix;
                 LayerManager = DxfHelpers.GetLayers(DxfDoc);
+                _hittestStrokeThickness = (float)(8 / ExtentsMatrix.M11);
 
                 _dxfObjectCount = DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, deviceContext, resCache);
 
@@ -242,7 +251,6 @@ namespace Direct2DDXFViewer
                         new Size2F((float)ActualWidth, (float)ActualHeight)))
             {
                 renderTarget.BeginDraw();
-                renderTarget.Transform = _rawExtentsMatrix;
 
                 Parallel.ForEach(bitmaps, bitmap =>
                 {
@@ -306,7 +314,7 @@ namespace Direct2DDXFViewer
             _quadTreeCache = new(factory, deviceContext, LayerManager, _loadedQuadTreesFactor, _initializedQuadTreeFactor, resCache.MaxBitmapSize,
                 _bitmapReuseFactor, _zoomFactor, _zoomPrecision, _rawExtentsMatrix, InitialView);
 
-            _drawingObjectTree = new(LayerManager, Extents, 3);
+            _drawingObjectTree = new(LayerManager, Extents, 4);
 
             _bitmapsLoaded = true;
         }
@@ -365,14 +373,15 @@ namespace Direct2DDXFViewer
                     //RenderIntersectingViewsToBitmap(_offscreenRenderTarget);
                     //deviceContext.DrawBitmap(_offscreenRenderTarget.Bitmap, 1.0f, BitmapInterpolationMode.Linear);
                     //}
+
                     RenderLayerBitmaps(deviceContext);
-                    DrawInteractiveObjects(deviceContext, _interactiveRenderTarget);
+                    RenderInteractiveObjects(deviceContext, _interactiveRenderTarget);
 
                     deviceContext.EndDraw();
                     resCache.Device.ImmediateContext.Flush();
 
                     stopwatch.Stop();
-                    Debug.WriteLine($"RenderAsync Elapsed Time: {stopwatch.ElapsedMilliseconds}");
+                    //Debug.WriteLine($"RenderAsync Elapsed Time: {stopwatch.ElapsedMilliseconds}");
                     int elapsedTime = (int)stopwatch.ElapsedMilliseconds;
                     delay = 17 - elapsedTime;
                     _deviceContextIsDirty = false;
@@ -389,7 +398,7 @@ namespace Direct2DDXFViewer
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            deviceContext.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
+            deviceContext.Transform = _rawOverallMatrix;
             //if (_visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum) { deviceContext.AntialiasMode = AntialiasMode.Aliased; }
             //else { deviceContext.AntialiasMode = AntialiasMode.PerPrimitive; }
 
@@ -422,13 +431,10 @@ namespace Direct2DDXFViewer
 
             var nodes = quadTree.GetIntersectingNodes(_currentView);
 
-            Matrix matrix = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21,
-                (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-
             foreach (var node in nodes)
             {
                 var destRect = node.DestRect;
-                destRect.Transform(matrix);
+                destRect.Transform(_transformMatrix);
                 var destRawRect = new RawRectangleF((float)destRect.Left, (float)destRect.Top, (float)destRect.Right, (float)destRect.Bottom);
 
                 deviceContext.DrawBitmap(node.Bitmap, destRawRect, 1.0f, BitmapInterpolationMode.Linear);
@@ -439,25 +445,21 @@ namespace Direct2DDXFViewer
         }
         private void RenderLayerBitmaps(DeviceContext1 deviceContext)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
+            //Stopwatch stopwatch = Stopwatch.StartNew();
 
-            List<Bitmap> bitmaps = _layerBitmaps[0];
-
-            deviceContext.Transform = new RawMatrix3x2((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
-
-
+            deviceContext.Transform = _rawTransformMatrix;
             deviceContext.DrawBitmap(_currentOverallBitmap, 1.0f, BitmapInterpolationMode.Linear);
 
-            stopwatch.Stop();
-            Debug.WriteLine($"RenderLayerBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
+            //stopwatch.Stop();
+            //Debug.WriteLine($"RenderLayerBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
         private void RenderIntersectingViewsToBitmap(RenderTarget renderTarget)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
-
+            
             renderTarget.BeginDraw();
             renderTarget.Clear(new RawColor4(1, 1, 1, 0));
-            renderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
+            renderTarget.Transform = _rawOverallMatrix;
             if (_visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum) { renderTarget.AntialiasMode = AntialiasMode.Aliased; }
             else { renderTarget.AntialiasMode = AntialiasMode.PerPrimitive; }
 
@@ -470,24 +472,39 @@ namespace Direct2DDXFViewer
             //    }
             //}
 
-
-
             renderTarget.EndDraw();
+
             stopwatch.Stop();
         }
-        private void DrawInteractiveObjects(DeviceContext1 deviceContext, BitmapRenderTarget renderTarget)
+        private void RenderInteractiveObjects(DeviceContext1 deviceContext, BitmapRenderTarget renderTarget)
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
             var objCopy = SnappedObject;
             if (SnappedObject is not null)
             {
                 renderTarget.BeginDraw();
                 renderTarget.Clear(new RawColor4(1, 1, 1, 0));
-                renderTarget.Transform = new RawMatrix3x2((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
+                renderTarget.Transform = _rawExtentsMatrix;
                 resCache.SnappedEffect.SetInput(0, renderTarget.Bitmap, true);
                 objCopy.DrawToRenderTarget(renderTarget, _snappedThickness, objCopy.Brush, objCopy.FixedStrokeStyle);
                 renderTarget.EndDraw();
                 deviceContext.DrawBitmap(renderTarget.Bitmap, _snappedOpacity, InterpolationMode.Linear);
             }
+
+            stopwatch.Stop();
+            //Debug.WriteLine($"DrawInteractiveObjects Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
+
+
+            //// testing
+            //Brush brush = new SolidColorBrush(deviceContext, new RawColor4(1, 0, 0, 1));    
+            //foreach (var node in _drawingObjectTree.BaseLevelNodes)
+            //{
+            //    deviceContext.Transform = _rawOverallMatrix;
+            //    RawRectangleF rect = new((float)node.Extents.Left, (float)node.Extents.Top, (float)node.Extents.Right, (float)node.Extents.Bottom);
+            //    deviceContext.DrawRectangle(rect, brush);
+            //}
+            //brush.Dispose();
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -525,7 +542,7 @@ namespace Direct2DDXFViewer
             {
                 var translate = PointerCoords - _lastTranslatePos;
 
-                if (translate.LengthSquared < 0.5) { return; } //Prevent unneccessary translations
+                if (translate.LengthSquared < 1) { return; } //Prevent unneccessary translations
 
                 UpdateTranslate(translate);
                 _lastTranslatePos = PointerCoords;
@@ -598,9 +615,11 @@ namespace Direct2DDXFViewer
         }
         private void HitTestGeometry()
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
             if (LayerManager is null) { return; }
 
-            float thickness = (float)(2 / _transformMatrix.M11);
+            float thickness = (float)(_hittestStrokeThickness / _transformMatrix.M11);
 
             // Check if mouse is still over the same object
             if (SnappedObject is not null)
@@ -619,13 +638,10 @@ namespace Direct2DDXFViewer
 
             var views = _drawingObjectTree.GetIntersectingNodes(DxfPointerCoords);
 
-            int count = 0;
-
-            foreach (var view in views)
+            Parallel.ForEach(views, view =>
             {
-                foreach (var obj in view.DrawingObjects)
+                Parallel.ForEach(view.DrawingObjects, obj =>
                 {
-                    count++;
                     if (obj.Layer.IsVisible)
                     {
                         if (obj.Hittest(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness))
@@ -634,31 +650,37 @@ namespace Direct2DDXFViewer
                             SnappedObject.IsSnapped = true;
                             _deviceContextIsDirty = true;
 
-                            //Debug.WriteLine($"SnappedObject found, count = {count}");
-
                             return;
                         }
                     }
-                }
-            }
+                });
+            });
+            //foreach (var view in views)
+            //{
+            //    foreach (var obj in view.DrawingObjects)
+            //    {
+            //        if (obj.Layer.IsVisible)
+            //        {
+            //            if (obj.Hittest(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness))
+            //            {
+            //                SnappedObject = obj;
+            //                SnappedObject.IsSnapped = true;
+            //                _deviceContextIsDirty = true;
 
-            //Debug.WriteLine($"No objects found, count = {count}");
+            //                return;
+            //            }
+            //        }
+            //    }
+            //}
+
+            stopwatch.Stop();
+            Debug.WriteLine($"HitTestGeometry Time: {stopwatch.ElapsedMilliseconds}");
         }
         private void HitTestPoints()
         {
 
         }
 
-
-        // Testing Methods
-        private void GetNextBitmaps()
-        {
-            Need to add something that find the next zoomed in maximum extents and creates a bitmap to those extents
-        }
-        private double GetDistanceToCurrentView()
-        {
-            Need to add a method that finds the distance to the current view and if it less than a certain threshold, make the next one. Maybe just a widened band around the current view
-        }
 
         private async Task RunGetVisibleObjectsAsync()
         {
@@ -715,7 +737,9 @@ namespace Direct2DDXFViewer
             if (!_isPanning)
             {
                 _overallMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
+                _rawOverallMatrix = new((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
                 _transformMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
+                _rawTransformMatrix = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
                 UpdateCurrentView();
                 _visibleObjectsDirty = true;
                 _deviceContextIsDirty = true;
@@ -728,7 +752,9 @@ namespace Direct2DDXFViewer
             if (translate.LengthSquared < 1) return; // Prevent unnecessary translations
 
             _overallMatrix.Translate(translate.X, translate.Y);
+            _rawOverallMatrix = new((float)_overallMatrix.M11, (float)_overallMatrix.M12, (float)_overallMatrix.M21, (float)_overallMatrix.M22, (float)_overallMatrix.OffsetX, (float)_overallMatrix.OffsetY);
             _transformMatrix.Translate(translate.X, translate.Y);
+            _rawTransformMatrix = new((float)_transformMatrix.M11, (float)_transformMatrix.M12, (float)_transformMatrix.M21, (float)_transformMatrix.M22, (float)_transformMatrix.OffsetX, (float)_transformMatrix.OffsetY);
             UpdateCurrentView();
             _visibleObjectsDirty = true;
             _deviceContextIsDirty = true;
@@ -786,7 +812,9 @@ namespace Direct2DDXFViewer
         public void ZoomToExtents()
         {
             _overallMatrix = ExtentsMatrix;
+            _rawOverallMatrix = _rawExtentsMatrix;
             _transformMatrix = new();
+            _rawTransformMatrix = new();
         }
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)

@@ -30,6 +30,11 @@ namespace Direct2DDXFViewer.DrawingObjects
         public int Levels { get; set; }
         public DrawingObjectNode Root { get; set; }
         public List<DrawingObjectNode> CurrentlyVisibleNodes { get; set; } = new();
+
+        /// <summary>
+        /// Consists of all the 0 level nodes in the tree.
+        /// </summary>
+        public List<DrawingObjectNode> BaseLevelNodes { get; set; } = new();
         #endregion
 
         #region Constructors
@@ -51,7 +56,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         private void GetRoot()
         {
-            Root = new(DrawingObjects, Levels, Extents);
+            Root = new(DrawingObjects, Levels, Extents, this);
         }
         private void GetDrawingObjects()
         {

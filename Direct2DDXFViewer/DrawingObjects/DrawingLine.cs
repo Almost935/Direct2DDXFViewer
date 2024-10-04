@@ -101,7 +101,11 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public override bool Hittest(RawVector2 p, float thickness)
         {
-            return Geometry.StrokeContainsPoint(p, thickness);
+            //bool strokeContainsP = Geometry.StrokeContainsPoint(p, thickness);
+            //Debug.WriteLine($"p: {p.X} {p.Y}, DxfLine Start and End: {DxfLine.StartPoint} {DxfLine.EndPoint}" +
+            //    $"\nstrokeContainsP: {strokeContainsP}");
+
+            return Geometry.StrokeContainsPoint(p, thickness); ;
         }
         #endregion
     }
