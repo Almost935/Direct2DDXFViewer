@@ -16,6 +16,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         #region Fields
         private bool _disposed = false;
         private DeviceContext1 _deviceContext;
+        private Factory1 _factory;
         private ResourceCache _resourceCache;
         #endregion
 
@@ -25,9 +26,10 @@ namespace Direct2DDXFViewer.DrawingObjects
         #endregion
 
         #region Constructors
-        public ObjectLayerManager(DeviceContext1 deviceContext, ResourceCache resCache)
+        public ObjectLayerManager(DeviceContext1 deviceContext, Factory1 factory, ResourceCache resCache)
         {
             _deviceContext = deviceContext;
+            _factory = factory;
             _resourceCache = resCache;
         }
         #endregion
@@ -39,7 +41,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             else
             {
                 var brush = _resourceCache.GetBrush(dxfLayer.Color.R, dxfLayer.Color.G, dxfLayer.Color.B, 255);
-                ObjectLayer objectLayer = new(_deviceContext, dxfLayer.Name, brush);
+                ObjectLayer objectLayer = new(_deviceContext, _factory, _resourceCache, dxfLayer.Name, brush);
                 Layers.Add(dxfLayer.Name, objectLayer);
                 return objectLayer;
             }

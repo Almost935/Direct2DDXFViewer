@@ -1,4 +1,5 @@
-﻿using netDxf.Tables;
+﻿using Direct2DControl;
+using netDxf.Tables;
 using SharpDX.Direct2D1;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,9 @@ namespace Direct2DDXFViewer.DrawingObjects
     public class ObjectLayer : INotifyPropertyChanged, IDisposable
     {
         #region Fields
-        private DeviceContext1 _deviceContext;
+        private readonly DeviceContext1 _deviceContext;
+        private readonly Factory1 _factory;
+        private readonly ResourceCache _resourceCache;
         private string _name;
         private List<DrawingObject> _drawingObjects = [];
         private bool isVisible = true;
@@ -57,14 +60,19 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public Dictionary<int, List<(List<GeometryRealization> geometryRealizations, Brush brush)>> GeometryRealizations { get; set; } = [];
         public Brush LayerBrush { get; set; }
+        public StrokeStyle1 HairlineStrokeStyle { get; set; }
         #endregion
 
         #region Constructors
-        public ObjectLayer(DeviceContext1 deviceContext, string name, Brush layerBrush)
+        public ObjectLayer(DeviceContext1 deviceContext, Factory1 factory, ResourceCache resCache, string name, Brush layerBrush)
         {
             _deviceContext = deviceContext;
+            _factory = factory;
+            _resourceCache = resCache;
             Name = name;
             LayerBrush = layerBrush;
+
+            GetLayerStrokeStyle();
         }
         #endregion
 
@@ -189,6 +197,31 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 var geometryArr = geometries.ToArray();
                 GeometryGroup = new(_deviceContext.Factory, FillMode.Alternate, geometryArr);
+            }
+        }
+
+        public void GetLayerStrokeStyle()
+        {
+            bool hairlineStrokeStyleExists = _resourceCache.StrokeStyles.TryGetValue(ResourceCache.LineType.Solid_Hairline, value: out StrokeStyle1 hairlineStrokeStyle);
+            if (!hairlineStrokeStyleExists)
+            {
+                StrokeStyleProperties1 ssp = new()
+                {
+                    StartCap = CapStyle.Round,
+                    EndCap = CapStyle.Round,
+                    DashCap = CapStyle.Flat,
+                    LineJoin = LineJoin.Round,
+                    MiterLimit = 10.0f,
+                    DashStyle = DashStyle.Solid,
+                    DashOffset = 0.0f,
+                    TransformType = StrokeTransformType.Hairline
+                };
+                HairlineStrokeStyle = new(_factory, ssp);
+                _resourceCache.StrokeStyles.Add(ResourceCache.LineType.Solid_Hairline, HairlineStrokeStyle);
+            }
+            else
+            {
+                HairlineStrokeStyle = hairlineStrokeStyle;
             }
         }
 

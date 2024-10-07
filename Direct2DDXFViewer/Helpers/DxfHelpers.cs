@@ -40,9 +40,9 @@ namespace Direct2DDXFViewer.Helpers
             return Rect.Empty;
         }
 
-        public static ObjectLayerManager GetLayers(DxfDocument dxfDocument, DeviceContext1 deviceContext, ResourceCache resCache)
+        public static ObjectLayerManager GetLayers(DxfDocument dxfDocument, DeviceContext1 deviceContext, Factory1 factory, ResourceCache resCache)
         {
-            var layerManager = new ObjectLayerManager(deviceContext, resCache);
+            ObjectLayerManager layerManager = new(deviceContext, factory, resCache);
 
             foreach (var dxfLayer in dxfDocument.Layers)
             {
