@@ -1,5 +1,6 @@
 ﻿using SharpDX.Direct2D1;
 using SharpDX.DirectWrite;
+using SharpDX.Mathematics.Interop;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -150,6 +151,18 @@ namespace Direct2DControl
         public bool TryGetValue(string key, out object res)
         {
             return resources.TryGetValue(key, out res);
+        }
+
+        public Brush GetBrush(byte r, byte g, byte b, byte a)
+        {
+            bool brushExists = Brushes.TryGetValue((r, g, b, a), out Brush brush);
+            if (!brushExists)
+            {
+                brush = new SolidColorBrush(RenderTarget, new RawColor4((float)r / 255, (float)g / 255, (float)b / 255, (float)a / 255));
+                Brushes.Add((r, g, b, a), brush);
+            }
+
+            return brush;
         }
 
         // - private methods -------------------------------------------------------------

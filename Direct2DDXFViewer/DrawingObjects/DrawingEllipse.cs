@@ -85,22 +85,19 @@ namespace Direct2DDXFViewer.DrawingObjects
             return Bounds.IntersectsWith(rect) || Bounds.Contains(rect);
         }
 
-        public override async Task UpdateGeometriesAsync()
-        {
-            await Task.Run(() => UpdateGeometry());
-        }
+
         public override void UpdateGeometry()
         {
             if (DxfEllipse.IsFullEllipse)
             {
                 Geometry = GetEllipseGeometry();
-                var bounds = Geometry.GetBounds();
+                var bounds = Geometry.GetWidenedBounds(10);
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
             }
             else
             {
                 Geometry = GetArcGeometry();
-                var bounds = Geometry.GetBounds();
+                var bounds = Geometry.GetWidenedBounds(10);
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
             }
         }
@@ -197,6 +194,21 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 return ellipseGeometry;
             }
+        }
+        public override async Task UpdateGeometriesAsync()
+        {
+            await Task.Run(() => UpdateGeometry());
+        }
+        public override List<GeometryRealization> GetGeometryRealization(float thickness)
+        {
+            List<GeometryRealization> geometryRealizations = [];
+
+            if (Geometry is not null)
+            {
+                geometryRealizations.Add(new(DeviceContext, Geometry, 0.5f, thickness, HairlineStrokeStyle));
+            }
+
+            return geometryRealizations;
         }
         public override bool Hittest(RawVector2 p, float thickness)
         {

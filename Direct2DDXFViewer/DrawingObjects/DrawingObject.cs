@@ -1,4 +1,5 @@
 ﻿using Direct2DControl;
+using Direct2DDXFViewer.Helpers;
 using netDxf.Entities;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
@@ -16,6 +17,8 @@ namespace Direct2DDXFViewer.DrawingObjects
         private bool _isHighlighted = false;
         private float _outerEdgeOpacity = 0.25f;
         private bool _disposed = false;
+        
+        protected float _hitTestStrokeThickness = 10;
         #endregion
 
         #region Properties
@@ -49,7 +52,7 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public EntityObject Entity { get; set; }
         public Geometry Geometry { get; set; }
-        public Rect Bounds { get; set; }
+        public Rect Bounds { get; set; } = Rect.Empty;
         public DeviceContext1 DeviceContext { get; set; }
         public Factory1 Factory { get; set; }
         public Brush Brush { get; set; }
@@ -57,6 +60,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         public StrokeStyle1 HairlineStrokeStyle { get; set; }
         public StrokeStyle1 FixedStrokeStyle { get; set; }
         public float Thickness { get; set; } = 0.25f;
+
         public ResourceCache ResCache { get; set; }
         public bool IsInView { get; set; } = true;
         public bool IsPartOfBlock { get; set; } = false;
@@ -75,6 +79,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         #region Methods
         public abstract Task UpdateGeometriesAsync();
         public abstract void UpdateGeometry();
+        public abstract List<GeometryRealization> GetGeometryRealization(float thickness);
         public abstract void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush);
         public abstract void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush, StrokeStyle1 strokeStyle);
         public abstract void DrawToRenderTarget(RenderTarget target, float thickness, Brush brush);
@@ -94,19 +99,39 @@ namespace Direct2DDXFViewer.DrawingObjects
                 Brush.Dispose();
                 Brush = null;
             }
-            
-            (byte r, byte g, byte b, byte a) = DxfHelpers.GetRGBAColor(Entity);
+            if (OuterEdgeBrush is not null)
+            {
+                OuterEdgeBrush.Dispose();
+                OuterEdgeBrush = null;
+            }
 
-            bool brushExists = ResCache.Brushes.TryGetValue((r, g, b, a), value: out Brush brush);
-            if (!brushExists)
-            {
-                Brush = new SolidColorBrush(DeviceContext, new RawColor4((float)r / 255, (float)g / 255, (float)b / 255, 1.0f));
-                ResCache.Brushes.Add((r, g, b, a), Brush);
-            }
-            else
-            {
-                Brush = brush;
-            }
+            (byte r, byte g, byte b, byte a) = DxfHelpers.GetRGBAColor(Entity);
+            (byte r2, byte g2, byte b2, byte a2) = (r, g, b, (byte)(0.4 * 255));
+
+            Brush = ResCache.GetBrush(r, g, b, a);
+            OuterEdgeBrush = ResCache.GetBrush(r2, g2, b2, a2);
+
+            //bool brushExists = ResCache.Brushes.TryGetValue((r, g, b, a), value: out Brush brush);
+            //if (!brushExists)
+            //{
+            //    Brush = new SolidColorBrush(DeviceContext, new RawColor4((float)r / 255, (float)g / 255, (float)b / 255, 1.0f));
+            //    ResCache.Brushes.Add((r, g, b, a), Brush);
+            //}
+            //else
+            //{
+            //    Brush = brush;
+            //}
+
+            //bool outerEdgeBrushExists = ResCache.Brushes.TryGetValue((r2, g2, b2, a2), value: out Brush outerEdgeBrush);
+            //if (!brushExists)
+            //{
+            //    OuterEdgeBrush = new SolidColorBrush(DeviceContext, new RawColor4((float)r2 / 255, (float)g2 / 255, (float)b2 / 255, 0.4f));
+            //    ResCache.Brushes.Add((r2, g2, b2, a2), OuterEdgeBrush);
+            //}
+            //else
+            //{
+            //    OuterEdgeBrush = outerEdgeBrush;
+            //}
         }
 
         public void GetStrokeStyle()

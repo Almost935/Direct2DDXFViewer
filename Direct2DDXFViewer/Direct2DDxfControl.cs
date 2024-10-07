@@ -34,10 +34,6 @@ using AlphaMode = SharpDX.Direct2D1.AlphaMode;
 using Factory1 = SharpDX.Direct2D1.Factory1;
 using Bitmap = SharpDX.Direct2D1.Bitmap;
 using BitmapCache = Direct2DDXFViewer.BitmapHelpers.BitmapCache;
-using System.Windows.Controls.Ribbon.Primitives;
-using System.Security.Cryptography.Xml;
-using netDxf.Collections;
-using System.Collections.Generic;
 using Direct2DDXFViewer.Helpers;
 
 namespace Direct2DDXFViewer
@@ -47,7 +43,7 @@ namespace Direct2DDXFViewer
         #region Fields
         private const int _zoomPrecision = 3;
         private const int _bitmapReuseFactor = 2;
-        private const float _zoomFactor = 1.3f;
+        private const float _zoomFactor = 1.5f;
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
         private const int _loadedQuadTreesFactor = 1;
@@ -76,14 +72,18 @@ namespace Direct2DDXFViewer
         private BitmapRenderTarget _interactiveRenderTarget;
         private QuadTreeCache _quadTreeCache;
         private DrawingObjectTree _drawingObjectTree;
-        private float _hittestStrokeThickness = 7;
 
         // Layer bitmap rendering test fields
         private Dictionary<int, List<Bitmap>> _layerBitmaps = [];
-        private Bitmap _currentOverallBitmap;
+        private const int initialBitmapLoad = 2;
+        private (Bitmap bitmap, int zoomStep) _currentOverallBitmapTup;
         private bool _layerBitmapsDirty = true;
         private bool _currentOverallBitmapDirty = true;
 
+        // Hit testing fields
+        private Point _lastHitTestPos = new();
+        private DrawingObjectNode _lastHitTestNode;
+        private float _hittestStrokeThickness;
 
         private DxfDocument _dxfDoc;
         private string _filePath = @"DXF\LargeDxf.dxf";
@@ -211,32 +211,55 @@ namespace Direct2DDXFViewer
                 _overallMatrix = ExtentsMatrix;
                 _rawExtentsMatrix = new((float)ExtentsMatrix.M11, (float)ExtentsMatrix.M12, (float)ExtentsMatrix.M21, (float)ExtentsMatrix.M22, (float)ExtentsMatrix.OffsetX, (float)ExtentsMatrix.OffsetY);
                 _rawOverallMatrix = _rawExtentsMatrix;
-                LayerManager = DxfHelpers.GetLayers(DxfDoc);
+                LayerManager = DxfHelpers.GetLayers(DxfDoc, deviceContext, resCache);
                 _hittestStrokeThickness = (float)(8 / ExtentsMatrix.M11);
 
                 _dxfObjectCount = DxfHelpers.LoadDrawingObjects(DxfDoc, LayerManager, factory, deviceContext, resCache);
+                foreach (var layer in LayerManager.Layers.Values)
+                {
+                    layer.LoadGeometryGroup();
+                }
 
-                LoadLayerBitmaps(deviceContext);
+                Stopwatch stopwatch = Stopwatch.StartNew();
+
+                Parallel.For(0, 1, i =>
+                {
+                    LoadLayerBitmap(deviceContext, i * _bitmapReuseFactor);
+                });
+
+                stopwatch.Stop();
+                Debug.WriteLine($"LoadLayerBitmap Overall Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
             }
         }
-        public void LoadLayerBitmaps(DeviceContext1 deviceContext)
+
+        public void LoadLayerBitmap(DeviceContext1 deviceContext, int zoomStep)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
+            var zoom = MathHelpers.GetZoom(_zoomFactor, zoomStep, 3);
+            float thickness = 1 / zoom;
             List<Bitmap> bitmaps = [];
 
             Parallel.ForEach(LayerManager.Layers.Values, layer =>
             {
                 using (var renderTarget = new BitmapRenderTarget(deviceContext, CompatibleRenderTargetOptions.None,
-                        new Size2F((float)ActualWidth, (float)ActualHeight)))
+                        new Size2F((float)(deviceContext.PixelSize.Width), (float)(deviceContext.PixelSize.Height)))
+                {
+                    AntialiasMode = AntialiasMode.PerPrimitive,
+                    DotsPerInch = new(96, 96)
+                })
                 {
                     renderTarget.BeginDraw();
                     renderTarget.Transform = _rawExtentsMatrix;
 
-                    Parallel.ForEach(layer.DrawingObjects, obj =>
+                    //Parallel.ForEach(layer.DrawingObjects, obj =>
+                    //{
+                    //    obj.DrawToRenderTarget(renderTarget, 1, layer.LayerBrush, obj.HairlineStrokeStyle);
+                    //});
+                    if (layer.GeometryGroup is not null)
                     {
-                        obj.DrawToRenderTarget(renderTarget, 1, obj.Brush, obj.HairlineStrokeStyle);
-                    });
+                        renderTarget.DrawGeometry(layer.GeometryGroup, layer.LayerBrush, 0.5f);
+                    }
 
                     bitmaps.Add(renderTarget.Bitmap);
 
@@ -244,28 +267,37 @@ namespace Direct2DDXFViewer
                 }
             });
 
-            _layerBitmaps.Add(0, bitmaps);
+            _layerBitmaps.Add(zoomStep, bitmaps);
 
-            // Setting _overall
-            using (var renderTarget = new BitmapRenderTarget(deviceContext, CompatibleRenderTargetOptions.None,
-                        new Size2F((float)ActualWidth, (float)ActualHeight)))
-            {
-                renderTarget.BeginDraw();
+            //// Setting _overall
+            //using (var renderTarget = new BitmapRenderTarget(deviceContext, CompatibleRenderTargetOptions.None,
+            //            new Size2F((float)ActualWidth, (float)ActualHeight)))
+            //{
+            //    renderTarget.BeginDraw();
+            //    Parallel.ForEach(bitmaps, bitmap =>
+            //    {
+            //        renderTarget.DrawBitmap(bitmap, 1.0f, BitmapInterpolationMode.Linear);
+            //    });
 
-                Parallel.ForEach(bitmaps, bitmap =>
-                {
-                    renderTarget.DrawBitmap(bitmap, 1.0f, BitmapInterpolationMode.Linear);
-                });
-
-                renderTarget.EndDraw();
-
-                _currentOverallBitmap = renderTarget.Bitmap;
-            }
+            //    renderTarget.EndDraw();
+            //}
 
             stopwatch.Stop();
             Debug.WriteLine($"LoadLayerBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
+        private int AdjustZoomStep(int zoomStep)
+        {
+            if (zoomStep <= 0)
+            {
+                return 0;
+            }
 
+            while (zoomStep % _bitmapReuseFactor != 0)
+            {
+                zoomStep -= 1;
+            }
+            return zoomStep;
+        }
         public Matrix GetInitialMatrix()
         {
             if (Extents == Rect.Empty)
@@ -355,8 +387,16 @@ namespace Direct2DDXFViewer
 
                 if (LayerManager is not null && deviceContext is not null && _deviceContextIsDirty)
                 {
+                    //Stopwatch innerWatch = Stopwatch.StartNew();
+
+                    //Debug.WriteLine($"\n");
+
                     deviceContext.BeginDraw();
                     deviceContext.Clear(new RawColor4(1, 1, 1, 0));
+
+                    //innerWatch.Stop();
+                    //Debug.WriteLine($"BeginDraw + Clear Elapsed Time: {innerWatch.ElapsedMilliseconds}");
+                    //innerWatch.Restart();
 
                     //if (_quadTreeCache.CurrentQuadTree is not null &&
                     //    _quadTreeCache.CurrentQuadTree.BitmapsLoaded)
@@ -375,10 +415,24 @@ namespace Direct2DDXFViewer
                     //}
 
                     RenderLayerBitmaps(deviceContext);
+
+                    //innerWatch.Stop();
+                    //Debug.WriteLine($"RenderLayerBitmaps Elapsed Time: {innerWatch.ElapsedMilliseconds}");
+
+                    //innerWatch.Restart();
+
                     RenderInteractiveObjects(deviceContext, _interactiveRenderTarget);
+
+                    //innerWatch.Stop();
+                    //Debug.WriteLine($"RenderInteractiveObjects Elapsed Time: {innerWatch.ElapsedMilliseconds}");
+
+                    //innerWatch.Restart();
 
                     deviceContext.EndDraw();
                     resCache.Device.ImmediateContext.Flush();
+
+                    //innerWatch.Stop();
+                    //Debug.WriteLine($"EndDraw Elapsed Time: {innerWatch.ElapsedMilliseconds}");
 
                     stopwatch.Stop();
                     //Debug.WriteLine($"RenderAsync Elapsed Time: {stopwatch.ElapsedMilliseconds}");
@@ -399,28 +453,19 @@ namespace Direct2DDXFViewer
             Stopwatch stopwatch = Stopwatch.StartNew();
 
             deviceContext.Transform = _rawOverallMatrix;
-            //if (_visibleDrawingObjects.Count >= _objectDetailLevelTransitionNum) { deviceContext.AntialiasMode = AntialiasMode.Aliased; }
-            //else { deviceContext.AntialiasMode = AntialiasMode.PerPrimitive; }
 
-            deviceContext.AntialiasMode = AntialiasMode.PerPrimitive;
-
-            //var copy = _visibleDrawingObjects.ToList();
-            //foreach (var obj in copy)
-            //{
-            //    Debug.WriteLine($"RenderGeometryRealizations Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
-            //    if (obj.Layer.IsVisible)
-            //    {
-            //        GeometryRealizationRenderer.RenderGeometryRealization(deviceContext, obj);
-            //    }
-            //}
-
-            foreach (var obj in LayerManager.DrawingObjects)
+            Parallel.ForEach(LayerManager.Layers.Values, layer =>
             {
-                if (obj.Layer.IsVisible)
+                var geometryRealizations = layer.GeometryRealizations[0];
+
+                Parallel.ForEach(geometryRealizations, geoTup =>
                 {
-                    GeometryRealizationRenderer.RenderGeometryRealization(deviceContext, obj);
-                }
-            }
+                    foreach (var geometry in geoTup.geometryRealizations)
+                    {
+                        deviceContext.DrawGeometryRealization(geometry, geoTup.brush);
+                    }
+                });
+            });
 
             stopwatch.Stop();
             Debug.WriteLine($"RenderGeometryRealizations Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
@@ -445,18 +490,31 @@ namespace Direct2DDXFViewer
         }
         private void RenderLayerBitmaps(DeviceContext1 deviceContext)
         {
-            //Stopwatch stopwatch = Stopwatch.StartNew();
+            Stopwatch stopwatch = Stopwatch.StartNew();
 
-            deviceContext.Transform = _rawTransformMatrix;
-            deviceContext.DrawBitmap(_currentOverallBitmap, 1.0f, BitmapInterpolationMode.Linear);
+            //var bitmaps = _layerBitmaps[_currentZoomStep];
+            bool bitmapsExist = _layerBitmaps.TryGetValue(0, out var bitmaps);
 
-            //stopwatch.Stop();
-            //Debug.WriteLine($"RenderLayerBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
+            RawRectangleF sourceRect = new((float)(ActualWidth / 2), (float)(ActualWidth / 2), (float)(ActualWidth * 1.5), (float)(ActualHeight * 1.5));
+            RawRectangleF testSourceRect = new(0, 0, (float)(ActualWidth), (float)(ActualHeight));
+
+            if (bitmapsExist)
+            {
+                deviceContext.Transform = _rawTransformMatrix;
+
+                Parallel.ForEach(bitmaps, bitmap =>
+                {
+                    deviceContext.DrawBitmap(bitmap, 1.0f, BitmapInterpolationMode.Linear, testSourceRect);
+                });
+            }
+
+            stopwatch.Stop();
+            Debug.WriteLine($"RenderLayerBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
         private void RenderIntersectingViewsToBitmap(RenderTarget renderTarget)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
-            
+
             renderTarget.BeginDraw();
             renderTarget.Clear(new RawColor4(1, 1, 1, 0));
             renderTarget.Transform = _rawOverallMatrix;
@@ -480,31 +538,23 @@ namespace Direct2DDXFViewer
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            var objCopy = SnappedObject;
+            //var objCopy = SnappedObject;
             if (SnappedObject is not null)
             {
-                renderTarget.BeginDraw();
-                renderTarget.Clear(new RawColor4(1, 1, 1, 0));
-                renderTarget.Transform = _rawExtentsMatrix;
-                resCache.SnappedEffect.SetInput(0, renderTarget.Bitmap, true);
-                objCopy.DrawToRenderTarget(renderTarget, _snappedThickness, objCopy.Brush, objCopy.FixedStrokeStyle);
-                renderTarget.EndDraw();
-                deviceContext.DrawBitmap(renderTarget.Bitmap, _snappedOpacity, InterpolationMode.Linear);
+                //renderTarget.BeginDraw();
+                //renderTarget.Clear(new RawColor4(1, 1, 1, 0));
+                //renderTarget.Transform = _rawExtentsMatrix;
+                //resCache.SnappedEffect.SetInput(0, renderTarget.Bitmap, true);
+                //objCopy.DrawToRenderTarget(renderTarget, _snappedThickness, objCopy.Brush, objCopy.FixedStrokeStyle);
+                //renderTarget.EndDraw();
+                //deviceContext.DrawBitmap(renderTarget.Bitmap, _snappedOpacity, InterpolationMode.Linear);
+
+                deviceContext.Transform = _rawOverallMatrix;
+                SnappedObject.DrawToDeviceContext(deviceContext, _snappedThickness, SnappedObject.OuterEdgeBrush, SnappedObject.FixedStrokeStyle);
+
+                stopwatch.Stop();
+                //Debug.WriteLine($"DrawInteractiveObjects Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
             }
-
-            stopwatch.Stop();
-            //Debug.WriteLine($"DrawInteractiveObjects Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
-
-
-            //// testing
-            //Brush brush = new SolidColorBrush(deviceContext, new RawColor4(1, 0, 0, 1));    
-            //foreach (var node in _drawingObjectTree.BaseLevelNodes)
-            //{
-            //    deviceContext.Transform = _rawOverallMatrix;
-            //    RawRectangleF rect = new((float)node.Extents.Left, (float)node.Extents.Top, (float)node.Extents.Right, (float)node.Extents.Bottom);
-            //    deviceContext.DrawRectangle(rect, brush);
-            //}
-            //brush.Dispose();
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
@@ -617,14 +667,17 @@ namespace Direct2DDXFViewer
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
+            if (_isPanning) { return; }
             if (LayerManager is null) { return; }
 
+            var mousePos = DxfPointerCoords;
+            var rawMousePos = new RawVector2((float)mousePos.X, (float)mousePos.Y);
             float thickness = (float)(_hittestStrokeThickness / _transformMatrix.M11);
 
             // Check if mouse is still over the same object
             if (SnappedObject is not null)
             {
-                if (SnappedObject.Hittest(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness))
+                if (SnappedObject.Hittest(rawMousePos, thickness))
                 {
                     return;
                 }
@@ -635,46 +688,47 @@ namespace Direct2DDXFViewer
                     _deviceContextIsDirty = true;
                 }
             }
-
-            var views = _drawingObjectTree.GetIntersectingNodes(DxfPointerCoords);
-
-            Parallel.ForEach(views, view =>
+            if (_lastHitTestNode is null)
             {
-                Parallel.ForEach(view.DrawingObjects, obj =>
-                {
-                    if (obj.Layer.IsVisible)
-                    {
-                        if (obj.Hittest(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness))
-                        {
-                            SnappedObject = obj;
-                            SnappedObject.IsSnapped = true;
-                            _deviceContextIsDirty = true;
+                _lastHitTestNode = _drawingObjectTree.GetIntersectingNode(mousePos);
+                if (_lastHitTestNode is null) { return; }
+            }
+            else if (!_lastHitTestNode.Extents.Contains(mousePos))
+            {
+                _lastHitTestNode = _drawingObjectTree.GetIntersectingNode(mousePos);
+                if (_lastHitTestNode is null) { return; }
+            }
 
-                            return;
-                        }
-                    }
-                });
-            });
-            //foreach (var view in views)
+            //foreach (var obj in _lastHitTestNode.DrawingObjects)
             //{
-            //    foreach (var obj in view.DrawingObjects)
+            //    if (obj.Layer.IsVisible && obj.Bounds.Contains(mousePos))
             //    {
-            //        if (obj.Layer.IsVisible)
+            //        if (obj.Hittest(rawMousePos, thickness))
             //        {
-            //            if (obj.Hittest(new RawVector2((float)DxfPointerCoords.X, (float)DxfPointerCoords.Y), thickness))
-            //            {
-            //                SnappedObject = obj;
-            //                SnappedObject.IsSnapped = true;
-            //                _deviceContextIsDirty = true;
+            //            SnappedObject = obj;
+            //            SnappedObject.IsSnapped = true;
+            //            _deviceContextIsDirty = true;
 
-            //                return;
-            //            }
+            //            return;
             //        }
             //    }
             //}
+            Parallel.ForEach(_lastHitTestNode.DrawingObjects, obj =>
+            {
+                if (obj.Layer.IsVisible && obj.Bounds.Contains(mousePos))
+                {
+                    if (obj.Hittest(rawMousePos, thickness))
+                    {
+                        SnappedObject = obj;
+                        SnappedObject.IsSnapped = true;
+                        _deviceContextIsDirty = true;
+
+                        return;
+                    }
+                }
+            });
 
             stopwatch.Stop();
-            Debug.WriteLine($"HitTestGeometry Time: {stopwatch.ElapsedMilliseconds}");
         }
         private void HitTestPoints()
         {

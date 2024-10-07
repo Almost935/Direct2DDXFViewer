@@ -31,6 +31,17 @@ namespace Direct2DDXFViewer.DrawingObjects
             // Implement logic to update the geometry of the polyline
             throw new NotImplementedException();
         }
+        public override List<GeometryRealization> GetGeometryRealization(float thickness)
+        {
+            List<GeometryRealization> geometryRealizations = [];
+
+            foreach (var segment in DrawingSegments)
+            {
+                geometryRealizations.AddRange(segment.GetGeometryRealization(thickness));
+            }
+
+            return geometryRealizations;
+        }
 
         public override void DrawToDeviceContext(DeviceContext1 deviceContext, float thickness, Brush brush)
         {
@@ -76,9 +87,12 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             foreach(var segment in DrawingSegments)
             {
-                if (segment.Hittest(p, thickness))
+                if (segment.Bounds.Contains((double)p.X, (double)p.Y))
                 {
-                    return true;
+                    if (segment.Hittest(p, thickness))
+                    {
+                        return true;
+                    }
                 }
             }
             return false;

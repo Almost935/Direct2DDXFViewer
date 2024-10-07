@@ -126,9 +126,20 @@ namespace Direct2DDXFViewer.DrawingObjects
                 }
                 Geometry = simplifiedGeometry;
 
-                var bounds = Geometry.GetBounds();
+                var bounds = Geometry.GetWidenedBounds(_hitTestStrokeThickness);
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
             }
+        }
+        public override List<GeometryRealization> GetGeometryRealization(float thickness)
+        {
+            List<GeometryRealization> geometryRealizations = [];
+
+            if (Geometry is not null)
+            {
+                geometryRealizations.Add(new(DeviceContext, Geometry, 1f, thickness, HairlineStrokeStyle));
+            }
+            
+            return geometryRealizations;
         }
         public override bool Hittest(RawVector2 p, float thickness)
         {

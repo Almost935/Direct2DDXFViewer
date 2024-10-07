@@ -114,6 +114,10 @@ namespace Direct2DDXFViewer.DrawingObjects
             GetTextFormat();
             GetTextLayout();
         }
+        public override List<GeometryRealization> GetGeometryRealization(float thickness)
+        {
+            return new List<GeometryRealization>();
+        }
 
         public void GetTextFormat()
         {

@@ -1,4 +1,5 @@
-﻿using netDxf.Units;
+﻿using Direct2DControl;
+using netDxf.Units;
 using SharpDX.Direct2D1;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,8 @@ namespace Direct2DDXFViewer.DrawingObjects
     {
         #region Fields
         private bool _disposed = false;
+        private DeviceContext1 _deviceContext;
+        private ResourceCache _resourceCache;
         #endregion
 
         #region Properties
@@ -21,14 +24,23 @@ namespace Direct2DDXFViewer.DrawingObjects
         public List<DrawingObject> DrawingObjects => Layers.Values.SelectMany(layer => layer.DrawingObjects).ToList();
         #endregion
 
-        #region Methods
-        public ObjectLayer GetLayer(string layerName)
+        #region Constructors
+        public ObjectLayerManager(DeviceContext1 deviceContext, ResourceCache resCache)
         {
-            if (Layers.TryGetValue(layerName, out ObjectLayer layer)) { return layer; }
+            _deviceContext = deviceContext;
+            _resourceCache = resCache;
+        }
+        #endregion
+
+        #region Methods
+        public ObjectLayer GetLayer(netDxf.Tables.Layer dxfLayer)
+        {
+            if (Layers.TryGetValue(dxfLayer.Name, out ObjectLayer layer)) { return layer; }
             else
             {
-                ObjectLayer objectLayer = new() { Name = layerName };
-                Layers.Add(layerName, objectLayer);
+                var brush = _resourceCache.GetBrush(dxfLayer.Color.R, dxfLayer.Color.G, dxfLayer.Color.B, 255);
+                ObjectLayer objectLayer = new(_deviceContext, dxfLayer.Name, brush);
+                Layers.Add(dxfLayer.Name, objectLayer);
                 return objectLayer;
             }
         }
@@ -78,12 +90,32 @@ namespace Direct2DDXFViewer.DrawingObjects
             return drawingObjects;
         }
 
+        public void LoadGeometryRealizations()
+        {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            //await Task.Run(() =>
+            //{
+
+            Parallel.ForEach(Layers.Values, layer =>
+            {
+                layer.LoadDrawingRealizations();
+            });
+            //foreach (var layer in Layers.Values)
+            //{
+            //    layer.LoadDrawingRealizations();
+            //}
+            //});
+
+            stopwatch.Stop();
+            Debug.WriteLine($"\nLoadGeometryRealizations Time: {stopwatch.ElapsedMilliseconds}");
+        }
+
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-
         protected virtual void Dispose(bool disposing)
         {
             if (_disposed) return;

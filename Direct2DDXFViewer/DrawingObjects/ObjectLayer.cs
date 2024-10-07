@@ -15,6 +15,7 @@ namespace Direct2DDXFViewer.DrawingObjects
     public class ObjectLayer : INotifyPropertyChanged, IDisposable
     {
         #region Fields
+        private DeviceContext1 _deviceContext;
         private string _name;
         private List<DrawingObject> _drawingObjects = [];
         private bool isVisible = true;
@@ -40,6 +41,7 @@ namespace Direct2DDXFViewer.DrawingObjects
                 OnPropertyChanged(nameof(DrawingObjects));
             }
         }
+        public GeometryGroup GeometryGroup { get; set; }
         public int DrawingObjectsCount
         {
             get { return DrawingObjects.Count; }
@@ -52,6 +54,17 @@ namespace Direct2DDXFViewer.DrawingObjects
                 isVisible = value;
                 OnPropertyChanged(nameof(IsVisible));
             }
+        }
+        public Dictionary<int, List<(List<GeometryRealization> geometryRealizations, Brush brush)>> GeometryRealizations { get; set; } = [];
+        public Brush LayerBrush { get; set; }
+        #endregion
+
+        #region Constructors
+        public ObjectLayer(DeviceContext1 deviceContext, string name, Brush layerBrush)
+        {
+            _deviceContext = deviceContext;
+            Name = name;
+            LayerBrush = layerBrush;
         }
         #endregion
 
@@ -105,6 +118,77 @@ namespace Direct2DDXFViewer.DrawingObjects
             foreach (var drawingObject in DrawingObjects)
             {
                 drawingObject.DrawToRenderTarget(renderTarget, thickness, new SolidColorBrush(renderTarget, new SharpDX.Mathematics.Interop.RawColor4(0, 0, 0, 1)), drawingObject.HairlineStrokeStyle);
+            }
+        }
+
+        public void LoadDrawingRealizations()
+        {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            //await Task.Run(() =>
+            //{
+            List<(List<GeometryRealization>, Brush)> geometryRealizations = new();
+
+            Parallel.ForEach(DrawingObjects, drawingObject =>
+            {
+                List<GeometryRealization> objRealizations = drawingObject.GetGeometryRealization(0.5f);
+
+                geometryRealizations.Add((objRealizations, drawingObject.Brush));
+            });
+
+            GeometryRealizations.Add(0, geometryRealizations);
+
+            Debug.WriteLine($"\ngeometryRealizations.Count: {geometryRealizations.Count}");
+            //});
+
+            stopwatch.Stop();
+            Debug.WriteLine($"LoadDrawingRealizations for layer {_name}: {stopwatch.ElapsedMilliseconds}");
+        }
+
+        public void LoadGeometryGroup()
+        {
+            List<Geometry> geometries = new();
+            foreach (var obj in DrawingObjects)
+            {
+                if (obj is DrawingBlock block)
+                {
+                    foreach (var blockObj in block.DrawingObjects)
+                    {
+                        if (obj is DrawingPolyline polyline)
+                        {
+                            foreach (var segment in polyline.DrawingSegments)
+                            {
+                                if (segment.Geometry is not null)
+                                {
+                                    geometries.Add(segment.Geometry);
+                                }
+                            }
+                        }
+                        if (blockObj.Geometry is not null)
+                        {
+                            geometries.Add(blockObj.Geometry);
+                        }
+                    }
+                }
+                else if (obj is DrawingPolyline polyline)
+                {
+                    foreach (var segment in polyline.DrawingSegments)
+                    {
+                        if (segment.Geometry is not null)
+                        {
+                            geometries.Add(segment.Geometry);
+                        }
+                    }
+                }
+                else if (obj.Geometry is not null)
+                {
+                    geometries.Add(obj.Geometry);
+                }
+            }
+            if (geometries.Count > 0)
+            {
+                var geometryArr = geometries.ToArray();
+                GeometryGroup = new(_deviceContext.Factory, FillMode.Alternate, geometryArr);
             }
         }
 

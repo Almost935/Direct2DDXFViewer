@@ -47,7 +47,6 @@ namespace Direct2DDXFViewer.DrawingObjects
             ResCache = resCache;
             Layer = layer;
             EntityCount = 1;
-
             StartPoint = new((float)dxfLine.StartPoint.X, (float)dxfLine.StartPoint.Y);
             EndPoint = new((float)dxfLine.EndPoint.X, (float)dxfLine.EndPoint.Y);
 
@@ -94,17 +93,24 @@ namespace Direct2DDXFViewer.DrawingObjects
 
                 Geometry = pathGeometry;
 
-                var bounds = Geometry.GetBounds();
+                var bounds = Geometry.GetWidenedBounds(10);
                 Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
             }
         }
 
+        public override List<GeometryRealization> GetGeometryRealization(float thickness)
+        {
+            List<GeometryRealization> geometryRealizations = [];
+
+            if (Geometry is not null)
+            {
+                geometryRealizations.Add(new(DeviceContext, Geometry, 0.5f, thickness, HairlineStrokeStyle));
+            }
+
+            return geometryRealizations;
+        }
         public override bool Hittest(RawVector2 p, float thickness)
         {
-            //bool strokeContainsP = Geometry.StrokeContainsPoint(p, thickness);
-            //Debug.WriteLine($"p: {p.X} {p.Y}, DxfLine Start and End: {DxfLine.StartPoint} {DxfLine.EndPoint}" +
-            //    $"\nstrokeContainsP: {strokeContainsP}");
-
             return Geometry.StrokeContainsPoint(p, thickness); ;
         }
         #endregion

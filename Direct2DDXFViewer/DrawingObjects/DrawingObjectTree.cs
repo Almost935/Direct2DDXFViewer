@@ -77,9 +77,13 @@ namespace Direct2DDXFViewer.DrawingObjects
         {
             List<DrawingObjectNode> quadTreeNodes = [];
 
-            quadTreeNodes.AddRange(Root.GetNodeAtPoint(p));
+            quadTreeNodes.AddRange(Root.GetNodesAtPoint(p));
 
             return quadTreeNodes;
+        }
+        public DrawingObjectNode GetIntersectingNode(Point p)
+        {
+            return Root.GetNodeAtPoint(p);
         }
 
         //public void UpdateCurrentlyVisibleNodes(Rect view)

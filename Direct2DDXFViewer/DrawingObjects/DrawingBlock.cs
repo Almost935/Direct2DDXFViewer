@@ -1,4 +1,5 @@
 ﻿using Direct2DControl;
+using Direct2DDXFViewer.Helpers;
 using netDxf.Entities;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
@@ -117,15 +118,38 @@ namespace Direct2DDXFViewer.DrawingObjects
             foreach (var obj in DrawingObjects)
             {
                 obj.UpdateGeometry();
+
+                if (Bounds.IsEmpty)
+                {
+                    Bounds = obj.Bounds;
+                }
+                else
+                {
+                    Bounds.Union(obj.Bounds);
+                }
             }
+        }
+        public override List<GeometryRealization> GetGeometryRealization(float thickness)
+        {
+            List<GeometryRealization> geometryRealizations = [];
+
+            foreach (var obj in DrawingObjects)
+            {
+                geometryRealizations.AddRange(obj.GetGeometryRealization(thickness));
+            }
+
+            return geometryRealizations;
         }
         public override bool Hittest(RawVector2 p, float thickness)
         {
             foreach (var obj in DrawingObjects)
             {
-                if (obj.Hittest(p, thickness))
+                if (obj.Bounds.Contains((double)p.X, (double)p.Y))
                 {
-                    return true;
+                   if (obj.Hittest(p, thickness))
+                    {
+                        return true;
+                    }
                 }
             }
             return false;

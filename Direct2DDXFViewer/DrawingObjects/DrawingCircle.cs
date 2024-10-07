@@ -71,10 +71,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             return Bounds.IntersectsWith(rect) || Bounds.Contains(rect);
         }
 
-        public override async Task UpdateGeometriesAsync()
-        {
-            await Task.Run(() => UpdateGeometry());
-        }
+        
         public override void UpdateGeometry()
         {
             Ellipse ellipse = new(new RawVector2((float)DxfCircle.Center.X, (float)DxfCircle.Center.Y), (float)DxfCircle.Radius, (float)DxfCircle.Radius);
@@ -82,8 +79,23 @@ namespace Direct2DDXFViewer.DrawingObjects
 
             Geometry = ellipseGeometry;
 
-            var bounds = Geometry.GetBounds();
+            var bounds = Geometry.GetWidenedBounds(_hitTestStrokeThickness);
             Bounds = new(bounds.Left, bounds.Top, Math.Abs(bounds.Right - bounds.Left), Math.Abs(bounds.Bottom - bounds.Top));
+        }
+        public override async Task UpdateGeometriesAsync()
+        {
+            await Task.Run(() => UpdateGeometry());
+        }
+        public override List<GeometryRealization> GetGeometryRealization(float thickness)
+        {
+            List<GeometryRealization> geometryRealizations = [];
+
+            if (Geometry is not null)
+            {
+                geometryRealizations.Add(new(DeviceContext, Geometry, 0.5f, thickness, HairlineStrokeStyle));
+            }
+
+            return geometryRealizations;
         }
         public override bool Hittest(RawVector2 p, float thickness)
         {

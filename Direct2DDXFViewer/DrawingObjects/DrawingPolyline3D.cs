@@ -1,4 +1,5 @@
 ﻿using Direct2DControl;
+using Direct2DDXFViewer.Helpers;
 using netDxf.Entities;
 using SharpDX.Direct2D1;
 using SharpDX.Mathematics.Interop;
@@ -71,6 +72,15 @@ namespace Direct2DDXFViewer.DrawingObjects
             Parallel.ForEach(DrawingSegments, segment =>
             {
                 segment.UpdateGeometry();
+
+                if (Bounds.IsEmpty)
+                {
+                    Bounds = segment.Bounds;
+                }
+                else
+                {
+                    Bounds.Union(segment.Bounds);
+                }
             });
         }
 

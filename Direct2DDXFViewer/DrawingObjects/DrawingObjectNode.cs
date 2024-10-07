@@ -67,7 +67,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             }
             return intersectingNodes;
         }
-        public List<DrawingObjectNode> GetNodeAtPoint(Point p)
+        public List<DrawingObjectNode> GetNodesAtPoint(Point p)
         {
             List<DrawingObjectNode> nodes = new();
 
@@ -81,11 +81,32 @@ namespace Direct2DDXFViewer.DrawingObjects
                 {
                     foreach (var child in ChildNodes)
                     {
-                        nodes.AddRange(child.GetNodeAtPoint(p));
+                        nodes.AddRange(child.GetNodesAtPoint(p));
                     }
                 }
             }
             return nodes;
+        }
+        public DrawingObjectNode GetNodeAtPoint(Point p)
+        {
+            DrawingObjectNode node = null;
+
+            if (Extents.Contains(p))
+            {
+                if (Level == 0)
+                {
+                    node = this;
+                }
+                else
+                {
+                    foreach (var child in ChildNodes)
+                    {
+                        node = child.GetNodeAtPoint(p);
+                        if (node != null) { break; }
+                    }
+                }
+            }
+            return node;
         }
         private void Subdivide()
         {
