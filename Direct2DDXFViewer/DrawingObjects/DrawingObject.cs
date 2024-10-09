@@ -163,10 +163,10 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 StrokeStyleProperties1 ssp = new()
                 {
-                    StartCap = CapStyle.Round,
-                    EndCap = CapStyle.Round,
+                    StartCap = CapStyle.Flat,
+                    EndCap = CapStyle.Flat,
                     DashCap = CapStyle.Flat,
-                    LineJoin = LineJoin.Round,
+                    LineJoin = LineJoin.MiterOrBevel,
                     MiterLimit = 10.0f,
                     DashStyle = DashStyle.Solid,
                     DashOffset = 0.0f,
