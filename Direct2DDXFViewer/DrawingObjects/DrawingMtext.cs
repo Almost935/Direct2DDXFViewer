@@ -105,9 +105,9 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public override async Task UpdateGeometriesAsync()
         {
-            await Task.Run(() => UpdateGeometry());
+            await Task.Run(() => InitializeGeometries());
         }
-        public override void UpdateGeometry()
+        public override void InitializeGeometries()
         {
             Bounds = new(DxfMtext.Position.X, DxfMtext.Position.Y, DxfMtext.RectangleWidth * 2, DxfMtext.Height * 2);
             GetTransform();

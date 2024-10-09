@@ -86,7 +86,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
 
 
-        public override void UpdateGeometry()
+        public override void InitializeGeometries()
         {
             if (DxfEllipse.IsFullEllipse)
             {
@@ -197,7 +197,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public override async Task UpdateGeometriesAsync()
         {
-            await Task.Run(() => UpdateGeometry());
+            await Task.Run(() => InitializeGeometries());
         }
         public override List<GeometryRealization> GetGeometryRealization(float thickness)
         {

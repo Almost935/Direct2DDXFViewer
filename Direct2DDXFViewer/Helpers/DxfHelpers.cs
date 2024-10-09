@@ -91,24 +91,11 @@ namespace Direct2DDXFViewer.Helpers
 
             stopwatch.Restart();
 
-            //Parallel.ForEach(layerManager.Layers.Values, layer =>
-            //{
-            //    foreach (var obj in layer.DrawingObjects)
-            //    {
-            //        obj.UpdateGeometry();
-            //    }
-
-            //    //    Parallel.ForEach(layer.DrawingObjects, obj =>
-            //    //{
-            //    //    obj.UpdateGeometry();
-            //    //});
-            //});
-
             foreach (var layer in layerManager.Layers.Values)
             {
                 foreach (var obj in layer.DrawingObjects)
                 {
-                    obj.UpdateGeometry();
+                    obj.InitializeGeometries();
                 }
             }
 

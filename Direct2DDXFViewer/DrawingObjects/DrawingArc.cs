@@ -32,6 +32,9 @@ namespace Direct2DDXFViewer.DrawingObjects
                 OnPropertyChanged(nameof(DxfArc));
             }
         }
+
+        public double Sweep { get; set; }
+        public bool IsLargeArc { get; set; }
         #endregion
 
         #region Constructor
@@ -73,9 +76,9 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public override async Task UpdateGeometriesAsync()
         {
-            await Task.Run(() => UpdateGeometry());
+            await Task.Run(() => InitializeGeometries());
         }
-        public override void UpdateGeometry()
+        public override void InitializeGeometries()
         {
             // Start by getting start and end points using NetDxf ToPolyline2D method
             StartPoint = new(
@@ -86,16 +89,15 @@ namespace Direct2DDXFViewer.DrawingObjects
                 (float)DxfArc.ToPolyline2D(2).Vertexes.Last().Position.Y);
 
             // Get sweep and find out if large arc 
-            double sweep;
             if (DxfArc.EndAngle < DxfArc.StartAngle)
             {
-                sweep = (360 + DxfArc.EndAngle) - DxfArc.StartAngle;
+                Sweep = (360 + DxfArc.EndAngle) - DxfArc.StartAngle;
             }
             else
             {
-                sweep = Math.Abs(DxfArc.EndAngle - DxfArc.StartAngle);
+                Sweep = Math.Abs(DxfArc.EndAngle - DxfArc.StartAngle);
             }
-            bool isLargeArc = sweep >= 180;
+            IsLargeArc = Sweep >= 180;
 
             PathGeometry pathGeometry = new(Factory);
             using (var sink = pathGeometry.Open())
@@ -107,8 +109,8 @@ namespace Direct2DDXFViewer.DrawingObjects
                     Point = EndPoint,
                     Size = new((float)DxfArc.Radius, (float)DxfArc.Radius),
                     SweepDirection = SweepDirection.Clockwise,
-                    RotationAngle = (float)sweep,
-                    ArcSize = isLargeArc ? ArcSize.Large : ArcSize.Small
+                    RotationAngle = (float)Sweep,
+                    ArcSize = IsLargeArc ? ArcSize.Large : ArcSize.Small
                 };
 
                 sink.AddArc(arcSegment);

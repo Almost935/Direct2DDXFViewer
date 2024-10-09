@@ -72,7 +72,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
 
         
-        public override void UpdateGeometry()
+        public override void InitializeGeometries()
         {
             Ellipse ellipse = new(new RawVector2((float)DxfCircle.Center.X, (float)DxfCircle.Center.Y), (float)DxfCircle.Radius, (float)DxfCircle.Radius);
             EllipseGeometry ellipseGeometry = new(Factory, ellipse);
@@ -84,7 +84,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         }
         public override async Task UpdateGeometriesAsync()
         {
-            await Task.Run(() => UpdateGeometry());
+            await Task.Run(() => InitializeGeometries());
         }
         public override List<GeometryRealization> GetGeometryRealization(float thickness)
         {

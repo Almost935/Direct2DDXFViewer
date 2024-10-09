@@ -79,9 +79,9 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public override async Task UpdateGeometriesAsync()
         {
-            await Task.Run(() => UpdateGeometry());
+            await Task.Run(() => InitializeGeometries());
         }
-        public async override void UpdateGeometry()
+        public async override void InitializeGeometries()
         {
             PathGeometry pathGeometry = new(Factory);
             using (var sink = pathGeometry.Open())

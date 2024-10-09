@@ -27,6 +27,8 @@ namespace Direct2DDXFViewer
     public partial class Direct2DDxfViewer : UserControl, INotifyPropertyChanged
     {
         #region Fields
+        private string _dxfFilePath = @"DXF\MediumDxf.dxf";
+
         private Point _dxfPointerCoords = new();
         private Point _pointerCoords = new();
         private int _currentZoomStep;
@@ -67,6 +69,7 @@ namespace Direct2DDXFViewer
         {
             InitializeComponent();
 
+            LoadDxfControl();
             dxfControl.PropertyChanged += DxfControl_PropertyChanged;
         }
         #endregion
@@ -76,6 +79,12 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Methods
+        private void LoadDxfControl()
+        {
+            DxfDocument dxfDoc = DxfDocument.Load(_dxfFilePath);
+            if (dxfDoc is not null) { dxfControl.Initialize(dxfDoc); }
+        }
+
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -102,5 +111,7 @@ namespace Direct2DDXFViewer
             dxfControl.ZoomToExtents();
         }
         #endregion
+
+   
     }
 }

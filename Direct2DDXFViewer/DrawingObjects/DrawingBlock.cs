@@ -111,13 +111,13 @@ namespace Direct2DDXFViewer.DrawingObjects
 
         public override async Task UpdateGeometriesAsync()
         {
-            await Task.Run(() => UpdateGeometry());
+            await Task.Run(() => InitializeGeometries());
         }
-        public override void UpdateGeometry()
+        public override void InitializeGeometries()
         {
             foreach (var obj in DrawingObjects)
             {
-                obj.UpdateGeometry();
+                obj.InitializeGeometries();
 
                 if (Bounds.IsEmpty)
                 {

@@ -26,7 +26,7 @@ namespace Direct2DDXFViewer.DrawingObjects
         #region Methods
         public abstract void GetDrawingSegments();
 
-        public override void UpdateGeometry()
+        public override void InitializeGeometries()
         {
             // Implement logic to update the geometry of the polyline
             throw new NotImplementedException();
