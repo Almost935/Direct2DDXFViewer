@@ -181,11 +181,11 @@ namespace Direct2DDXFViewer.DrawingObjects
             }
         }
     
-        public void UpdateFactory(Factory1 factory)
-        {
-            Factory = factory;
-            GetStrokeStyle();
-        }
+        //public void UpdateFactory(Factory1 factory)
+        //{
+        //    Factory = factory;
+        //    GetStrokeStyle();
+        //}
         public void UpdateDeviceContext(DeviceContext1 deviceContext)
         {
             DeviceContext = deviceContext;

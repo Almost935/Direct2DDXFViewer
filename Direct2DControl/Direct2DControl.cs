@@ -52,6 +52,7 @@ namespace Direct2DControl
                 return isDesignMode;
             }
         }
+        public bool IsRendering = false;
 
         private static readonly DependencyPropertyKey FpsPropertyKey = DependencyProperty.RegisterReadOnly(
             "Fps",
@@ -130,8 +131,12 @@ namespace Direct2DControl
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {
+            StopRendering();
+
             CreateAndBindTargets();
             base.OnRenderSizeChanged(sizeInfo);
+
+            StartRendering();
         }
 
         private void OnIsFrontBufferAvailableChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -188,6 +193,7 @@ namespace Direct2DControl
             d3DSurface.SetRenderTarget(null);
 
             Disposer.SafeDispose(ref d2DRenderTarget);
+            Disposer.SafeDispose(ref d2DDeviceContext);
             Disposer.SafeDispose(ref d2DFactory);
             Disposer.SafeDispose(ref renderTarget);
 
@@ -211,10 +217,18 @@ namespace Direct2DControl
             renderTarget = new Texture2D(device, renderDesc);
             resCache.MaxBitmapSize = GetMaxSize(renderTarget.Device.FeatureLevel);
             var surface = renderTarget.QueryInterface<Surface>();
-            d2DFactory = new SharpDX.Direct2D1.Factory1(FactoryType.MultiThreaded, DebugLevel.Information);
-            var factory = new SharpDX.DirectWrite.Factory1(SharpDX.DirectWrite.FactoryType.Shared);
-            resCache.Factory = d2DFactory;
-            resCache.FactoryWrite = factory;
+
+            if (d2DFactory is null)
+            {
+                d2DFactory = new SharpDX.Direct2D1.Factory1(FactoryType.MultiThreaded, DebugLevel.Information);
+                resCache.Factory = d2DFactory;
+            }
+            if (resCache.FactoryWrite is null)
+            {
+                var factory = new SharpDX.DirectWrite.Factory1(SharpDX.DirectWrite.FactoryType.Shared);
+                resCache.FactoryWrite = factory;
+            }
+            
             var rtp = new RenderTargetProperties(new PixelFormat(Format.Unknown, SharpDX.Direct2D1.AlphaMode.Premultiplied));
             d2DRenderTarget = new(d2DFactory, surface, rtp);
             resCache.RenderTarget = d2DRenderTarget;
@@ -233,6 +247,7 @@ namespace Direct2DControl
                 return;
             }
 
+            IsRendering = true;
             System.Windows.Media.CompositionTarget.Rendering += OnRendering;
             renderTimer.Start();
         }
@@ -244,6 +259,7 @@ namespace Direct2DControl
                 return;
             }
 
+            IsRendering = false;
             System.Windows.Media.CompositionTarget.Rendering -= OnRendering;
             renderTimer.Stop();
         }

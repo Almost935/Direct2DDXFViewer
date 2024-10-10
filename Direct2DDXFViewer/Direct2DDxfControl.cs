@@ -71,20 +71,21 @@ namespace Direct2DDXFViewer
         private Matrix _overallMatrix = new();
 
         private bool _isPanning = false;
-        private bool _isRendering = false;
+        private bool _isAsyncRendering = false;
         private bool _deviceContextIsDirty = true;
         private Point _lastTranslatePos = new();
         private bool _dxfLoaded = false;
         private int _dxfObjectCount;
         private Rect _currentView;
         private Rect _currentDxfView;
-        private bool _bitmapsLoaded = false;
         private List<DrawingObject> _visibleDrawingObjects = new();
         private bool _visibleObjectsDirty = true;
         private int _objectDetailLevelTransitionNum = 500;
         private BitmapRenderTarget _interactiveRenderTarget;
         private QuadTreeCache _quadTreeCache;
         private DrawingObjectTree _drawingObjectTree;
+        private Brush _highlightedBrush;
+        private Brush _highlightedOuterEdgeBrush;
 
         // Layer bitmap rendering test fields
         private Dictionary<int, List<Bitmap>> _layerBitmaps = [];
@@ -224,6 +225,8 @@ namespace Direct2DDXFViewer
                 {
                     layer.LoadGeometryGroup();
                 }
+
+                _drawingObjectTree = new(LayerManager, Extents, 4);
             }
         }
         public Matrix GetInitialMatrix()
@@ -269,15 +272,6 @@ namespace Direct2DDXFViewer
             _currentDxfView = InitialView;
             _currentView = new(0, 0, ActualWidth, ActualHeight);
         }
-        public void InitializeBitmapCache(DeviceContext1 deviceContext, Factory1 factory)
-        {
-            _quadTreeCache = new(factory, deviceContext, LayerManager, _loadedQuadTreesFactor, _initializedQuadTreeFactor, resCache.MaxBitmapSize,
-                _bitmapReuseFactor, _zoomFactor, _zoomPrecision, _rawExtentsMatrix, InitialView);
-
-            _drawingObjectTree = new(LayerManager, Extents, 4);
-
-            _bitmapsLoaded = true;
-        }
 
         public override void Render(RenderTarget target, DeviceContext1 deviceContext)
         {
@@ -296,29 +290,29 @@ namespace Direct2DDXFViewer
                     GetVisibleObjects();
                 }
 
-                if (!_bitmapsLoaded)
-                {
-                    InitializeBitmapCache(deviceContext, resCache.Factory);
-                    _bitmapsLoaded = true;
-                }
 
-                if (!_isRendering && deviceContext is not null && _dxfLoaded)
+                if (!_isAsyncRendering && deviceContext is not null)
                 {
-                    _isRendering = true;
-                    _maxDistFromOffscreenBitmapUpdate = new(((_offscreenRenderTarget.Size.Width / 2) - (deviceContext.Size.Width / 2)), ((_offscreenRenderTarget.Size.Height / 2) - (deviceContext.Size.Height / 2)));
-                    _offscreenBitmapCenteringOffset = ((float)_maxDistFromOffscreenBitmapUpdate.X, (float)_maxDistFromOffscreenBitmapUpdate.Y);
-
-                    UpdateOffscreenRenderTarget(deviceContext);
-                    RenderAsync(deviceContext);
-                    RunUpdateOffscreenRenderTargetAsync(deviceContext);
+                    InitiateAsyncRendering(deviceContext);
                 }
             }
         }
+        private void InitiateAsyncRendering(DeviceContext1 deviceContext)
+        {
+            _isAsyncRendering = true;
 
+            _maxDistFromOffscreenBitmapUpdate = new(((_offscreenRenderTarget.Size.Width / 2) - (deviceContext.Size.Width / 2)), ((_offscreenRenderTarget.Size.Height / 2) - (deviceContext.Size.Height / 2)));
+            _offscreenBitmapCenteringOffset = ((float)_maxDistFromOffscreenBitmapUpdate.X, (float)_maxDistFromOffscreenBitmapUpdate.Y);
+
+            UpdateOffscreenRenderTarget(deviceContext);
+            RenderAsync(deviceContext);
+            RunUpdateOffscreenRenderTargetAsync(deviceContext);
+        }
         private async Task RunUpdateOffscreenRenderTargetAsync(DeviceContext1 deviceContext)
         {
-            while (_isRendering)
+            while (_isAsyncRendering)
             {
+
                 await Task.Run(() => UpdateOffscreenRenderTarget(deviceContext));
                 await Task.Delay(100);
             }
@@ -350,6 +344,9 @@ namespace Direct2DDXFViewer
 
                 var prevBitmap = _currentOffscreenBitmap;
                 _currentOffscreenBitmap = new(zoomStep, _offscreenRenderTarget.Bitmap);
+                _distFromOffscreenBitmapUpdate = new();
+                _currentOffscreenBitmapTransform = new();
+                _deviceContextIsDirty = true;
                 prevBitmap?.Dispose();
 
                 stopwatch.Stop();
@@ -357,19 +354,15 @@ namespace Direct2DDXFViewer
 
                 // Verify that the bitmap was updated correctly
                 if (_currentOffscreenBitmap.ZoomStep == _currentZoomStep) { _offscreenBitmapIsDirty = false; }
-
-                _distFromOffscreenBitmapUpdate = new();
-                _currentOffscreenBitmapTransform = new();
-                _deviceContextIsDirty = true;
             }
         }
 
 
         private async void RenderAsync(DeviceContext1 deviceContext)
         {
-            Stopwatch stopwatch = new();
-            while (_isRendering)
+            while (_isAsyncRendering)
             {
+                Stopwatch stopwatch = new();
                 stopwatch.Restart();
                 int delay = 17;
 
@@ -380,7 +373,7 @@ namespace Direct2DDXFViewer
 
                     if (_currentOffscreenBitmap is null) { return; }
 
-                    RenderLayersToDeviceContext(deviceContext);
+                    RenderOffscreenBitmap(deviceContext);
                     RenderInteractiveObjects(deviceContext, _interactiveRenderTarget);
 
                     deviceContext.EndDraw();
@@ -448,7 +441,7 @@ namespace Direct2DDXFViewer
             var copy = HighlightedObjects.ToList();
             foreach (var obj in copy)
             {
-                obj.DrawToDeviceContext(deviceContext, 2, resCache.HighlightedBrush, obj.FixedStrokeStyle);
+                obj.DrawToDeviceContext(deviceContext, 2, _highlightedBrush, obj.FixedStrokeStyle);
             }
         }
 
@@ -538,13 +531,21 @@ namespace Direct2DDXFViewer
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {
+            _isAsyncRendering = false;
+
             base.OnRenderSizeChanged(sizeInfo);
 
-            UpdateDeviceContextAndFactory(resCache.DeviceContext, resCache.Factory);
+            UpdateDeviceContext(resCache.DeviceContext);
+
+            _offscreenRenderTarget?.Dispose();
+            _offscreenRenderTarget = null;
+            _highlightedBrush?.Dispose();
+            _highlightedBrush = null;
+            _highlightedOuterEdgeBrush?.Dispose();
+            _highlightedOuterEdgeBrush = null;
 
             ExtentsMatrix = GetInitialMatrix();
             _overallMatrix = ExtentsMatrix;
-            _bitmapsLoaded = false;
         }
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
@@ -758,7 +759,6 @@ namespace Direct2DDXFViewer
             {
                 _overallMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
                 _transformMatrix.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
-                _currentOffscreenBitmapTransform.ScaleAt(zoom, zoom, PointerCoords.X, PointerCoords.Y);
 
                 UpdateCurrentView();
                 ResetSnappedObjects();
@@ -766,8 +766,6 @@ namespace Direct2DDXFViewer
                 _visibleObjectsDirty = true;
                 _deviceContextIsDirty = true;
                 _offscreenBitmapIsDirty = true;
-
-                _quadTreeCache.UpdateZoomStep(CurrentZoomStep);
             }
         }
         private void UpdateTranslate(Vector translate)
@@ -776,15 +774,14 @@ namespace Direct2DDXFViewer
 
             _overallMatrix.Translate(translate.X, translate.Y);
             _transformMatrix.Translate(translate.X, translate.Y);
+            _currentOffscreenBitmapTransform.Translate(translate.X, translate.Y);
+            _distFromOffscreenBitmapUpdate += translate;
 
             UpdateCurrentView();
             ResetSnappedObjects();
 
             _visibleObjectsDirty = true;
             _deviceContextIsDirty = true;
-
-            _currentOffscreenBitmapTransform.Translate(translate.X, translate.Y);
-            _distFromOffscreenBitmapUpdate += translate;
 
             if (Math.Abs(_distFromOffscreenBitmapUpdate.X) > _maxDistFromOffscreenBitmapUpdate.X + 200 ||
                 Math.Abs(_distFromOffscreenBitmapUpdate.Y) > _maxDistFromOffscreenBitmapUpdate.Y + 200) { _offscreenBitmapIsDirty = true; }
@@ -812,15 +809,13 @@ namespace Direct2DDXFViewer
         }
         private void GetResources(DeviceContext1 deviceContext)
         {
-            resCache.HighlightedBrush ??= new SolidColorBrush(deviceContext, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f));
+            _highlightedBrush ??= new SolidColorBrush(deviceContext, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f));
 
-            resCache.HighlightedOuterEdgeBrush ??= new SolidColorBrush(deviceContext, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f))
+            _highlightedOuterEdgeBrush ??= new SolidColorBrush(deviceContext, new RawColor4((97 / 255), 1.0f, 0.0f, 1.0f))
             { Opacity = 0.2f };
 
-            resCache.SnappedEffect ??= new GaussianBlur(deviceContext);
-
         }
-        private void UpdateDeviceContextAndFactory(DeviceContext1 deviceContext, Factory1 factory)
+        private void UpdateDeviceContext(DeviceContext1 deviceContext)
         {
             if (LayerManager is null) { return; }
 
@@ -828,9 +823,7 @@ namespace Direct2DDXFViewer
             {
                 foreach (var o in layer.DrawingObjects)
                 {
-                    o.UpdateFactory(factory);
                     o.UpdateDeviceContext(deviceContext);
-                    o.InitializeGeometries();
                 }
             }
         }

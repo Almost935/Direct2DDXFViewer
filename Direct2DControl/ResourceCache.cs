@@ -55,11 +55,7 @@ namespace Direct2DControl
         }
 
         public int MaxBitmapSize { get; set; }
-        public Brush HighlightedBrush { get; set; }
-        public Brush HighlightedOuterEdgeBrush { get; set; }
         public Dictionary<(byte r, byte g, byte b, byte a), Brush> Brushes { get; set; } = new();
-
-        public Effect SnappedEffect { get; set; }
 
         public enum LineType { Solid_Hairline, Solid_Fixed, Dash };
         public Dictionary<LineType, StrokeStyle1> StrokeStyles { get; set; } = new();
@@ -186,6 +182,24 @@ namespace Direct2DControl
 
                 resources.Add(key, res);
             }
+
+            foreach (var brush in Brushes.Values)
+            {
+                brush.Dispose();
+            }
+            Brushes.Clear();
+
+            foreach (var strokeStyle in StrokeStyles.Values)
+            {
+                strokeStyle.Dispose();
+            }
+            StrokeStyles.Clear();
+
+            foreach (var textFormat in TextFormats.Values)
+            {
+                textFormat.Dispose();
+            }
+            TextFormats.Clear();
         }
 
         public void Dispose()
@@ -207,18 +221,6 @@ namespace Direct2DControl
                     Disposer.SafeDispose(ref device);
                     Disposer.SafeDispose(ref factory);
                     Disposer.SafeDispose(ref factoryWrite);
-
-                    if (HighlightedBrush != null)
-                    {
-                        HighlightedBrush.Dispose();
-                        HighlightedBrush = null;
-                    }
-
-                    if (HighlightedOuterEdgeBrush != null)
-                    {
-                        HighlightedOuterEdgeBrush.Dispose();
-                        HighlightedOuterEdgeBrush = null;
-                    }
 
                     foreach (var brush in Brushes.Values)
                     {
