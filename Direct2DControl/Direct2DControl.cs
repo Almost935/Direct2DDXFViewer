@@ -92,7 +92,7 @@ namespace Direct2DControl
             base.Stretch = System.Windows.Media.Stretch.Fill;
         }
 
-        public abstract void Render(RenderTarget target, DeviceContext1 deviceContext);
+        public abstract void Render(DeviceContext1 deviceContext);
 
         // - event handler ---------------------------------------------------------------
 
@@ -118,7 +118,7 @@ namespace Direct2DControl
             EndD3D();
         }
 
-        private void OnRendering(object sender, EventArgs e)
+        private async void OnRendering(object sender, EventArgs e)
         {
             if (!renderTimer.IsRunning)
             {
@@ -126,6 +126,7 @@ namespace Direct2DControl
             }
             PrepareAndCallRender();
             d3DSurface.InvalidateD3DImage();
+
             lastRenderTime = renderTimer.ElapsedMilliseconds;
         }
 
@@ -271,13 +272,15 @@ namespace Direct2DControl
                 return;
             }
 
-            //d2DRenderTarget.BeginDraw();
-            Render(d2DRenderTarget, d2DDeviceContext);
-            //d2DRenderTarget.EndDraw();
+            d2DDeviceContext.BeginDraw();
 
-            //CalcFps();
+            Render(d2DDeviceContext);
 
-            //device.ImmediateContext.Flush();
+            d2DDeviceContext.EndDraw();
+
+            CalcFps();
+
+            device.ImmediateContext.Flush();
         }
 
         private void CalcFps()
