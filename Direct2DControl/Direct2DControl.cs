@@ -18,14 +18,14 @@ namespace Direct2DControl
     public abstract class Direct2DControl : System.Windows.Controls.Image
     {
         // - field -----------------------------------------------------------------------
+        protected RenderTarget d2DRenderTarget;
+        protected DeviceContext1 d2DDeviceContext;
+        protected SharpDX.Direct2D1.Factory1 d2DFactory;
+        protected SharpDX.DirectWrite.Factory dWriteFactory;
 
         private SharpDX.Direct3D11.Device device;
         private Texture2D renderTarget;
         private Dx11ImageSource d3DSurface;
-        private RenderTarget d2DRenderTarget;
-        private DeviceContext1 d2DDeviceContext;
-        private SharpDX.Direct2D1.Factory1 d2DFactory;
-        private SharpDX.DirectWrite.Factory dWriteFactory;
 
         private readonly Stopwatch renderTimer = new();
 
@@ -195,7 +195,6 @@ namespace Direct2DControl
 
             Disposer.SafeDispose(ref d2DRenderTarget);
             Disposer.SafeDispose(ref d2DDeviceContext);
-            Disposer.SafeDispose(ref d2DFactory);
             Disposer.SafeDispose(ref renderTarget);
 
             var width = Math.Max((int)ActualWidth, 100);

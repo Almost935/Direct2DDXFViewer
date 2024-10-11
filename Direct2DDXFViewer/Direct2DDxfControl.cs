@@ -304,23 +304,14 @@ namespace Direct2DDXFViewer
                     deviceContext.Clear(new RawColor4(1, 1, 1, 1));
 
                     RenderOffscreenBitmap(deviceContext);
+                    //RenderLayersToDeviceContext(deviceContext);
                     RenderInteractiveObjects(deviceContext, _interactiveRenderTarget);
 
                     _deviceContextIsDirty = false;
                 }
             }
         }
-        //private void InitiateAsyncRendering(DeviceContext1 deviceContext)
-        //{
-        //    _isAsyncRendering = true;
 
-        //    _maxDistFromOffscreenBitmapUpdate = new(((_offscreenRenderTarget.Size.Width / 2) - (deviceContext.Size.Width / 2)), ((_offscreenRenderTarget.Size.Height / 2) - (deviceContext.Size.Height / 2)));
-        //    _offscreenBitmapCenteringOffset = ((float)_maxDistFromOffscreenBitmapUpdate.X, (float)_maxDistFromOffscreenBitmapUpdate.Y);
-
-        //    UpdateOffscreenRenderTarget(deviceContext);
-        //    RenderAsync(deviceContext);
-        //    RunUpdateOffscreenRenderTargetAsync(deviceContext);
-        //}
         private async Task RunUpdateOffscreenRenderTargetAsync(DeviceContext1 deviceContext)
         {
             while (true)
@@ -331,6 +322,10 @@ namespace Direct2DDXFViewer
         }
         private void UpdateOffscreenRenderTarget(DeviceContext1 deviceContext)
         {
+            Debug.WriteLine($"(_offscreenBitmapIsDirty: {_offscreenBitmapIsDirty} _offscreenRenderTarget.IsDisposed: {_offscreenRenderTarget.IsDisposed} _offscreenRenderTarget is null: {_offscreenRenderTarget is null} deviceContext.IsDisposed: {deviceContext.IsDisposed}");
+
+            if (deviceContext.IsDisposed) { }
+
             if (_offscreenBitmapIsDirty && _offscreenRenderTarget is not null && !deviceContext.IsDisposed)
             {
                 Stopwatch stopwatch = Stopwatch.StartNew();
@@ -369,44 +364,6 @@ namespace Direct2DDXFViewer
             }
         }
 
-
-        //private async void RenderAsync(DeviceContext1 deviceContext)
-        //{
-        //    while (_isAsyncRendering)
-        //    {
-        //        if (deviceContext is null) { return; }
-        //        if (deviceContext.IsDisposed) { return; }
-
-        //        Stopwatch stopwatch = new();
-        //        stopwatch.Restart();
-        //        int delay = 17;
-
-        //        if (LayerManager is not null && deviceContext is not null && !deviceContext.IsDisposed && _deviceContextIsDirty)
-        //        {
-        //            deviceContext.BeginDraw();
-        //            deviceContext.Clear(new RawColor4(1, 1, 1, 0));
-
-        //            if (_currentOffscreenBitmap is null) { return; }
-
-        //            RenderOffscreenBitmap(deviceContext);
-        //            RenderInteractiveObjects(deviceContext, _interactiveRenderTarget);
-
-        //            deviceContext.EndDraw();
-        //            resCache.Device.ImmediateContext.Flush();
-
-        //            stopwatch.Stop();
-        //            //Debug.WriteLine($"RenderAsync Elapsed Time: {stopwatch.ElapsedMilliseconds}");
-        //            int elapsedTime = (int)stopwatch.ElapsedMilliseconds;
-        //            delay = 17 - elapsedTime;
-        //            _deviceContextIsDirty = false;
-        //        }
-
-        //        if (delay > 0)
-        //        {
-        //            await Task.Delay(delay);
-        //        }
-        //    }
-        //}
         private void RenderOffscreenBitmap(DeviceContext1 deviceContext)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
