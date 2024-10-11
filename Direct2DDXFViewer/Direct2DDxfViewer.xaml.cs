@@ -27,7 +27,7 @@ namespace Direct2DDXFViewer
     public partial class Direct2DDxfViewer : UserControl, INotifyPropertyChanged
     {
         #region Fields
-        private string _dxfFilePath = @"DXF\MediumDxf.dxf";
+        private string _dxfFilePath = @"DXF\LargeDxf.dxf";
 
         private Point _dxfPointerCoords = new();
         private Point _pointerCoords = new();

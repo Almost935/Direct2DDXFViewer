@@ -92,7 +92,7 @@ namespace Direct2DControl
             base.Stretch = System.Windows.Media.Stretch.Fill;
         }
 
-        public abstract void Render(DeviceContext1 deviceContext);
+        public abstract void Render();
 
         // - event handler ---------------------------------------------------------------
 
@@ -273,7 +273,7 @@ namespace Direct2DControl
 
             d2DDeviceContext.BeginDraw();
 
-            Render(d2DDeviceContext);
+            Render();
 
             d2DDeviceContext.EndDraw();
 

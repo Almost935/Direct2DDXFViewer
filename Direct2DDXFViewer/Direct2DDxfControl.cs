@@ -49,8 +49,6 @@ namespace Direct2DDXFViewer
         private const float _zoomFactor = 1.3f;
         private const float _snappedThickness = 5;
         private const float _snappedOpacity = 0.35f;
-        private const int _loadedQuadTreesFactor = 1;
-        private const int _initializedQuadTreeFactor = 5;
 
         // Offscreen bitmap fields
         private BitmapRenderTarget _offscreenRenderTarget;
@@ -64,6 +62,7 @@ namespace Direct2DDXFViewer
         private Vector _distFromOffscreenBitmapUpdate = new();
         private Vector _maxDistFromOffscreenBitmapUpdate;
         private (float x, float y) _offscreenBitmapCenteringOffset;
+        private bool _updateOffscreenBitmapThreadRunning = false;
 
         // Zooming and panning matrices
         private RawMatrix3x2 _rawExtentsMatrix = new();
@@ -271,62 +270,58 @@ namespace Direct2DDXFViewer
             _currentView = new(0, 0, ActualWidth, ActualHeight);
         }
 
-        public override void Render(DeviceContext1 deviceContext)
+        public override void Render()
         {
             if (DxfDoc is not null)
             {
-                GetResources(deviceContext);
+                GetResources(d2DDeviceContext);
 
-                _offscreenRenderTarget ??= new(deviceContext, CompatibleRenderTargetOptions.None, new Size2F((float)ActualWidth * _offscreenBitmapSizeFactor,
+                _offscreenRenderTarget ??= new(d2DDeviceContext, CompatibleRenderTargetOptions.None, new Size2F((float)ActualWidth * _offscreenBitmapSizeFactor,
                     (float)ActualHeight * _offscreenBitmapSizeFactor));
-                _interactiveRenderTarget ??= new(deviceContext, CompatibleRenderTargetOptions.None, new Size2F((float)ActualWidth, (float)ActualHeight));
+                _interactiveRenderTarget ??= new(d2DDeviceContext, CompatibleRenderTargetOptions.None, new Size2F((float)ActualWidth, (float)ActualHeight));
 
                 if (!_dxfLoaded)
                 {
-                    LoadDxf(resCache.Factory, deviceContext, resCache);
+                    LoadDxf(resCache.Factory, d2DDeviceContext, resCache);
                     GetInitialView();
                     GetVisibleObjects();
 
-                    _maxDistFromOffscreenBitmapUpdate = new(((_offscreenRenderTarget.Size.Width / 2) - (deviceContext.Size.Width / 2)), ((_offscreenRenderTarget.Size.Height / 2) - (deviceContext.Size.Height / 2)));
+                    _maxDistFromOffscreenBitmapUpdate = new(((_offscreenRenderTarget.Size.Width / 2) - (d2DDeviceContext.Size.Width / 2)), ((_offscreenRenderTarget.Size.Height / 2) - (d2DDeviceContext.Size.Height / 2)));
                     _offscreenBitmapCenteringOffset = ((float)_maxDistFromOffscreenBitmapUpdate.X, (float)_maxDistFromOffscreenBitmapUpdate.Y);
 
-                    UpdateOffscreenRenderTarget(deviceContext);
-                    RunUpdateOffscreenRenderTargetAsync(deviceContext);
+                    UpdateOffscreenRenderTarget();
+
+                    if (!_updateOffscreenBitmapThreadRunning) { RunUpdateOffscreenRenderTargetAsync(); }
                 }
 
-                if (deviceContext is null) { return; }
-                if (deviceContext.IsDisposed) { return; }
+                if (d2DDeviceContext is null) { return; }
+                if (d2DDeviceContext.IsDisposed) { return; }
 
-                if (LayerManager is not null && deviceContext is not null && !deviceContext.IsDisposed && _deviceContextIsDirty)
+                if (LayerManager is not null && d2DDeviceContext is not null && !d2DDeviceContext.IsDisposed && _deviceContextIsDirty)
                 {
-                    if (_currentOffscreenBitmap is null) { UpdateOffscreenRenderTarget(deviceContext); }
+                    if (_currentOffscreenBitmap is null) { UpdateOffscreenRenderTarget(); }
 
-                    deviceContext.Clear(new RawColor4(1, 1, 1, 1));
+                    d2DDeviceContext.Clear(new RawColor4(1, 1, 1, 1));
 
-                    RenderOffscreenBitmap(deviceContext);
-                    //RenderLayersToDeviceContext(deviceContext);
-                    RenderInteractiveObjects(deviceContext, _interactiveRenderTarget);
+                    RenderOffscreenBitmap(d2DDeviceContext);
+                    RenderInteractiveObjects(d2DDeviceContext, _interactiveRenderTarget);
 
                     _deviceContextIsDirty = false;
                 }
             }
         }
 
-        private async Task RunUpdateOffscreenRenderTargetAsync(DeviceContext1 deviceContext)
+        private async Task RunUpdateOffscreenRenderTargetAsync()
         {
             while (true)
             {
-                await Task.Run(() => UpdateOffscreenRenderTarget(deviceContext));
+                await Task.Run(() => UpdateOffscreenRenderTarget());
                 await Task.Delay(100);
             }
         }
-        private void UpdateOffscreenRenderTarget(DeviceContext1 deviceContext)
+        private void UpdateOffscreenRenderTarget()
         {
-            Debug.WriteLine($"(_offscreenBitmapIsDirty: {_offscreenBitmapIsDirty} _offscreenRenderTarget.IsDisposed: {_offscreenRenderTarget.IsDisposed} _offscreenRenderTarget is null: {_offscreenRenderTarget is null} deviceContext.IsDisposed: {deviceContext.IsDisposed}");
-
-            if (deviceContext.IsDisposed) { }
-
-            if (_offscreenBitmapIsDirty && _offscreenRenderTarget is not null && !deviceContext.IsDisposed)
+            if (_offscreenBitmapIsDirty && _offscreenRenderTarget is not null && !_offscreenRenderTarget.IsDisposed)
             {
                 Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -478,7 +473,7 @@ namespace Direct2DDXFViewer
             stopwatch.Stop();
             Debug.WriteLine($"RenderLayerBitmaps Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
         }
-      
+
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {
@@ -500,7 +495,7 @@ namespace Direct2DDXFViewer
             _overallMatrix = ExtentsMatrix;
 
             _offscreenBitmapIsDirty = true;
-            UpdateOffscreenRenderTarget(resCache.DeviceContext);
+            UpdateOffscreenRenderTarget();
             _deviceContextIsDirty = true;
         }
         protected override void OnMouseWheel(MouseWheelEventArgs e)
