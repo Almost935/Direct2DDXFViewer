@@ -40,8 +40,7 @@ namespace Direct2DDXFViewer.DrawingObjects
             if (Layers.TryGetValue(dxfLayer.Name, out ObjectLayer layer)) { return layer; }
             else
             {
-                var brush = _resourceCache.GetBrush(dxfLayer.Color.R, dxfLayer.Color.G, dxfLayer.Color.B, 255);
-                ObjectLayer objectLayer = new(_deviceContext, _factory, _resourceCache, dxfLayer.Name, brush);
+                ObjectLayer objectLayer = new(_deviceContext, _factory, _resourceCache, dxfLayer);
                 Layers.Add(dxfLayer.Name, objectLayer);
                 return objectLayer;
             }

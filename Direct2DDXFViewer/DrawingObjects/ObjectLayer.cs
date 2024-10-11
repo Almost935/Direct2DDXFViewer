@@ -16,7 +16,7 @@ namespace Direct2DDXFViewer.DrawingObjects
     public class ObjectLayer : INotifyPropertyChanged, IDisposable
     {
         #region Fields
-        private readonly DeviceContext1 _deviceContext;
+        private DeviceContext1 _deviceContext;
         private readonly Factory1 _factory;
         private readonly ResourceCache _resourceCache;
         private string _name;
@@ -61,17 +61,19 @@ namespace Direct2DDXFViewer.DrawingObjects
         public Dictionary<int, List<(List<GeometryRealization> geometryRealizations, Brush brush)>> GeometryRealizations { get; set; } = [];
         public Brush LayerBrush { get; set; }
         public StrokeStyle1 HairlineStrokeStyle { get; set; }
+        public netDxf.Tables.Layer DxfLayer { get; set; }
         #endregion
 
         #region Constructors
-        public ObjectLayer(DeviceContext1 deviceContext, Factory1 factory, ResourceCache resCache, string name, Brush layerBrush)
+        public ObjectLayer(DeviceContext1 deviceContext, Factory1 factory, ResourceCache resCache, netDxf.Tables.Layer layer)
         {
             _deviceContext = deviceContext;
             _factory = factory;
             _resourceCache = resCache;
-            Name = name;
-            LayerBrush = layerBrush;
+            Name = layer.Name;
+            DxfLayer = layer;
 
+            GetLayerBrush();
             GetLayerStrokeStyle();
         }
         #endregion
@@ -200,6 +202,13 @@ namespace Direct2DDXFViewer.DrawingObjects
             }
         }
 
+
+        public void UpdateDeviceDependentResources(DeviceContext1 deviceContext)
+        {
+            _deviceContext = deviceContext;
+            GetLayerBrush();
+        }
+
         public void GetLayerStrokeStyle()
         {
             bool hairlineStrokeStyleExists = _resourceCache.StrokeStyles.TryGetValue(ResourceCache.LineType.Solid_Hairline, value: out StrokeStyle1 hairlineStrokeStyle);
@@ -223,6 +232,12 @@ namespace Direct2DDXFViewer.DrawingObjects
             {
                 HairlineStrokeStyle = hairlineStrokeStyle;
             }
+        }
+
+        public void GetLayerBrush()
+        {
+            LayerBrush?.Dispose();
+            LayerBrush = _resourceCache.GetBrush(DxfLayer.Color.R, DxfLayer.Color.G, DxfLayer.Color.B, 255);
         }
 
         public void Dispose()

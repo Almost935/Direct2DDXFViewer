@@ -71,7 +71,6 @@ namespace Direct2DDXFViewer
         private Matrix _overallMatrix = new();
 
         private bool _isPanning = false;
-        private bool _isAsyncRendering = false;
         private bool _deviceContextIsDirty = true;
         private Point _lastTranslatePos = new();
         private bool _dxfLoaded = false;
@@ -90,7 +89,6 @@ namespace Direct2DDXFViewer
         // Layer bitmap rendering test fields
         private Dictionary<int, List<Bitmap>> _layerBitmaps = [];
         private const int initialBitmapLoad = 2;
-        private (Bitmap bitmap, int zoomStep) _currentOverallBitmapTup;
         private bool _layerBitmapsDirty = true;
         private bool _currentOverallBitmapDirty = true;
 
@@ -299,12 +297,12 @@ namespace Direct2DDXFViewer
                 if (deviceContext is null) { return; }
                 if (deviceContext.IsDisposed) { return; }
 
-                if (LayerManager is not null && deviceContext is not null && _deviceContextIsDirty)
+                if (LayerManager is not null && deviceContext is not null && !deviceContext.IsDisposed && _deviceContextIsDirty)
                 {
-
-                    if (_currentOffscreenBitmap is null) { return; }
+                    if (_currentOffscreenBitmap is null) { UpdateOffscreenRenderTarget(deviceContext); }
 
                     deviceContext.Clear(new RawColor4(1, 1, 1, 1));
+
                     RenderOffscreenBitmap(deviceContext);
                     RenderInteractiveObjects(deviceContext, _interactiveRenderTarget);
 
@@ -325,16 +323,15 @@ namespace Direct2DDXFViewer
         //}
         private async Task RunUpdateOffscreenRenderTargetAsync(DeviceContext1 deviceContext)
         {
-            while (_isAsyncRendering)
+            while (true)
             {
-
                 await Task.Run(() => UpdateOffscreenRenderTarget(deviceContext));
                 await Task.Delay(100);
             }
         }
         private void UpdateOffscreenRenderTarget(DeviceContext1 deviceContext)
         {
-            if (_offscreenBitmapIsDirty)
+            if (_offscreenBitmapIsDirty && _offscreenRenderTarget is not null && !deviceContext.IsDisposed)
             {
                 Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -423,6 +420,8 @@ namespace Direct2DDXFViewer
             RawRectangleF sourceRect = new(0 + sourceRectOffset.X, 0 + sourceRectOffset.Y, _currentOffscreenBitmap.Bitmap.Size.Width + sourceRectOffset.X, _currentOffscreenBitmap.Bitmap.Size.Height + sourceRectOffset.Y);
 
             deviceContext.DrawBitmap(_currentOffscreenBitmap.Bitmap, 1.0f, BitmapInterpolationMode.Linear, sourceRect);
+
+            //Debug.WriteLine($"_currentOffscreenBitmap.ZoomStep: {_currentOffscreenBitmap.ZoomStep}");
 
             stopwatch.Stop();
             //Debug.WriteLine($"RenderOffscreenBitmap Elapsed Time: {stopwatch.ElapsedMilliseconds} ms");
@@ -526,14 +525,15 @@ namespace Direct2DDXFViewer
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {
-            _isAsyncRendering = false;
-
             base.OnRenderSizeChanged(sizeInfo);
 
             UpdateDeviceContext(resCache.DeviceContext);
 
             _offscreenRenderTarget?.Dispose();
             _offscreenRenderTarget = null;
+            _currentOffscreenBitmap?.Dispose();
+            _currentOffscreenBitmap = null;
+
             _highlightedBrush?.Dispose();
             _highlightedBrush = null;
             _highlightedOuterEdgeBrush?.Dispose();
@@ -541,6 +541,10 @@ namespace Direct2DDXFViewer
 
             ExtentsMatrix = GetInitialMatrix();
             _overallMatrix = ExtentsMatrix;
+
+            _offscreenBitmapIsDirty = true;
+            UpdateOffscreenRenderTarget(resCache.DeviceContext);
+            _deviceContextIsDirty = true;
         }
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
@@ -820,6 +824,7 @@ namespace Direct2DDXFViewer
                 {
                     o.UpdateDeviceContext(deviceContext);
                 }
+                layer.UpdateDeviceDependentResources(deviceContext);
             }
         }
         public void ZoomToExtents()

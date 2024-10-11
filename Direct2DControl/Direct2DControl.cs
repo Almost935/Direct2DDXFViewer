@@ -118,7 +118,7 @@ namespace Direct2DControl
             EndD3D();
         }
 
-        private async void OnRendering(object sender, EventArgs e)
+        private void OnRendering(object sender, EventArgs e)
         {
             if (!renderTimer.IsRunning)
             {
@@ -132,12 +132,12 @@ namespace Direct2DControl
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {
-            StopRendering();
+            //StopRendering();
 
             CreateAndBindTargets();
             base.OnRenderSizeChanged(sizeInfo);
 
-            StartRendering();
+            //StartRendering();
         }
 
         private void OnIsFrontBufferAvailableChanged(object sender, DependencyPropertyChangedEventArgs e)
