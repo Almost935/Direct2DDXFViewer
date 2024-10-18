@@ -27,7 +27,7 @@ namespace Direct2DDXFViewer
     public partial class Direct2DDxfViewer : UserControl, INotifyPropertyChanged
     {
         #region Fields
-        private string _dxfFilePath = @"DXF\LargeDxf.dxf";
+        private string dxfDocument;
 
         private Point _dxfPointerCoords = new();
         private Point _pointerCoords = new();
@@ -69,7 +69,6 @@ namespace Direct2DDXFViewer
         {
             InitializeComponent();
 
-            LoadDxfControl();
             dxfControl.PropertyChanged += DxfControl_PropertyChanged;
         }
         #endregion
@@ -79,10 +78,9 @@ namespace Direct2DDXFViewer
         #endregion
 
         #region Methods
-        private void LoadDxfControl()
+        public void LoadDxfControl(DxfDocument dxfDocument)
         {
-            DxfDocument dxfDoc = DxfDocument.Load(_dxfFilePath);
-            if (dxfDoc is not null) { dxfControl.Initialize(dxfDoc); }
+            if (dxfDocument is not null) { dxfControl.Initialize(dxfDocument); }
         }
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
