@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using netDxf;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -16,9 +17,18 @@ namespace Direct2DDXFViewer
     /// </summary>
     public partial class MainWindow : Window
     {
+        private string dxfFilePath = @"C:\Users\Tim\source\repos\Direct2DDXFViewer\Direct2DDXFViewer\bin\Debug\net8.0-windows\DXF\SmallDxf.dxf";
+        private string dxfDocument;
+
         public MainWindow()
         {
             InitializeComponent();
+
+            DxfDocument dxfDoc = DxfDocument.Load(dxfFilePath);
+            if (dxfDoc is not null)
+            {
+                dxfViewer.LoadDxfControl(dxfDoc);
+            }
         }
 
         private void mainWindow_Loaded(object sender, RoutedEventArgs e)

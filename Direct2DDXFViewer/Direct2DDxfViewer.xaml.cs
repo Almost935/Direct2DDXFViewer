@@ -27,8 +27,6 @@ namespace Direct2DDXFViewer
     public partial class Direct2DDxfViewer : UserControl, INotifyPropertyChanged
     {
         #region Fields
-        private string dxfDocument;
-
         private Point _dxfPointerCoords = new();
         private Point _pointerCoords = new();
         private int _currentZoomStep;
